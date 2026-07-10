@@ -1,87 +1,70 @@
 # Princess Project — Progress Notes
 
-Full task plan lives at: `/Users/kimhyeyoon/.claude/plans/compressed-swimming-patterson.md`
+## Repo layout
 
-**Renamed**: project directory moved from `/Users/kimhyeyoon/demo` to
-`/Users/kimhyeyoon/Princess_Project`; Java package renamed
-`com.example.demo` → `com.example.princessproject`; main class
-`DemoApplication` → `PrincessProjectApplication`; Gradle `rootProject.name`
-and `spring.application.name` updated to match. `group = 'com.example'` in
-`build.gradle` was left as-is (unrelated to the "demo" name).
+- `backend/` — Spring Boot (this directory)
+- `frontend/` — React + Vite + TS
+- `docs/` — `API_SPEC.md` (Notion-friendly tables), `ERD.md` + `schema.dbml` (dbdiagram.io), `DEPLOYMENT.md` (Vercel + Railway)
 
-## Status: MVP backend + JWT + S3 upload + Weekly report — ALL DONE and verified
+## Done (previous pass)
 
-Everything below is built, compiles, and passes tests (`./gradlew build` — 16 tests, 0 failures):
+- Split the original single-folder Spring Boot project into `backend/` + `frontend/`, removed the old static HTML/JS prototype in favor of a real React app (login/onboarding → today's record input → dashboard).
+- Backend reorganized from layer-based (`domain/repository/service/web`) to **feature-based** packages: `auth/`, `user/`, `goal/`, `mission/`, `record/`, `aifeedback/`, `vision/`, `upload/`, `common/`, each with its own `model/repository/service/dto/controller`.
+- Split `User`↔`UserGoal` into a proper 1:1 (was embedded fields on `User`).
+- CORS wired for a separate frontend origin; `S3FileStorageClient` supports a custom endpoint + proxies reads through `GET /api/uploads/{key}` (needed for Railway Buckets, which are private by default, unlike public AWS S3 URLs).
+- Deployment scaffolding: `backend/Dockerfile` (JDK 21), env-driven `server.port`/DB host-port-name for Railway, `frontend/vercel.json` SPA rewrites.
+- Fixed a real pre-existing bug found during verification: `VisionAnalysisService`'s constructor couldn't be autowired (plain `String` params, no `@Value`), which crashed the **entire app** at startup, not just the vision feature.
 
-### MVP backend
-- Spring Boot 4.1.0, Java 21 toolchain (JDK 17 is **not installed** on this machine — `build.gradle`'s
-  toolchain uses 21, a JDK that is installed and fully compatible).
-- MySQL as the real datasource (`application.properties`), H2 in-memory for the `test` Spring
-  profile (`src/test/resources/application-test.properties`) so `./gradlew test` needs no real DB.
-- Domain: `User`, `UserStatFocus`, `MissionDefinition`, `DailyRecord`, `DailyStatScore`,
-  `DailyScore`, `AiFeedback` (package `com.example.princessproject.domain`).
-- `ScoringService` (pure, unit-tested) computes mission/stat/total scores; backend always
-  computes scores, AI only narrates them (`service/ai/AiFeedbackContext` is the only data AI
-  ever sees). 5 fixed MVP missions seeded on startup via `config/MissionSeeder`.
-- AI feedback behind an interface (`service/ai/AiFeedbackClient`): `MockAiFeedbackClient`
-  active when `openai.api.key` is empty (default), `OpenAiFeedbackClient` (GPT-4o mini via
-  `RestClient`) activates once `OPENAI_API_KEY` is set.
+## In progress — hierarchical schema migration (NOT runnable right now)
 
-### JWT login (Phase 1)
-- `POST /api/auth/login {nickname}` → no password, issues an HS256 JWT
-  (`service/auth/JwtService`) whose subject is the userId. `service/auth/JwtAuthenticationFilter`
-  reads `Authorization: Bearer <token>` and sets the userId as the authenticated principal.
-- `config/SecurityConfig`: stateless, CSRF disabled, static resources + `/api/auth/login`
-  public, everything else under `/api/**` requires a valid token. Custom `HttpStatusEntryPoint`
-  ensures **no token → 401**, **wrong user's data → 403** (Spring Security's default would
-  return 403 for both, which was fixed here).
-- `@PreAuthorize("#userId == authentication.principal")` (or `#request.userId()` where userId
-  is in the body) on every user-scoped endpoint: `UserController`, `DailyRecordController`,
-  `WeeklyReportController`.
-- The old unauthenticated `POST /api/users` was removed — `/api/auth/login` replaces it.
-- Frontend (`static/app.js`, `index.html`) stores the token in `localStorage` and attaches it
-  as a bearer header on every API call.
+The user hand-designed a much richer MySQL schema directly (10 tables) to replace the flat MVP model:
 
-### S3 photo upload (Phase 2)
-- `service/storage/FileStorageClient` interface, mirroring the AI mock/real split:
-  `LocalFileStorageClient` (default, saves to `./uploads/`, served at `/uploads/**` via
-  `config/WebMvcConfig`) and `S3FileStorageClient` (activates once `aws.s3.bucket` is
-  non-empty; credentials come from the default AWS provider chain, never hardcoded).
-- `POST /api/uploads` (multipart, field `file`) → `{url}`. `today.html`'s photo field is now
-  a real `<input type="file">`; on save it uploads first, then includes the returned URL in
-  the `/api/records` call.
-- **Note**: both the app and the test suite resolve `./uploads` relative to the process's
-  working directory. Running `./gradlew test`/`bootRun` from the project root leaves stray
-  files there — `uploads/` is gitignored, but you may want to `rm -rf uploads/` after a test
-  run in this environment (no CI to isolate it).
+```
+User → UserProject (goalHuman/goalEnding/status; one auto-created "active" project per user for now)
+     → UserGoal   (habitus/자본 selection: which of the 7 fixed goal_types + weight%)
+     → UserStat   (behavior-category selection under a chosen habitus, e.g. 신체→운동/식단)
+     → UserMission (from the mission_definitions catalog, or custom)
+     → DailyRecord (per-mission-per-day input, with snapshotted target/points + computed
+                    achievement_rate/earned_score at record time — no more materialized
+                    DailyScore/DailyStatScore aggregate tables; aggregation is computed live)
+```
 
-### Weekly report (Phase 3)
-- `GET /api/users/{userId}/weekly-report?weekStart=yyyy-MM-dd` aggregates a 7-day window into
-  total score, average progress (missing days count as 0 progress, denominator is always 7),
-  per-stat totals, per-mission completion counts, and a day-by-day breakdown.
-- `service/WeeklyReportService.aggregate(...)` is a pure method (like `ScoringService`) that
-  takes plain entity lists, not repositories — `WeeklyReportServiceTest` unit-tests it with
-  hand-built entities and no DB. `getWeeklyReport(...)` does the repository lookups and calls
-  `aggregate(...)`. `WeeklyReportFlowIT` verifies the actual date-range repository queries
-  over real HTTP.
-- No frontend page for this yet (user chose backend-only for this feature in this pass).
+Full plan: `/Users/kimhyeyoon/.claude/plans/eventual-wibbling-river.md`
 
-## Gotchas discovered while building (Spring Boot 4 / Spring Framework 7 are new-ish)
-- Jackson moved to Jackson 3: use `tools.jackson.databind.ObjectMapper` /
-  `tools.jackson.databind.JsonNode`, **not** `com.fasterxml.jackson.databind.*`.
-  `JsonNode.asText()` is deprecated — use `asString()`.
-- `TestRestTemplate` is **gone** in Spring Boot 4. Use
-  `org.springframework.test.web.servlet.client.RestTestClient` instead:
-  `RestTestClient.bindToServer().baseUrl("http://localhost:" + port).build()`, then
-  `.get()/.post()/.put()...uri(...).header(...)... .body(...).exchange().expectStatus().isOk().expectBody(Class)`.
-  For multipart, `.body(MultiValueMap<String,Object>)` with a `ByteArrayResource` part and
-  `.contentType(MediaType.MULTIPART_FORM_DATA)` works the same way it does with `RestTemplate`.
-- Spring Security's default `AuthenticationEntryPoint` (when none is configured) returns 403
-  for *any* denial, including "no credentials at all" — register an explicit
-  `HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)` if you want conventional 401-vs-403 semantics.
+**Status**: only Phase 0 is done —
+- `backend/src/main/resources/db/schema.sql` holds the canonical DDL for all 10 tables (applied
+  to the local `princess_project` MySQL DB). One fix was needed vs. the original paste: MySQL
+  8.0.16+/9.x rejects `ON UPDATE CASCADE` on a FK column that's also referenced by a `CHECK`
+  constraint (`fk_user_missions_definition` → changed to `ON UPDATE RESTRICT`).
+- `application.properties`: `spring.jpa.hibernate.ddl-auto` switched from `update` to `validate`
+  — **this SQL file is now the schema's source of truth**; Hibernate no longer auto-migrates the
+  real MySQL DB (the H2 test profile is untouched, still `create-drop`).
 
-## Not started / possible next steps (not requested yet)
-- No frontend page for the weekly report.
-- No Next.js/MariaDB migration (user explicitly deferred this — current stack stays Spring
-  Boot + MySQL + static HTML/JS frontend).
-- No password-based auth (JWT is nickname-only by explicit user choice).
+**Not done yet** (Phases 1–4 of the plan) — because these aren't done, the app **will not boot**
+against the current DB: the Java entities (`User`, old `goal`/`mission` packages, `DailyRecord`,
+`DailyScore`, `DailyStatScore`, `AiFeedback`) still reflect the *old* flat schema, which no longer
+exists (the old tables were dropped when `schema.sql` recreated the database). Still to build:
+- `catalog/` package (replaces `mission/`): `GoalType`/`StatType`/`MissionDefinition` entities +
+  `CatalogSeeder` (7 habitus × behavior categories × missions — content drafted in the plan file)
+  + `GET /api/catalog` (nested tree).
+- `project/` package (replaces `goal/`, absorbs old `user/` stat-focus): `UserProject`/`UserGoal`/
+  `UserStat`/`UserMission` + `GET /api/projects/active` + `PUT /api/projects/active/selections`
+  (bulk replace of the whole goals→stats→missions tree in one call).
+- `record/` rewrite: `DailyRecord` gains snapshot fields (`BigDecimal`, matching the DDL's
+  `DECIMAL` columns — not `Double`), `DailyScore`/`DailyStatScore` entities deleted, daily/weekly
+  aggregation computed live from `daily_records` instead of read from a materialized table.
+  `RecordRequest` takes `userMissionId`, not a flat `missionId`.
+- `aifeedback/` update: add `project` FK + `feedbackType` enum, drop the `prompt` column (not in
+  the new DDL).
+- Delete old `goal/` and `mission/` packages entirely; trim `user/` (no more embedded
+  `goal`/`statFocus`).
+- Frontend rewire: onboarding wizard (habitus % → behavior categories → missions) replacing the
+  old flat stat-focus screen; record screen keys off `userMissionId`; `types.ts`/`endpoints.ts`
+  updated for the new shapes.
+
+## Local dev notes
+
+- MySQL (Homebrew) root password was reset to empty to match `application.properties` defaults
+  (`DB_USERNAME=root`, `DB_PASSWORD=` empty) — standard `--skip-grant-tables` procedure, done
+  because the previous root password was unknown/forgotten.
+- `princess_project` DB currently has all 10 tables, all empty (no seed/user data yet).
