@@ -1,0 +1,119 @@
+// Princess Project — DBML
+// dbdiagram.io 에 그대로 붙여넣어 편집하세요.
+// users / user_goals 는 1:1로 분리되어 있습니다 (User.java / UserGoal.java 참고).
+
+Enum stat_type {
+  PHYSICAL
+  ECONOMY
+  CULTURE
+  KNOWLEDGE
+  LANGUAGE
+  PSYCHOLOGY
+  SYMBOL
+}
+
+Enum mission_type {
+  DAILY
+  WEEKLY
+  TOTAL
+}
+
+Table users {
+  id bigint [primary key]
+  nickname varchar [note: '로그인 식별자. 현재 코드엔 DB unique 제약 없음 — 권장']
+  created_at datetime
+}
+
+Table user_goals {
+  id bigint [primary key]
+  user_id bigint [not null, note: '1:1, users.id']
+  goal_human varchar [note: '이상적인 나의 모습']
+  goal_ending varchar [note: '행동양식 설명']
+}
+
+Table user_stat_focus {
+  id bigint [primary key]
+  user_id bigint [not null]
+  stat_type stat_type
+  weight_percent int [note: '0~100']
+}
+
+Table mission_definitions {
+  id bigint [primary key]
+  name varchar
+  mission_type mission_type
+  stat_type stat_type
+  assigned_points int
+  target_value double
+  unit varchar
+  common boolean [note: 'true면 사용자 스탯 비중과 무관하게 항상 정식 점수 반영']
+}
+
+Table daily_records {
+  id bigint [primary key]
+  user_id bigint [not null]
+  mission_id bigint [not null]
+  date date
+  input_value double [note: '예: 독서 15분 -> 15']
+  photo_url varchar
+  memo varchar
+  created_at datetime
+
+  indexes {
+    (user_id, mission_id, date) [unique, note: '권장 — 현재는 애플리케이션 upsert 로직으로만 보장']
+  }
+}
+
+Table daily_scores {
+  id bigint [primary key]
+  user_id bigint [not null]
+  date date
+  mission_score double [note: '현재 MVP는 아래 3개 필드와 항상 동일값']
+  behavior_score double
+  stat_score double
+  bonus_score double [note: 'focus 밖 스탯의 점수 (progress 미반영)']
+  total_score double
+  progress_percent double
+
+  indexes {
+    (user_id, date) [unique, note: '권장']
+  }
+}
+
+Table daily_stat_scores {
+  id bigint [primary key]
+  user_id bigint [not null]
+  date date
+  stat_type stat_type
+  score double
+
+  indexes {
+    (user_id, date, stat_type) [unique, note: '권장']
+  }
+}
+
+Table ai_feedbacks {
+  id bigint [primary key]
+  user_id bigint [not null]
+  date date
+  prompt text [note: 'max 4000자']
+  summary text [note: 'max 2000자']
+  praise text [note: 'max 2000자']
+  improvement text [note: 'max 2000자']
+  tomorrow text [note: 'max 2000자']
+  cheer text [note: 'max 2000자']
+  model varchar [note: '생성에 사용된 AI 모델명']
+  created_at datetime
+
+  indexes {
+    (user_id, date) [unique, note: '권장']
+  }
+}
+
+Ref: user_goals.user_id - users.id
+Ref: user_stat_focus.user_id > users.id
+Ref: daily_records.user_id > users.id
+Ref: daily_records.mission_id > mission_definitions.id
+Ref: daily_scores.user_id > users.id
+Ref: daily_stat_scores.user_id > users.id
+Ref: ai_feedbacks.user_id > users.id
