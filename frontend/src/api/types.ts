@@ -83,7 +83,7 @@ export interface ProjectMission {
 
 export interface ProjectStat {
   id: number;
-  statTypeId: number;
+  statTypeId: number | null;
   name: string;
   weightPercent: number | null;
   missions: ProjectMission[];
@@ -118,7 +118,7 @@ export interface MissionSelectionInput {
 }
 
 export interface StatSelectionInput {
-  statTypeId: number;
+  statTypeId?: number;
   weightPercent?: number;
   customStatName?: string;
   missions: MissionSelectionInput[];

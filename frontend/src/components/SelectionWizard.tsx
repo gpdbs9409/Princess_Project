@@ -14,6 +14,8 @@ const MISSION_TYPE_LABELS: Record<MissionType, string> = {
   TOTAL: "전체 기간",
 };
 
+const CUSTOM_STAT_NAME = "나만의 미션";
+
 interface MissionState {
   missionDefinitionId: number;
   name: string;
@@ -38,7 +40,11 @@ interface StatState {
   name: string;
   selected: boolean;
   missions: MissionState[];
-  customMissions: CustomMissionState[];
+}
+
+interface CustomStatState {
+  selected: boolean;
+  missions: CustomMissionState[];
 }
 
 interface GoalState {
@@ -47,6 +53,7 @@ interface GoalState {
   selected: boolean;
   weightPercent: number;
   stats: StatState[];
+  customStat: CustomStatState;
 }
 
 let customMissionKeySeq = 0;
@@ -55,9 +62,15 @@ function nextCustomMissionKey(): string {
   return `custom-${customMissionKeySeq}`;
 }
 
+function blankCustomMission(): CustomMissionState {
+  return { key: nextCustomMissionKey(), name: "", targetValue: 1, unit: "회", assignedPoints: 10, missionType: "DAILY" };
+}
+
 function buildInitialState(catalog: CatalogGoal[], project?: ProjectResponse): GoalState[] {
   return catalog.map((goal) => {
     const existingGoal = project?.goals.find((g) => g.goalTypeCode === goal.code);
+    const existingCustomStat = existingGoal?.stats.find((s) => s.statTypeId === null);
+
     return {
       goalTypeCode: goal.code,
       name: goal.name,
@@ -81,18 +94,19 @@ function buildInitialState(catalog: CatalogGoal[], project?: ProjectResponse): G
               missionType: existingMission?.missionType ?? "DAILY",
             };
           }),
-          customMissions: (existingStat?.missions ?? [])
-            .filter((m) => m.missionDefinitionId === null)
-            .map((m) => ({
-              key: nextCustomMissionKey(),
-              name: m.name,
-              targetValue: m.targetValue,
-              unit: m.unit,
-              assignedPoints: m.assignedPoints,
-              missionType: m.missionType,
-            })),
         };
       }),
+      customStat: {
+        selected: !!existingCustomStat,
+        missions: (existingCustomStat?.missions ?? []).map((m) => ({
+          key: nextCustomMissionKey(),
+          name: m.name,
+          targetValue: m.targetValue,
+          unit: m.unit,
+          assignedPoints: m.assignedPoints,
+          missionType: m.missionType,
+        })),
+      },
     };
   });
 }
@@ -111,24 +125,23 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const updateGoal = (goalTypeCode: GoalTypeCode, update: (g: GoalState) => GoalState) => {
+    setGoals((prev) => prev.map((g) => (g.goalTypeCode === goalTypeCode ? update(g) : g)));
+  };
+
   const updateStat = (goalTypeCode: GoalTypeCode, statTypeId: number, update: (s: StatState) => StatState) => {
-    setGoals((prev) =>
-      prev.map((g) =>
-        g.goalTypeCode !== goalTypeCode
-          ? g
-          : { ...g, stats: g.stats.map((s) => (s.statTypeId === statTypeId ? update(s) : s)) }
-      )
-    );
+    updateGoal(goalTypeCode, (g) => ({
+      ...g,
+      stats: g.stats.map((s) => (s.statTypeId === statTypeId ? update(s) : s)),
+    }));
   };
 
   const toggleGoal = (goalTypeCode: GoalTypeCode) => {
-    setGoals((prev) =>
-      prev.map((g) => (g.goalTypeCode === goalTypeCode ? { ...g, selected: !g.selected } : g))
-    );
+    updateGoal(goalTypeCode, (g) => ({ ...g, selected: !g.selected }));
   };
 
   const updateGoalWeight = (goalTypeCode: GoalTypeCode, weightPercent: number) => {
-    setGoals((prev) => prev.map((g) => (g.goalTypeCode === goalTypeCode ? { ...g, weightPercent } : g)));
+    updateGoal(goalTypeCode, (g) => ({ ...g, weightPercent }));
   };
 
   const toggleStat = (goalTypeCode: GoalTypeCode, statTypeId: number) => {
@@ -158,32 +171,35 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
     }));
   };
 
-  const addCustomMission = (goalTypeCode: GoalTypeCode, statTypeId: number) => {
-    updateStat(goalTypeCode, statTypeId, (s) => ({
-      ...s,
-      customMissions: [
-        ...s.customMissions,
-        { key: nextCustomMissionKey(), name: "", targetValue: 1, unit: "회", assignedPoints: 10, missionType: "DAILY" },
-      ],
+  const toggleCustomStat = (goalTypeCode: GoalTypeCode) => {
+    updateGoal(goalTypeCode, (g) => {
+      const selected = !g.customStat.selected;
+      const missions = selected && g.customStat.missions.length === 0 ? [blankCustomMission()] : g.customStat.missions;
+      return { ...g, customStat: { selected, missions } };
+    });
+  };
+
+  const addCustomMission = (goalTypeCode: GoalTypeCode) => {
+    updateGoal(goalTypeCode, (g) => ({
+      ...g,
+      customStat: { ...g.customStat, missions: [...g.customStat.missions, blankCustomMission()] },
     }));
   };
 
-  const removeCustomMission = (goalTypeCode: GoalTypeCode, statTypeId: number, key: string) => {
-    updateStat(goalTypeCode, statTypeId, (s) => ({
-      ...s,
-      customMissions: s.customMissions.filter((m) => m.key !== key),
+  const removeCustomMission = (goalTypeCode: GoalTypeCode, key: string) => {
+    updateGoal(goalTypeCode, (g) => ({
+      ...g,
+      customStat: { ...g.customStat, missions: g.customStat.missions.filter((m) => m.key !== key) },
     }));
   };
 
-  const updateCustomMission = (
-    goalTypeCode: GoalTypeCode,
-    statTypeId: number,
-    key: string,
-    patch: Partial<CustomMissionState>
-  ) => {
-    updateStat(goalTypeCode, statTypeId, (s) => ({
-      ...s,
-      customMissions: s.customMissions.map((m) => (m.key === key ? { ...m, ...patch } : m)),
+  const updateCustomMission = (goalTypeCode: GoalTypeCode, key: string, patch: Partial<CustomMissionState>) => {
+    updateGoal(goalTypeCode, (g) => ({
+      ...g,
+      customStat: {
+        ...g.customStat,
+        missions: g.customStat.missions.map((m) => (m.key === key ? { ...m, ...patch } : m)),
+      },
     }));
   };
 
@@ -191,36 +207,42 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
     e.preventDefault();
     const selectedGoals = goals
       .filter((g) => g.selected)
-      .map((g) => ({
-        goalTypeCode: g.goalTypeCode,
-        weightPercent: g.weightPercent,
-        stats: g.stats
+      .map((g) => {
+        const catalogStats = g.stats
           .filter((s) => s.selected)
           .map((s) => ({
             statTypeId: s.statTypeId,
-            missions: [
-              ...s.missions
-                .filter((m) => m.selected)
-                .map((m) => ({
-                  missionDefinitionId: m.missionDefinitionId,
-                  targetValue: m.targetValue,
-                  unit: m.unit,
-                  assignedPoints: m.assignedPoints,
-                  missionType: m.missionType,
-                })),
-              ...s.customMissions
-                .filter((m) => m.name.trim().length > 0)
-                .map((m) => ({
-                  customName: m.name.trim(),
-                  targetValue: m.targetValue,
-                  unit: m.unit,
-                  assignedPoints: m.assignedPoints,
-                  missionType: m.missionType,
-                })),
-            ],
+            missions: s.missions
+              .filter((m) => m.selected)
+              .map((m) => ({
+                missionDefinitionId: m.missionDefinitionId,
+                targetValue: m.targetValue,
+                unit: m.unit,
+                assignedPoints: m.assignedPoints,
+                missionType: m.missionType,
+              })),
           }))
-          .filter((s) => s.missions.length > 0),
-      }))
+          .filter((s) => s.missions.length > 0);
+
+        const customMissions = g.customStat.selected
+          ? g.customStat.missions
+              .filter((m) => m.name.trim().length > 0)
+              .map((m) => ({
+                customName: m.name.trim(),
+                targetValue: m.targetValue,
+                unit: m.unit,
+                assignedPoints: m.assignedPoints,
+                missionType: m.missionType,
+              }))
+          : [];
+
+        const stats = [
+          ...catalogStats,
+          ...(customMissions.length > 0 ? [{ customStatName: CUSTOM_STAT_NAME, missions: customMissions }] : []),
+        ];
+
+        return { goalTypeCode: g.goalTypeCode, weightPercent: g.weightPercent, stats };
+      })
       .filter((g) => g.stats.length > 0);
 
     if (selectedGoals.length === 0) {
@@ -254,7 +276,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
 
       <p className="muted">
         키우고 싶은 습관자본을 고르고 비중(%)을 입력한 뒤, 그 안에서 행동양식과 구체적인 미션(독서/운동 등)을 선택하세요.
-        미션마다 매일/매주 중 인증 주기를 고를 수 있고, 목록에 없는 나만의 미션도 직접 추가할 수 있어요.
+        목록에 없는 행동양식은 "나만의 미션" 항목을 체크해서 직접 추가하세요.
       </p>
 
       {goals.map((goal) => (
@@ -333,71 +355,80 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                           )}
                         </div>
                       ))}
-
-                      {stat.customMissions.map((mission) => (
-                        <div key={mission.key} className="row" style={{ gap: 4, fontSize: 13 }}>
-                          <input
-                            type="text"
-                            placeholder="나만의 미션 이름"
-                            value={mission.name}
-                            onChange={(e) =>
-                              updateCustomMission(goal.goalTypeCode, stat.statTypeId, mission.key, { name: e.target.value })
-                            }
-                            style={{ flex: 1 }}
-                          />
-                          <select
-                            value={mission.missionType}
-                            onChange={(e) =>
-                              updateCustomMission(goal.goalTypeCode, stat.statTypeId, mission.key, {
-                                missionType: e.target.value as MissionType,
-                              })
-                            }
-                            style={{ fontSize: 12, padding: "4px 6px" }}
-                          >
-                            <option value="DAILY">{MISSION_TYPE_LABELS.DAILY}</option>
-                            <option value="WEEKLY">{MISSION_TYPE_LABELS.WEEKLY}</option>
-                          </select>
-                          <input
-                            type="number"
-                            value={mission.targetValue}
-                            onChange={(e) =>
-                              updateCustomMission(goal.goalTypeCode, stat.statTypeId, mission.key, {
-                                targetValue: Number(e.target.value) || 0,
-                              })
-                            }
-                            style={{ maxWidth: 60 }}
-                          />
-                          <input
-                            type="text"
-                            value={mission.unit}
-                            onChange={(e) =>
-                              updateCustomMission(goal.goalTypeCode, stat.statTypeId, mission.key, { unit: e.target.value })
-                            }
-                            style={{ maxWidth: 50 }}
-                          />
-                          <button
-                            type="button"
-                            className="ghost"
-                            style={{ padding: "4px 8px" }}
-                            onClick={() => removeCustomMission(goal.goalTypeCode, stat.statTypeId, mission.key)}
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      ))}
-
-                      <button
-                        type="button"
-                        className="ghost"
-                        style={{ alignSelf: "flex-start", padding: "4px 10px", fontSize: 12 }}
-                        onClick={() => addCustomMission(goal.goalTypeCode, stat.statTypeId)}
-                      >
-                        + 나만의 미션 추가
-                      </button>
                     </div>
                   )}
                 </div>
               ))}
+
+              {/* "나만의 미션" sits as its own checklist row, a sibling of the catalog stats
+                  above (신체 -> 운동/식단/수면/나만의 미션), not nested inside any one of them. */}
+              <div>
+                <label className="row" style={{ gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={goal.customStat.selected}
+                    onChange={() => toggleCustomStat(goal.goalTypeCode)}
+                  />
+                  <span style={{ fontSize: 13.5 }}>{CUSTOM_STAT_NAME}</span>
+                </label>
+
+                {goal.customStat.selected && (
+                  <div className="stack" style={{ marginTop: 6, gap: 6, paddingLeft: 24 }}>
+                    {goal.customStat.missions.map((mission) => (
+                      <div key={mission.key} className="row" style={{ gap: 4, fontSize: 13 }}>
+                        <input
+                          type="text"
+                          placeholder="미션 이름"
+                          value={mission.name}
+                          onChange={(e) => updateCustomMission(goal.goalTypeCode, mission.key, { name: e.target.value })}
+                          style={{ flex: 1 }}
+                        />
+                        <select
+                          value={mission.missionType}
+                          onChange={(e) =>
+                            updateCustomMission(goal.goalTypeCode, mission.key, { missionType: e.target.value as MissionType })
+                          }
+                          style={{ fontSize: 12, padding: "4px 6px" }}
+                        >
+                          <option value="DAILY">{MISSION_TYPE_LABELS.DAILY}</option>
+                          <option value="WEEKLY">{MISSION_TYPE_LABELS.WEEKLY}</option>
+                        </select>
+                        <input
+                          type="number"
+                          value={mission.targetValue}
+                          onChange={(e) =>
+                            updateCustomMission(goal.goalTypeCode, mission.key, { targetValue: Number(e.target.value) || 0 })
+                          }
+                          style={{ maxWidth: 60 }}
+                        />
+                        <input
+                          type="text"
+                          value={mission.unit}
+                          onChange={(e) => updateCustomMission(goal.goalTypeCode, mission.key, { unit: e.target.value })}
+                          style={{ maxWidth: 50 }}
+                        />
+                        <button
+                          type="button"
+                          className="ghost"
+                          style={{ padding: "4px 8px" }}
+                          onClick={() => removeCustomMission(goal.goalTypeCode, mission.key)}
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      className="ghost"
+                      style={{ alignSelf: "flex-start", padding: "4px 10px", fontSize: 12 }}
+                      onClick={() => addCustomMission(goal.goalTypeCode)}
+                    >
+                      + 미션 추가
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -51,12 +51,10 @@ public record ProjectResponse(
             java.util.List<MissionItem> missions
     ) {
         static StatItem from(UserStat stat) {
-            String name = stat.getCustomStatName() != null
-                    ? stat.getCustomStatName()
-                    : stat.getStatType().getName();
+            String name = stat.getStatType() != null ? stat.getStatType().getName() : stat.getCustomStatName();
             return new StatItem(
                     stat.getId(),
-                    stat.getStatType().getId(),
+                    stat.getStatType() != null ? stat.getStatType().getId() : null,
                     name,
                     stat.getWeightPercent(),
                     stat.getMissions().stream()

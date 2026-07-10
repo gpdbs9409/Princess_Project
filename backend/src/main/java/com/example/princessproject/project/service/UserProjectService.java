@@ -77,8 +77,13 @@ public class UserProjectService {
     private List<UserStat> buildStats(UserGoal goal, List<ProjectSelectionsRequest.StatSelection> statSelections) {
         List<UserStat> stats = new ArrayList<>();
         for (ProjectSelectionsRequest.StatSelection statSelection : statSelections) {
-            StatType statType = statTypeRepository.findById(statSelection.statTypeId())
-                    .orElseThrow(() -> new IllegalArgumentException("Stat type not found: " + statSelection.statTypeId()));
+            StatType statType = null;
+            if (statSelection.statTypeId() != null) {
+                statType = statTypeRepository.findById(statSelection.statTypeId())
+                        .orElseThrow(() -> new IllegalArgumentException("Stat type not found: " + statSelection.statTypeId()));
+            } else if (statSelection.customStatName() == null || statSelection.customStatName().isBlank()) {
+                throw new IllegalArgumentException("Custom stats must have a customStatName");
+            }
 
             UserStat stat = new UserStat(goal, statType);
             stat.setWeightPercent(statSelection.weightPercent());

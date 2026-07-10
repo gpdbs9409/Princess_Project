@@ -26,8 +26,12 @@ public record ProjectSelectionsRequest(
     ) {
     }
 
+    /**
+     * statTypeId null means a custom stat (not in the catalog) - customStatName is required in
+     * that case, mirroring how MissionSelection's missionDefinitionId/customName works.
+     */
     public record StatSelection(
-            @NotNull Long statTypeId,
+            Long statTypeId,
             Integer weightPercent,
             String customStatName,
             @NotEmpty List<@Valid MissionSelection> missions

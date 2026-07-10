@@ -273,7 +273,10 @@ CREATE TABLE user_stats (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
     user_goal_id BIGINT NOT NULL,
-    stat_type_id BIGINT NOT NULL,
+
+    -- NULL이면 커스텀 행동양식(custom_stat_name)이어야 함 - user_missions의
+    -- mission_definition_id/custom_name 패턴과 동일
+    stat_type_id BIGINT NULL,
 
     priority INT NULL,
 
@@ -324,7 +327,7 @@ CREATE TABLE user_stats (
         FOREIGN KEY (stat_type_id)
         REFERENCES stat_types(id)
         ON DELETE RESTRICT
-        ON UPDATE CASCADE,
+        ON UPDATE RESTRICT,
 
     CONSTRAINT chk_user_stats_priority
         CHECK (
@@ -336,6 +339,15 @@ CREATE TABLE user_stats (
         CHECK (
             weight_percent IS NULL
             OR weight_percent BETWEEN 1 AND 100
+        ),
+
+    CONSTRAINT chk_user_stats_name
+        CHECK (
+            stat_type_id IS NOT NULL
+            OR (
+                custom_stat_name IS NOT NULL
+                AND CHAR_LENGTH(TRIM(custom_stat_name)) > 0
+            )
         )
 ) ENGINE = InnoDB;
 
