@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login, updateStatFocus } from "../api/endpoints";
+import { getActiveProject, getCatalog, login, replaceSelections } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
-import { StatFocusForm } from "../components/StatFocusForm";
-import type { UserResponse } from "../api/types";
+import { SelectionWizard } from "../components/SelectionWizard";
+import type { CatalogGoal } from "../api/types";
 
 export function LoginPage() {
-  const { signIn, updateUser } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const [nickname, setNickname] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingUser, setPendingUser] = useState<UserResponse | null>(null);
+  const [catalog, setCatalog] = useState<CatalogGoal[] | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,8 +21,11 @@ export function LoginPage() {
     try {
       const res = await login(nickname.trim());
       signIn(res.token, res.user);
-      if (Object.keys(res.user.statFocus).length === 0) {
-        setPendingUser(res.user);
+
+      const project = await getActiveProject();
+      if (project.goals.length === 0) {
+        const catalogData = await getCatalog();
+        setCatalog(catalogData);
       } else {
         navigate("/dashboard");
       }
@@ -33,25 +36,22 @@ export function LoginPage() {
     }
   };
 
-  if (pendingUser) {
+  if (catalog) {
     return (
-      <div className="container" style={{ maxWidth: 480, paddingTop: 64 }}>
+      <div className="container" style={{ maxWidth: 560, paddingTop: 48 }}>
         <div className="stack" style={{ marginBottom: 24 }}>
-          <span className="eyebrow">2 / 2</span>
-          <h1 style={{ fontSize: 28 }}>스탯 비중을 설정해주세요</h1>
-          <p className="muted">앞으로의 기록이 어떤 스탯에 더 반영될지 정하는 단계예요.</p>
+          <span className="eyebrow">온보딩</span>
+          <h1 style={{ fontSize: 26 }}>어떤 습관을 키워볼까요?</h1>
+          <p className="muted">습관자본과 행동양식, 그리고 매일 인증할 미션을 골라주세요.</p>
         </div>
-        <div className="card">
-          <StatFocusForm
-            initial={{}}
-            submitLabel="설정 완료"
-            onSubmit={async (stats) => {
-              const updated = await updateStatFocus(pendingUser.id, stats);
-              updateUser(updated);
-              navigate("/dashboard");
-            }}
-          />
-        </div>
+        <SelectionWizard
+          catalog={catalog}
+          submitLabel="설정 완료"
+          onSubmit={async (request) => {
+            await replaceSelections(request);
+            navigate("/dashboard");
+          }}
+        />
       </div>
     );
   }

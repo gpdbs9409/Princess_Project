@@ -1,19 +1,14 @@
 package com.example.princessproject.user.model;
 
-import com.example.princessproject.goal.model.UserGoal;
-import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,15 +24,14 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = 50)
     private String nickname;
 
     private LocalDateTime createdAt;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    private UserGoal goal;
+    private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    private List<UserStatFocus> statFocus = new ArrayList<>();
+    private LocalDateTime lastLoginAt;
 
     public User(String nickname) {
         this.nickname = nickname;
@@ -46,5 +40,11 @@ public class User {
     @PrePersist
     void prePersist() {
         createdAt = LocalDateTime.now();
+        updatedAt = createdAt;
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

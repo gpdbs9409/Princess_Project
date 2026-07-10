@@ -1,46 +1,28 @@
 package com.example.princessproject.record.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
-import com.example.princessproject.record.model.DailyRecord;
-import com.example.princessproject.record.model.DailyScore;
-import com.example.princessproject.record.model.DailyStatScore;
-import com.example.princessproject.mission.model.MissionDefinition;
-import com.example.princessproject.mission.model.MissionType;
-import com.example.princessproject.common.model.StatType;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class WeeklyReportServiceTest {
 
-    private final WeeklyReportService service = new WeeklyReportService(null, null, null, null, null);
+    private final WeeklyReportService service = new WeeklyReportService(null);
 
-    private MissionDefinition mission(String name, StatType stat, int points, double target) {
-        return MissionDefinition.builder()
-                .name(name)
-                .missionType(MissionType.DAILY)
-                .statType(stat)
-                .assignedPoints(points)
-                .targetValue(target)
-                .unit("count")
-                .common(false)
-                .build();
-    }
-
-    private DailyScore dailyScore(LocalDate date, double totalScore, double progress) {
-        DailyScore score = new DailyScore();
-        score.setDate(date);
-        score.setTotalScore(totalScore);
-        score.setProgressPercent(progress);
-        return score;
-    }
-
-    private DailyRecord record(MissionDefinition mission, double inputValue) {
-        DailyRecord record = new DailyRecord();
-        record.setMission(mission);
-        record.setInputValue(inputValue);
-        return record;
+    private WeeklyReportResult.DailyEntry entry(
+            LocalDate date, double totalScore, double progress, Map<String, Double> statScores,
+            List<String> completed, List<String> remaining
+    ) {
+        Map<String, BigDecimal> scores = new LinkedHashMap<>();
+        statScores.forEach((k, v) -> scores.put(k, BigDecimal.valueOf(v)));
+        MissionProgress progressObj = new MissionProgress(
+                BigDecimal.valueOf(totalScore), BigDecimal.valueOf(progress), scores, completed, remaining);
+        return new WeeklyReportResult.DailyEntry(date, progressObj);
     }
 
     @Test
@@ -48,15 +30,20 @@ class WeeklyReportServiceTest {
         LocalDate weekStart = LocalDate.of(2026, 7, 6);
         LocalDate weekEnd = weekStart.plusDays(6);
 
-        List<DailyScore> scores = List.of(
-                dailyScore(weekStart, 20.0, 1.0),
-                dailyScore(weekStart.plusDays(1), 10.0, 0.5)
+        List<WeeklyReportResult.DailyEntry> daily = List.of(
+                entry(weekStart, 20.0, 1.0, Map.of(), List.of(), List.of()),
+                entry(weekStart.plusDays(1), 10.0, 0.5, Map.of(), List.of(), List.of()),
+                entry(weekStart.plusDays(2), 0.0, 0.0, Map.of(), List.of(), List.of()),
+                entry(weekStart.plusDays(3), 0.0, 0.0, Map.of(), List.of(), List.of()),
+                entry(weekStart.plusDays(4), 0.0, 0.0, Map.of(), List.of(), List.of()),
+                entry(weekStart.plusDays(5), 0.0, 0.0, Map.of(), List.of(), List.of()),
+                entry(weekEnd, 0.0, 0.0, Map.of(), List.of(), List.of())
         );
 
-        WeeklyReportResult result = service.aggregate(weekStart, weekEnd, scores, List.of(), List.of(), List.of(), List.of());
+        WeeklyReportResult result = service.aggregate(weekStart, weekEnd, daily);
 
-        assertThat(result.totalScore()).isEqualTo(30.0);
-        assertThat(result.averageProgress()).isCloseTo(1.5 / 7.0, org.assertj.core.data.Offset.offset(0.0001));
+        assertThat(result.totalScore()).isEqualByComparingTo("30.0");
+        assertThat(result.averageProgress().doubleValue()).isCloseTo(1.5 / 7.0, within(0.0001));
     }
 
     @Test
@@ -64,37 +51,31 @@ class WeeklyReportServiceTest {
         LocalDate weekStart = LocalDate.of(2026, 7, 6);
         LocalDate weekEnd = weekStart.plusDays(6);
 
-        DailyStatScore day1 = new DailyStatScore(null, null, weekStart, StatType.PHYSICAL, 20.0);
-        DailyStatScore day2 = new DailyStatScore(null, null, weekStart.plusDays(1), StatType.PHYSICAL, 15.0);
-        DailyStatScore day2Knowledge = new DailyStatScore(null, null, weekStart.plusDays(1), StatType.KNOWLEDGE, 5.0);
+        List<WeeklyReportResult.DailyEntry> daily = List.of(
+                entry(weekStart, 20.0, 1.0, Map.of("physical", 20.0), List.of(), List.of()),
+                entry(weekStart.plusDays(1), 20.0, 1.0, Map.of("physical", 15.0, "knowledge", 5.0), List.of(), List.of())
+        );
 
-        WeeklyReportResult result = service.aggregate(
-                weekStart, weekEnd, List.of(), List.of(day1, day2, day2Knowledge), List.of(), List.of(), List.of());
+        WeeklyReportResult result = service.aggregate(weekStart, weekEnd, daily);
 
-        assertThat(result.statScoreTotals())
-                .containsEntry(StatType.PHYSICAL, 35.0)
-                .containsEntry(StatType.KNOWLEDGE, 5.0);
+        assertThat(result.statScoreTotals().get("physical")).isEqualByComparingTo("35.0");
+        assertThat(result.statScoreTotals().get("knowledge")).isEqualByComparingTo("5.0");
     }
 
     @Test
-    void countsHowManyDaysEachMissionHitItsTarget() {
+    void countsHowManyDaysEachMissionCompleted() {
         LocalDate weekStart = LocalDate.of(2026, 7, 6);
         LocalDate weekEnd = weekStart.plusDays(6);
 
-        MissionDefinition exercise = mission("운동", StatType.PHYSICAL, 20, 1.0);
-        MissionDefinition journal = mission("일기", StatType.PSYCHOLOGY, 15, 1.0);
-
-        List<DailyRecord> records = List.of(
-                record(exercise, 1.0),
-                record(exercise, 0.5),
-                record(journal, 1.0)
+        List<WeeklyReportResult.DailyEntry> daily = List.of(
+                entry(weekStart, 35.0, 1.0, Map.of(), List.of("운동", "일기"), List.of()),
+                entry(weekStart.plusDays(1), 15.0, 0.5, Map.of(), List.of("일기"), List.of("운동"))
         );
 
-        WeeklyReportResult result = service.aggregate(
-                weekStart, weekEnd, List.of(), List.of(), records, List.of(exercise, journal), List.of());
+        WeeklyReportResult result = service.aggregate(weekStart, weekEnd, daily);
 
         assertThat(result.missionCompletionCounts())
                 .containsEntry("운동", 1)
-                .containsEntry("일기", 1);
+                .containsEntry("일기", 2);
     }
 }

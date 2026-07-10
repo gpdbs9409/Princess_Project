@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { generateAiFeedback, getDailySummary, getMissions } from "../api/endpoints";
-import type { DailySummaryResponse, MissionResponse } from "../api/types";
-import { useAuth } from "../auth/AuthContext";
-import { MissionCard } from "../components/MissionCard";
+import { Link } from "react-router-dom";
+import { generateAiFeedback, getActiveProject, getDailySummary } from "../api/endpoints";
+import { GOAL_TYPE_LABELS, type DailySummaryResponse } from "../api/types";
+import { MissionCard, type FlatMission } from "../components/MissionCard";
 
 function todayIso(): string {
   const now = new Date();
@@ -13,39 +13,46 @@ function todayIso(): string {
 }
 
 export function RecordPage() {
-  const { user } = useAuth();
-  const [missions, setMissions] = useState<MissionResponse[]>([]);
+  const [missions, setMissions] = useState<FlatMission[]>([]);
   const [summary, setSummary] = useState<DailySummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasNoMissions, setHasNoMissions] = useState(false);
   const date = todayIso();
 
   const load = useCallback(async () => {
-    if (!user) return;
     try {
-      const [missionList, dailySummary] = await Promise.all([
-        getMissions(),
-        getDailySummary(user.id, date),
-      ]);
-      setMissions(missionList);
+      const [project, dailySummary] = await Promise.all([getActiveProject(), getDailySummary(date)]);
+      const flattened: FlatMission[] = project.goals.flatMap((goal) =>
+        goal.stats.flatMap((stat) =>
+          stat.missions.map((mission) => ({
+            userMissionId: mission.id,
+            name: mission.name,
+            targetValue: mission.targetValue,
+            unit: mission.unit,
+            goalLabel: GOAL_TYPE_LABELS[goal.goalTypeCode],
+          }))
+        )
+      );
+      setMissions(flattened);
+      setHasNoMissions(flattened.length === 0);
       setSummary(dailySummary);
     } catch {
       setError("데이터를 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
-  }, [user, date]);
+  }, [date]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const handleGenerateFeedback = async () => {
-    if (!user) return;
     setFeedbackLoading(true);
     try {
-      const feedback = await generateAiFeedback(user.id, date);
+      const feedback = await generateAiFeedback(date);
       setSummary((s) => (s ? { ...s, aiFeedback: feedback } : s));
     } catch {
       setError("AI 피드백 생성에 실패했습니다.");
@@ -53,8 +60,6 @@ export function RecordPage() {
       setFeedbackLoading(false);
     }
   };
-
-  if (!user) return null;
 
   return (
     <div className="container">
@@ -90,10 +95,19 @@ export function RecordPage() {
 
       {loading && <p className="muted">불러오는 중...</p>}
 
+      {!loading && hasNoMissions && (
+        <div className="card">
+          <p className="muted">아직 선택한 미션이 없어요.</p>
+          <Link to="/stat-focus" className="link">
+            습관자본·미션 설정하러 가기 →
+          </Link>
+        </div>
+      )}
+
       <div className="stack" style={{ marginTop: 16 }}>
         {missions.map((mission) => (
           <MissionCard
-            key={mission.id}
+            key={mission.userMissionId}
             mission={mission}
             date={date}
             completed={summary?.completedMissions.includes(mission.name) ?? false}
@@ -102,23 +116,25 @@ export function RecordPage() {
         ))}
       </div>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="row-between">
-          <strong>오늘 완료</strong>
-          <button className="ghost" onClick={handleGenerateFeedback} disabled={feedbackLoading}>
-            {feedbackLoading ? "생성 중..." : "AI 피드백 받기"}
-          </button>
-        </div>
-        {summary?.aiFeedback && (
-          <div className="stack" style={{ marginTop: 12, gap: 8 }}>
-            <p>{summary.aiFeedback.summary}</p>
-            <p className="muted">👏 {summary.aiFeedback.praise}</p>
-            <p className="muted">🌱 {summary.aiFeedback.improvement}</p>
-            <p className="muted">➡️ {summary.aiFeedback.tomorrow}</p>
-            <p className="muted">💌 {summary.aiFeedback.cheer}</p>
+      {missions.length > 0 && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="row-between">
+            <strong>오늘 완료</strong>
+            <button className="ghost" onClick={handleGenerateFeedback} disabled={feedbackLoading}>
+              {feedbackLoading ? "생성 중..." : "AI 피드백 받기"}
+            </button>
           </div>
-        )}
-      </div>
+          {summary?.aiFeedback && (
+            <div className="stack" style={{ marginTop: 12, gap: 8 }}>
+              <p>{summary.aiFeedback.summary}</p>
+              <p className="muted">👏 {summary.aiFeedback.praise}</p>
+              <p className="muted">🌱 {summary.aiFeedback.improvement}</p>
+              <p className="muted">➡️ {summary.aiFeedback.tomorrow}</p>
+              <p className="muted">💌 {summary.aiFeedback.cheer}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

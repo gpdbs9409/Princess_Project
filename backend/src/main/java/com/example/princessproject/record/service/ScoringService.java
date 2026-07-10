@@ -1,54 +1,26 @@
 package com.example.princessproject.record.service;
 
-import com.example.princessproject.mission.model.MissionDefinition;
-import com.example.princessproject.common.model.StatType;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import org.springframework.stereotype.Service;
 
 /**
- * Pure scoring logic: no persistence, no AI. The backend is the only place scores are
- * computed - AI only ever receives the numbers this class produces.
+ * Pure scoring math, unit-testable without Spring/a DB. achievementRate is capped at 1.0 (100%)
+ * even if the user's input exceeds the target - overachieving a mission doesn't earn extra
+ * points beyond assignedPoints.
  */
 @Service
 public class ScoringService {
 
-    public ScoringResult calculate(List<MissionEntry> entries, Set<StatType> focusStats) {
-        Map<StatType, Double> statScores = new EnumMap<>(StatType.class);
-        double scoredTotal = 0;
-        double bonusTotal = 0;
-        double maxPossible = 0;
-
-        for (MissionEntry entry : entries) {
-            MissionDefinition mission = entry.mission();
-            boolean isScored = mission.isCommon() || focusStats.contains(mission.getStatType());
-
-            if (isScored) {
-                maxPossible += mission.getAssignedPoints();
-            }
-
-            double ratio = achievementRatio(entry.inputValue(), mission.getTargetValue());
-            double score = mission.getAssignedPoints() * ratio;
-
-            if (isScored) {
-                scoredTotal += score;
-                statScores.merge(mission.getStatType(), score, Double::sum);
-            } else {
-                bonusTotal += score;
-            }
+    public BigDecimal achievementRate(BigDecimal inputValue, BigDecimal targetValue) {
+        if (targetValue == null || targetValue.signum() <= 0) {
+            return BigDecimal.ZERO;
         }
-
-        double progress = maxPossible > 0 ? scoredTotal / maxPossible : 0;
-
-        return new ScoringResult(statScores, scoredTotal, scoredTotal, scoredTotal, bonusTotal, scoredTotal, progress);
+        BigDecimal rate = inputValue.divide(targetValue, 4, RoundingMode.HALF_UP);
+        return rate.min(BigDecimal.ONE).max(BigDecimal.ZERO);
     }
 
-    private double achievementRatio(Double inputValue, Double targetValue) {
-        if (inputValue == null || targetValue == null || targetValue <= 0) {
-            return 0;
-        }
-        return Math.min(inputValue / targetValue, 1.0);
+    public BigDecimal earnedScore(BigDecimal assignedPoints, BigDecimal achievementRate) {
+        return assignedPoints.multiply(achievementRate).setScale(2, RoundingMode.HALF_UP);
     }
 }

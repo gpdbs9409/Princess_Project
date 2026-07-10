@@ -1,4 +1,4 @@
-export type StatType =
+export type GoalTypeCode =
   | "PHYSICAL"
   | "ECONOMY"
   | "CULTURE"
@@ -7,7 +7,7 @@ export type StatType =
   | "PSYCHOLOGY"
   | "SYMBOL";
 
-export const STAT_LABELS: Record<StatType, string> = {
+export const GOAL_TYPE_LABELS: Record<GoalTypeCode, string> = {
   PHYSICAL: "신체",
   ECONOMY: "경제",
   CULTURE: "문화",
@@ -17,7 +17,7 @@ export const STAT_LABELS: Record<StatType, string> = {
   SYMBOL: "상징",
 };
 
-export const STAT_TYPES: StatType[] = [
+export const GOAL_TYPE_CODES: GoalTypeCode[] = [
   "PHYSICAL",
   "ECONOMY",
   "CULTURE",
@@ -32,9 +32,6 @@ export type MissionType = "DAILY" | "WEEKLY" | "TOTAL";
 export interface UserResponse {
   id: number;
   nickname: string;
-  goalHuman: string | null;
-  goalEnding: string | null;
-  statFocus: Partial<Record<StatType, number>>;
 }
 
 export interface LoginResponse {
@@ -42,16 +39,102 @@ export interface LoginResponse {
   user: UserResponse;
 }
 
-export interface MissionResponse {
+// ---- catalog (read-only reference tree) ----
+
+export interface CatalogMission {
   id: number;
   name: string;
+  description: string | null;
   missionType: MissionType;
-  statType: StatType;
-  assignedPoints: number;
+  defaultTargetValue: number;
+  unit: string;
+  defaultAssignedPoints: number;
+  requiresPhoto: boolean;
+}
+
+export interface CatalogStat {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  missions: CatalogMission[];
+}
+
+export interface CatalogGoal {
+  id: number;
+  code: GoalTypeCode;
+  name: string;
+  description: string | null;
+  stats: CatalogStat[];
+}
+
+// ---- project (the user's actual selections) ----
+
+export interface ProjectMission {
+  id: number;
+  name: string;
   targetValue: number;
   unit: string;
-  common: boolean;
+  assignedPoints: number;
+  requiresPhoto: boolean;
 }
+
+export interface ProjectStat {
+  id: number;
+  statTypeId: number;
+  name: string;
+  weightPercent: number | null;
+  missions: ProjectMission[];
+}
+
+export interface ProjectGoal {
+  id: number;
+  goalTypeCode: GoalTypeCode;
+  name: string;
+  weightPercent: number;
+  stats: ProjectStat[];
+}
+
+export type ProjectStatus = "ACTIVE" | "COMPLETED" | "PAUSED" | "CANCELLED";
+
+export interface ProjectResponse {
+  id: number;
+  title: string;
+  goalHuman: string | null;
+  goalEnding: string | null;
+  status: ProjectStatus;
+  goals: ProjectGoal[];
+}
+
+export interface MissionSelectionInput {
+  missionDefinitionId?: number;
+  customName?: string;
+  targetValue: number;
+  unit: string;
+  assignedPoints: number;
+}
+
+export interface StatSelectionInput {
+  statTypeId: number;
+  weightPercent?: number;
+  customStatName?: string;
+  missions: MissionSelectionInput[];
+}
+
+export interface GoalSelectionInput {
+  goalTypeCode: GoalTypeCode;
+  weightPercent: number;
+  customGoalText?: string;
+  stats: StatSelectionInput[];
+}
+
+export interface ProjectSelectionsRequest {
+  goalHuman?: string;
+  goalEnding?: string;
+  goals: GoalSelectionInput[];
+}
+
+// ---- daily records / reports ----
 
 export interface AiFeedbackResponse {
   summary: string;
@@ -82,8 +165,7 @@ export interface WeeklyReportResponse {
 }
 
 export interface RecordRequest {
-  userId: number;
-  missionId: number;
+  userMissionId: number;
   date: string;
   inputValue: number;
   photoUrl?: string;

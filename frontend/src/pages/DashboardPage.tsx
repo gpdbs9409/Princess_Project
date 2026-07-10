@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getWeeklyReport } from "../api/endpoints";
-import { STAT_LABELS, STAT_TYPES, type WeeklyReportResponse } from "../api/types";
+import { getActiveProject, getWeeklyReport } from "../api/endpoints";
+import { GOAL_TYPE_CODES, GOAL_TYPE_LABELS, type ProjectResponse, type WeeklyReportResponse } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { StatMeter } from "../components/StatMeter";
 import { WeeklyBarChart } from "../components/WeeklyBarChart";
@@ -17,21 +17,24 @@ function isoDate(d: Date): string {
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const [project, setProject] = useState<ProjectResponse | null>(null);
   const [report, setReport] = useState<WeeklyReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
     const today = new Date();
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() - 6);
 
-    getWeeklyReport(user.id, isoDate(weekStart))
-      .then(setReport)
-      .catch(() => setError("주간 데이터를 불러오지 못했습니다."))
+    Promise.all([getActiveProject(), getWeeklyReport(isoDate(weekStart))])
+      .then(([projectData, reportData]) => {
+        setProject(projectData);
+        setReport(reportData);
+      })
+      .catch(() => setError("데이터를 불러오지 못했습니다."))
       .finally(() => setLoading(false));
-  }, [user]);
+  }, []);
 
   if (!user) return null;
 
@@ -39,10 +42,10 @@ export function DashboardPage() {
   const todayIso = isoDate(new Date());
 
   const statMax = report
-    ? Math.max(1, ...STAT_TYPES.map((s) => report.statScoreTotals[s.toLowerCase()] ?? 0))
+    ? Math.max(1, ...GOAL_TYPE_CODES.map((s) => report.statScoreTotals[s.toLowerCase()] ?? 0))
     : 1;
   const todayStatMax = today
-    ? Math.max(1, ...STAT_TYPES.map((s) => today.statScores[s.toLowerCase()] ?? 0))
+    ? Math.max(1, ...GOAL_TYPE_CODES.map((s) => today.statScores[s.toLowerCase()] ?? 0))
     : 1;
 
   return (
@@ -78,10 +81,10 @@ export function DashboardPage() {
         <div className="card">
           <h2 style={{ fontSize: 16, marginBottom: 14 }}>오늘의 스탯</h2>
           <div>
-            {STAT_TYPES.map((s) => (
+            {GOAL_TYPE_CODES.map((s) => (
               <StatMeter
                 key={s}
-                label={STAT_LABELS[s]}
+                label={GOAL_TYPE_LABELS[s]}
                 value={today.statScores[s.toLowerCase()] ?? 0}
                 max={todayStatMax}
               />
@@ -115,10 +118,10 @@ export function DashboardPage() {
         <div className="card">
           <h2 style={{ fontSize: 16, marginBottom: 14 }}>이번 주 스탯 누적</h2>
           <div>
-            {STAT_TYPES.map((s) => (
+            {GOAL_TYPE_CODES.map((s) => (
               <StatMeter
                 key={s}
-                label={STAT_LABELS[s]}
+                label={GOAL_TYPE_LABELS[s]}
                 value={report.statScoreTotals[s.toLowerCase()] ?? 0}
                 max={statMax}
               />
@@ -131,14 +134,14 @@ export function DashboardPage() {
         <h2 style={{ fontSize: 16, marginBottom: 10 }}>목표</h2>
         <div className="stack" style={{ gap: 6 }}>
           <p>
-            <strong>이상적인 나</strong>: {user.goalHuman || "설정되지 않음"}
+            <strong>이상적인 나</strong>: {project?.goalHuman || "설정되지 않음"}
           </p>
           <p>
-            <strong>행동양식</strong>: {user.goalEnding || "설정되지 않음"}
+            <strong>행동양식</strong>: {project?.goalEnding || "설정되지 않음"}
           </p>
         </div>
         <Link to="/stat-focus" className="link" style={{ marginTop: 12, display: "inline-block" }}>
-          스탯 비중 수정
+          습관자본·미션 수정
         </Link>
       </div>
     </div>

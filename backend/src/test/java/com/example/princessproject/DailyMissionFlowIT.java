@@ -2,14 +2,18 @@ package com.example.princessproject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.example.princessproject.common.model.StatType;
 import com.example.princessproject.aifeedback.dto.AiFeedbackResponse;
-import com.example.princessproject.record.dto.DailySummaryResponse;
 import com.example.princessproject.auth.dto.LoginRequest;
 import com.example.princessproject.auth.dto.LoginResponse;
-import com.example.princessproject.mission.dto.MissionResponse;
+import com.example.princessproject.catalog.dto.GoalTypeResponse;
+import com.example.princessproject.catalog.dto.MissionDefinitionResponse;
+import com.example.princessproject.catalog.dto.StatTypeResponse;
+import com.example.princessproject.common.model.GoalTypeCode;
+import com.example.princessproject.project.dto.ProjectResponse;
+import com.example.princessproject.project.dto.ProjectSelectionsRequest;
+import com.example.princessproject.record.dto.DailySummaryResponse;
 import com.example.princessproject.record.dto.RecordRequest;
-import com.example.princessproject.user.dto.StatFocusRequest;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,8 +25,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
 /**
- * Exercises the full login -> stat focus -> mission input -> AI feedback flow over real HTTP
- * against an H2-backed context, mirroring what the static frontend does against MySQL.
+ * Exercises the full login -> catalog -> selections -> mission input -> AI feedback flow over
+ * real HTTP against an H2-backed context, mirroring what the frontend does against MySQL.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -48,6 +52,16 @@ class DailyMissionFlowIT {
                 .getResponseBody();
     }
 
+    private List<GoalTypeResponse> getCatalog(String auth) {
+        return List.of(client.get().uri("/api/catalog")
+                .header("Authorization", auth)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(GoalTypeResponse[].class)
+                .returnResult()
+                .getResponseBody());
+    }
+
     @Test
     void fullDailyFlowComputesScoresAndGeneratesMockFeedback() {
         LoginResponse login = login("test-princess");
@@ -55,58 +69,85 @@ class DailyMissionFlowIT {
         Long userId = login.user().id();
         assertThat(userId).isNotNull();
 
-        client.put().uri("/api/users/{id}/stat-focus", userId)
-                .header("Authorization", auth)
-                .body(new StatFocusRequest(List.of(new StatFocusRequest.StatFocusItem(StatType.PHYSICAL, 100))))
-                .exchange()
-                .expectStatus().isOk();
+        List<GoalTypeResponse> catalog = getCatalog(auth);
+        GoalTypeResponse physical = catalog.stream()
+                .filter(g -> g.code() == GoalTypeCode.PHYSICAL).findFirst().orElseThrow();
+        GoalTypeResponse psychology = catalog.stream()
+                .filter(g -> g.code() == GoalTypeCode.PSYCHOLOGY).findFirst().orElseThrow();
+        StatTypeResponse exerciseStat = physical.stats().get(0);
+        MissionDefinitionResponse exerciseMission = exerciseStat.missions().get(0);
+        StatTypeResponse psychologyStat = psychology.stats().get(0);
+        MissionDefinitionResponse journalMission = psychologyStat.missions().get(0);
 
-        MissionResponse[] missions = client.get().uri("/api/missions")
+        ProjectSelectionsRequest selections = new ProjectSelectionsRequest(
+                "건강한 사람", "매일 운동하는 사람",
+                List.of(
+                        new ProjectSelectionsRequest.GoalSelection(GoalTypeCode.PHYSICAL, 70, null, List.of(
+                                new ProjectSelectionsRequest.StatSelection(exerciseStat.id(), 100, null, List.of(
+                                        new ProjectSelectionsRequest.MissionSelection(
+                                                exerciseMission.id(), null,
+                                                exerciseMission.defaultTargetValue(), exerciseMission.unit(),
+                                                exerciseMission.defaultAssignedPoints())
+                                ))
+                        )),
+                        new ProjectSelectionsRequest.GoalSelection(GoalTypeCode.PSYCHOLOGY, 30, null, List.of(
+                                new ProjectSelectionsRequest.StatSelection(psychologyStat.id(), 100, null, List.of(
+                                        new ProjectSelectionsRequest.MissionSelection(
+                                                journalMission.id(), null,
+                                                journalMission.defaultTargetValue(), journalMission.unit(),
+                                                journalMission.defaultAssignedPoints())
+                                ))
+                        ))
+                )
+        );
+
+        ProjectResponse project = client.put().uri("/api/projects/active/selections")
                 .header("Authorization", auth)
+                .body(selections)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(MissionResponse[].class)
+                .expectBody(ProjectResponse.class)
                 .returnResult()
                 .getResponseBody();
-        assertThat(missions).hasSize(5);
 
-        MissionResponse exercise = List.of(missions).stream().filter(m -> m.name().equals("운동")).findFirst().orElseThrow();
-        MissionResponse journal = List.of(missions).stream().filter(m -> m.name().equals("일기")).findFirst().orElseThrow();
+        Long exerciseUserMissionId = project.goals().get(0).stats().get(0).missions().get(0).id();
+        Long journalUserMissionId = project.goals().get(1).stats().get(0).missions().get(0).id();
         LocalDate today = LocalDate.now();
 
         DailySummaryResponse afterExercise = client.post().uri("/api/records")
                 .header("Authorization", auth)
-                .body(new RecordRequest(userId, exercise.id(), today, 1.0, null, "완료!"))
+                .body(new RecordRequest(exerciseUserMissionId, today, exerciseMission.defaultTargetValue(), null, "완료!"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DailySummaryResponse.class)
                 .returnResult()
                 .getResponseBody();
-        assertThat(afterExercise.totalScore()).isEqualTo(20.0);
-        assertThat(afterExercise.completedMissions()).contains("운동");
+        assertThat(afterExercise.totalScore()).isEqualByComparingTo(exerciseMission.defaultAssignedPoints());
+        assertThat(afterExercise.completedMissions()).contains(exerciseMission.name());
 
         DailySummaryResponse afterJournal = client.post().uri("/api/records")
                 .header("Authorization", auth)
-                .body(new RecordRequest(userId, journal.id(), today, 1.0, null, null))
+                .body(new RecordRequest(journalUserMissionId, today, journalMission.defaultTargetValue(), null, null))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DailySummaryResponse.class)
                 .returnResult()
                 .getResponseBody();
-        assertThat(afterJournal.totalScore()).isEqualTo(35.0);
-        assertThat(afterJournal.completedMissions()).containsExactlyInAnyOrder("운동", "일기");
-        assertThat(afterJournal.remainingMissions()).containsExactlyInAnyOrder("식단", "마스크팩", "6시 기상");
+        BigDecimal expectedTotal = exerciseMission.defaultAssignedPoints().add(journalMission.defaultAssignedPoints());
+        assertThat(afterJournal.totalScore()).isEqualByComparingTo(expectedTotal);
+        assertThat(afterJournal.completedMissions())
+                .containsExactlyInAnyOrder(exerciseMission.name(), journalMission.name());
 
-        DailySummaryResponse summary = client.get().uri("/api/users/{id}/daily?date={date}", userId, today)
+        DailySummaryResponse summary = client.get().uri("/api/projects/active/daily?date={date}", today)
                 .header("Authorization", auth)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DailySummaryResponse.class)
                 .returnResult()
                 .getResponseBody();
-        assertThat(summary.totalScore()).isEqualTo(35.0);
+        assertThat(summary.totalScore()).isEqualByComparingTo(expectedTotal);
 
-        AiFeedbackResponse feedback = client.post().uri("/api/users/{id}/ai-feedback?date={date}", userId, today)
+        AiFeedbackResponse feedback = client.post().uri("/api/projects/active/ai-feedback?date={date}", today)
                 .header("Authorization", auth)
                 .exchange()
                 .expectStatus().isOk()
@@ -116,7 +157,7 @@ class DailyMissionFlowIT {
         assertThat(feedback.summary()).isNotBlank();
         assertThat(feedback.cheer()).isNotBlank();
 
-        DailySummaryResponse summaryWithFeedback = client.get().uri("/api/users/{id}/daily?date={date}", userId, today)
+        DailySummaryResponse summaryWithFeedback = client.get().uri("/api/projects/active/daily?date={date}", today)
                 .header("Authorization", auth)
                 .exchange()
                 .expectStatus().isOk()
@@ -128,19 +169,50 @@ class DailyMissionFlowIT {
     }
 
     @Test
-    void tokenCannotBeUsedToReadAnotherUsersData() {
+    void tokenCannotBeUsedToRecordAgainstAnotherUsersMission() {
         LoginResponse userA = login("princess-a");
         LoginResponse userB = login("princess-b");
+        String authA = "Bearer " + userA.token();
+        String authB = "Bearer " + userB.token();
 
-        client.get().uri("/api/users/{id}/daily?date={date}", userB.user().id(), LocalDate.now())
-                .header("Authorization", "Bearer " + userA.token())
+        List<GoalTypeResponse> catalog = getCatalog(authA);
+        GoalTypeResponse physical = catalog.stream()
+                .filter(g -> g.code() == GoalTypeCode.PHYSICAL).findFirst().orElseThrow();
+        StatTypeResponse exerciseStat = physical.stats().get(0);
+        MissionDefinitionResponse exerciseMission = exerciseStat.missions().get(0);
+
+        ProjectSelectionsRequest selections = new ProjectSelectionsRequest(
+                null, null,
+                List.of(new ProjectSelectionsRequest.GoalSelection(GoalTypeCode.PHYSICAL, 100, null, List.of(
+                        new ProjectSelectionsRequest.StatSelection(exerciseStat.id(), 100, null, List.of(
+                                new ProjectSelectionsRequest.MissionSelection(
+                                        exerciseMission.id(), null,
+                                        exerciseMission.defaultTargetValue(), exerciseMission.unit(),
+                                        exerciseMission.defaultAssignedPoints())
+                        ))
+                )))
+        );
+
+        ProjectResponse projectA = client.put().uri("/api/projects/active/selections")
+                .header("Authorization", authA)
+                .body(selections)
                 .exchange()
-                .expectStatus().isEqualTo(HttpStatus.FORBIDDEN);
+                .expectStatus().isOk()
+                .expectBody(ProjectResponse.class)
+                .returnResult()
+                .getResponseBody();
+        Long userAMissionId = projectA.goals().get(0).stats().get(0).missions().get(0).id();
+
+        client.post().uri("/api/records")
+                .header("Authorization", authB)
+                .body(new RecordRequest(userAMissionId, LocalDate.now(), BigDecimal.TEN, null, null))
+                .exchange()
+                .expectStatus().is5xxServerError();
     }
 
     @Test
     void missingTokenIsRejected() {
-        client.get().uri("/api/missions")
+        client.get().uri("/api/catalog")
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.UNAUTHORIZED);
     }

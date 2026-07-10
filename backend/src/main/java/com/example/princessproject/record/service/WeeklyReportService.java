@@ -1,17 +1,9 @@
 package com.example.princessproject.record.service;
 
-import com.example.princessproject.record.model.DailyRecord;
-import com.example.princessproject.record.model.DailyScore;
-import com.example.princessproject.record.model.DailyStatScore;
-import com.example.princessproject.mission.model.MissionDefinition;
-import com.example.princessproject.common.model.StatType;
-import com.example.princessproject.record.repository.DailyRecordRepository;
-import com.example.princessproject.record.repository.DailyScoreRepository;
-import com.example.princessproject.record.repository.DailyStatScoreRepository;
-import com.example.princessproject.mission.repository.MissionDefinitionRepository;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,80 +13,46 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class WeeklyReportService {
 
-    private final DailyScoreRepository dailyScoreRepository;
-    private final DailyStatScoreRepository dailyStatScoreRepository;
-    private final DailyRecordRepository dailyRecordRepository;
-    private final MissionDefinitionRepository missionDefinitionRepository;
+    private static final int WEEK_LENGTH_DAYS = 7;
+
     private final DailyRecordService dailyRecordService;
 
-    public WeeklyReportService(
-            DailyScoreRepository dailyScoreRepository,
-            DailyStatScoreRepository dailyStatScoreRepository,
-            DailyRecordRepository dailyRecordRepository,
-            MissionDefinitionRepository missionDefinitionRepository,
-            DailyRecordService dailyRecordService
-    ) {
-        this.dailyScoreRepository = dailyScoreRepository;
-        this.dailyStatScoreRepository = dailyStatScoreRepository;
-        this.dailyRecordRepository = dailyRecordRepository;
-        this.missionDefinitionRepository = missionDefinitionRepository;
+    public WeeklyReportService(DailyRecordService dailyRecordService) {
         this.dailyRecordService = dailyRecordService;
     }
 
     @Transactional(readOnly = true)
     public WeeklyReportResult getWeeklyReport(Long userId, LocalDate weekStart) {
-        LocalDate weekEnd = weekStart.plusDays(6);
+        LocalDate weekEnd = weekStart.plusDays(WEEK_LENGTH_DAYS - 1L);
 
-        List<DailyScore> scores = dailyScoreRepository.findByUserIdAndDateBetween(userId, weekStart, weekEnd);
-        List<DailyStatScore> statScores = dailyStatScoreRepository.findByUserIdAndDateBetween(userId, weekStart, weekEnd);
-        List<DailyRecord> records = dailyRecordRepository.findByUserIdAndDateBetween(userId, weekStart, weekEnd);
-        List<MissionDefinition> missions = missionDefinitionRepository.findAllByOrderByIdAsc();
-
-        List<DailyProgress> dailyBreakdown = new ArrayList<>();
+        List<WeeklyReportResult.DailyEntry> dailyBreakdown = new ArrayList<>();
         for (LocalDate date = weekStart; !date.isAfter(weekEnd); date = date.plusDays(1)) {
-            dailyBreakdown.add(new DailyProgress(date, dailyRecordService.getMissionProgress(userId, date)));
+            MissionProgress progress = dailyRecordService.getMissionProgress(userId, date);
+            dailyBreakdown.add(new WeeklyReportResult.DailyEntry(date, progress));
         }
 
-        return aggregate(weekStart, weekEnd, scores, statScores, records, missions, dailyBreakdown);
+        return aggregate(weekStart, weekEnd, dailyBreakdown);
     }
 
-    /**
-     * Pure aggregation, deliberately separated from the repository/service lookups above so
-     * it can be unit tested with hand-built entities and no database (same style as
-     * ScoringService).
-     */
-    WeeklyReportResult aggregate(
-            LocalDate weekStart,
-            LocalDate weekEnd,
-            List<DailyScore> scores,
-            List<DailyStatScore> statScores,
-            List<DailyRecord> records,
-            List<MissionDefinition> missions,
-            List<DailyProgress> dailyBreakdown
-    ) {
-        double totalScore = scores.stream().mapToDouble(DailyScore::getTotalScore).sum();
-        double progressSum = scores.stream().mapToDouble(DailyScore::getProgressPercent).sum();
-        double averageProgress = progressSum / 7.0;
-
-        Map<StatType, Double> statScoreTotals = new EnumMap<>(StatType.class);
-        for (DailyStatScore statScore : statScores) {
-            statScoreTotals.merge(statScore.getStatType(), statScore.getScore(), Double::sum);
-        }
-
+    WeeklyReportResult aggregate(LocalDate weekStart, LocalDate weekEnd, List<WeeklyReportResult.DailyEntry> dailyBreakdown) {
+        BigDecimal totalScore = BigDecimal.ZERO;
+        BigDecimal progressSum = BigDecimal.ZERO;
+        Map<String, BigDecimal> statScoreTotals = new LinkedHashMap<>();
         Map<String, Integer> missionCompletionCounts = new LinkedHashMap<>();
-        for (MissionDefinition mission : missions) {
-            missionCompletionCounts.put(mission.getName(), 0);
-        }
-        for (DailyRecord record : records) {
-            MissionDefinition mission = record.getMission();
-            boolean complete = record.getInputValue() != null
-                    && mission.getTargetValue() != null
-                    && record.getInputValue() >= mission.getTargetValue();
-            if (complete) {
-                missionCompletionCounts.merge(mission.getName(), 1, Integer::sum);
-            }
+
+        for (WeeklyReportResult.DailyEntry entry : dailyBreakdown) {
+            MissionProgress progress = entry.progress();
+            totalScore = totalScore.add(progress.totalScore());
+            progressSum = progressSum.add(progress.progress());
+
+            progress.statScores().forEach((stat, score) -> statScoreTotals.merge(stat, score, BigDecimal::add));
+            progress.completedMissions().forEach(name -> missionCompletionCounts.merge(name, 1, Integer::sum));
         }
 
-        return new WeeklyReportResult(weekStart, weekEnd, totalScore, averageProgress, statScoreTotals, missionCompletionCounts, dailyBreakdown);
+        BigDecimal averageProgress = progressSum.divide(
+                BigDecimal.valueOf(WEEK_LENGTH_DAYS), 4, RoundingMode.HALF_UP);
+
+        return new WeeklyReportResult(
+                weekStart, weekEnd, totalScore, averageProgress, statScoreTotals, missionCompletionCounts, dailyBreakdown);
     }
 }

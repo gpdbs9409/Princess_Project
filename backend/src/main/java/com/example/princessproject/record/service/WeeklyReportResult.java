@@ -1,6 +1,6 @@
 package com.example.princessproject.record.service;
 
-import com.example.princessproject.common.model.StatType;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -8,10 +8,12 @@ import java.util.Map;
 public record WeeklyReportResult(
         LocalDate weekStart,
         LocalDate weekEnd,
-        double totalScore,
-        double averageProgress,
-        Map<StatType, Double> statScoreTotals,
+        BigDecimal totalScore,
+        BigDecimal averageProgress,
+        Map<String, BigDecimal> statScoreTotals,
         Map<String, Integer> missionCompletionCounts,
-        List<DailyProgress> dailyBreakdown
+        List<DailyEntry> dailyBreakdown
 ) {
+    public record DailyEntry(LocalDate date, MissionProgress progress) {
+    }
 }

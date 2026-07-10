@@ -1,34 +1,30 @@
 package com.example.princessproject.record.dto;
 
 import com.example.princessproject.record.service.WeeklyReportResult;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public record WeeklyReportResponse(
         LocalDate weekStart,
         LocalDate weekEnd,
-        double totalScore,
-        double averageProgress,
-        Map<String, Double> statScoreTotals,
+        BigDecimal totalScore,
+        BigDecimal averageProgress,
+        Map<String, BigDecimal> statScoreTotals,
         Map<String, Integer> missionCompletionCounts,
         List<DailySummaryResponse> dailyBreakdown
 ) {
     public static WeeklyReportResponse from(WeeklyReportResult result) {
-        Map<String, Double> statScoreTotals = result.statScoreTotals().entrySet().stream()
-                .collect(Collectors.toMap(e -> e.getKey().name().toLowerCase(), Map.Entry::getValue));
-
         List<DailySummaryResponse> dailyBreakdown = result.dailyBreakdown().stream()
-                .map(day -> DailySummaryResponse.from(day.date(), day.progress(), null))
+                .map(entry -> DailySummaryResponse.from(entry.date(), entry.progress(), null))
                 .toList();
-
         return new WeeklyReportResponse(
                 result.weekStart(),
                 result.weekEnd(),
                 result.totalScore(),
                 result.averageProgress(),
-                statScoreTotals,
+                result.statScoreTotals(),
                 result.missionCompletionCounts(),
                 dailyBreakdown
         );

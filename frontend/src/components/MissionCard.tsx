@@ -1,25 +1,28 @@
 import { useState } from "react";
 import { analyzeVisionPhoto, saveRecord, uploadFile } from "../api/endpoints";
-import { STAT_LABELS, type MissionResponse } from "../api/types";
-import { useAuth } from "../auth/AuthContext";
+
+export interface FlatMission {
+  userMissionId: number;
+  name: string;
+  targetValue: number;
+  unit: string;
+  goalLabel: string;
+}
 
 interface MissionCardProps {
-  mission: MissionResponse;
+  mission: FlatMission;
   date: string;
   completed: boolean;
   onSaved: () => void;
 }
 
 export function MissionCard({ mission, date, completed, onSaved }: MissionCardProps) {
-  const { user } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const [memo, setMemo] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [visionNote, setVisionNote] = useState<{ text: string; ok: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (!user) return null;
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -49,8 +52,7 @@ export function MissionCard({ mission, date, completed, onSaved }: MissionCardPr
         photoUrl = uploaded.url;
       }
       await saveRecord({
-        userId: user.id,
-        missionId: mission.id,
+        userMissionId: mission.userMissionId,
         date,
         inputValue: value,
         photoUrl,
@@ -71,7 +73,7 @@ export function MissionCard({ mission, date, completed, onSaved }: MissionCardPr
           <strong>{mission.name}</strong>
           <div className="muted">
             목표 {mission.targetValue}
-            {mission.unit} · {STAT_LABELS[mission.statType]}
+            {mission.unit} · {mission.goalLabel}
           </div>
         </div>
         {completed && <span className="badge good">완료</span>}

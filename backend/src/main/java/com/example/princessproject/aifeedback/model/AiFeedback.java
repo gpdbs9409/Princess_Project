@@ -1,32 +1,33 @@
 package com.example.princessproject.aifeedback.model;
 
+import com.example.princessproject.project.model.UserProject;
 import com.example.princessproject.user.model.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "ai_feedbacks")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class AiFeedback {
 
     @Id
@@ -37,38 +38,45 @@ public class AiFeedback {
     @JoinColumn(name = "user_id")
     private User user;
 
-    private LocalDate date;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
+    private UserProject project;
 
-    @Lob
-    @Column(length = 4000)
-    private String prompt;
+    private LocalDate feedbackDate;
 
-    @Lob
-    @Column(length = 2000)
+    @Enumerated(EnumType.STRING)
+    private FeedbackType feedbackType = FeedbackType.DAILY;
+
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String summary;
 
-    @Lob
-    @Column(length = 2000)
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String praise;
 
-    @Lob
-    @Column(length = 2000)
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String improvement;
 
-    @Lob
-    @Column(length = 2000)
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String tomorrow;
 
-    @Lob
-    @Column(length = 2000)
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String cheer;
 
+    @Column(length = 100)
     private String model;
 
     private LocalDateTime createdAt;
 
+    private LocalDateTime updatedAt;
+
     @PrePersist
     void prePersist() {
         createdAt = LocalDateTime.now();
+        updatedAt = createdAt;
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

@@ -1,11 +1,12 @@
 import { api } from "./client";
 import type {
+  CatalogGoal,
   DailySummaryResponse,
   LoginResponse,
-  MissionResponse,
   AiFeedbackResponse,
+  ProjectResponse,
+  ProjectSelectionsRequest,
   RecordRequest,
-  StatType,
   UploadResponse,
   UserResponse,
   VisionAnalysisResponse,
@@ -16,21 +17,23 @@ export const login = (nickname: string) => api.post<LoginResponse>("/api/auth/lo
 
 export const getUser = (userId: number) => api.get<UserResponse>(`/api/users/${userId}`);
 
-export const updateStatFocus = (userId: number, stats: { statType: StatType; weightPercent: number }[]) =>
-  api.put<UserResponse>(`/api/users/${userId}/stat-focus`, { stats });
+export const getCatalog = () => api.get<CatalogGoal[]>("/api/catalog");
 
-export const getMissions = () => api.get<MissionResponse[]>("/api/missions");
+export const getActiveProject = () => api.get<ProjectResponse>("/api/projects/active");
+
+export const replaceSelections = (request: ProjectSelectionsRequest) =>
+  api.put<ProjectResponse>("/api/projects/active/selections", request);
 
 export const saveRecord = (record: RecordRequest) => api.post<DailySummaryResponse>("/api/records", record);
 
-export const getDailySummary = (userId: number, date: string) =>
-  api.get<DailySummaryResponse>(`/api/users/${userId}/daily?date=${date}`);
+export const getDailySummary = (date: string) =>
+  api.get<DailySummaryResponse>(`/api/projects/active/daily?date=${date}`);
 
-export const generateAiFeedback = (userId: number, date: string) =>
-  api.post<AiFeedbackResponse>(`/api/users/${userId}/ai-feedback?date=${date}`);
+export const generateAiFeedback = (date: string) =>
+  api.post<AiFeedbackResponse>(`/api/projects/active/ai-feedback?date=${date}`);
 
-export const getWeeklyReport = (userId: number, weekStart: string) =>
-  api.get<WeeklyReportResponse>(`/api/users/${userId}/weekly-report?weekStart=${weekStart}`);
+export const getWeeklyReport = (weekStart: string) =>
+  api.get<WeeklyReportResponse>(`/api/projects/active/weekly-report?weekStart=${weekStart}`);
 
 export const uploadFile = (file: File) => {
   const formData = new FormData();

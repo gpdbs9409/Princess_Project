@@ -2,28 +2,26 @@ package com.example.princessproject.record.dto;
 
 import com.example.princessproject.aifeedback.dto.AiFeedbackResponse;
 import com.example.princessproject.record.service.MissionProgress;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public record DailySummaryResponse(
         LocalDate date,
-        double totalScore,
-        double progress,
-        Map<String, Double> statScores,
+        BigDecimal totalScore,
+        BigDecimal progress,
+        Map<String, BigDecimal> statScores,
         List<String> completedMissions,
         List<String> remainingMissions,
         AiFeedbackResponse aiFeedback
 ) {
     public static DailySummaryResponse from(LocalDate date, MissionProgress progress, AiFeedbackResponse aiFeedback) {
-        Map<String, Double> statScores = progress.statScores().entrySet().stream()
-                .collect(Collectors.toMap(e -> e.getKey().name().toLowerCase(), Map.Entry::getValue));
         return new DailySummaryResponse(
                 date,
                 progress.totalScore(),
                 progress.progress(),
-                statScores,
+                progress.statScores(),
                 progress.completedMissions(),
                 progress.remainingMissions(),
                 aiFeedback

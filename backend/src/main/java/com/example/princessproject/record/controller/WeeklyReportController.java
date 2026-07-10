@@ -1,13 +1,11 @@
 package com.example.princessproject.record.controller;
 
-import com.example.princessproject.record.service.WeeklyReportResult;
-import com.example.princessproject.record.service.WeeklyReportService;
 import com.example.princessproject.record.dto.WeeklyReportResponse;
+import com.example.princessproject.record.service.WeeklyReportService;
 import java.time.LocalDate;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,13 +18,12 @@ public class WeeklyReportController {
         this.weeklyReportService = weeklyReportService;
     }
 
-    @GetMapping("/api/users/{userId}/weekly-report")
-    @PreAuthorize("#userId == authentication.principal")
+    @GetMapping("/api/projects/active/weekly-report")
     public WeeklyReportResponse getWeeklyReport(
-            @PathVariable Long userId,
+            Authentication authentication,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart
     ) {
-        WeeklyReportResult result = weeklyReportService.getWeeklyReport(userId, weekStart);
-        return WeeklyReportResponse.from(result);
+        Long userId = (Long) authentication.getPrincipal();
+        return WeeklyReportResponse.from(weeklyReportService.getWeeklyReport(userId, weekStart));
     }
 }

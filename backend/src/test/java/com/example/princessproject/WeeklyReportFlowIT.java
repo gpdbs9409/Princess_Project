@@ -2,12 +2,15 @@ package com.example.princessproject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.example.princessproject.common.model.StatType;
 import com.example.princessproject.auth.dto.LoginRequest;
 import com.example.princessproject.auth.dto.LoginResponse;
-import com.example.princessproject.mission.dto.MissionResponse;
+import com.example.princessproject.catalog.dto.GoalTypeResponse;
+import com.example.princessproject.catalog.dto.MissionDefinitionResponse;
+import com.example.princessproject.catalog.dto.StatTypeResponse;
+import com.example.princessproject.common.model.GoalTypeCode;
+import com.example.princessproject.project.dto.ProjectResponse;
+import com.example.princessproject.project.dto.ProjectSelectionsRequest;
 import com.example.princessproject.record.dto.RecordRequest;
-import com.example.princessproject.user.dto.StatFocusRequest;
 import com.example.princessproject.record.dto.WeeklyReportResponse;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -48,22 +51,39 @@ class WeeklyReportFlowIT {
                 .returnResult()
                 .getResponseBody();
         String auth = "Bearer " + login.token();
-        Long userId = login.user().id();
 
-        client.put().uri("/api/users/{id}/stat-focus", userId)
-                .header("Authorization", auth)
-                .body(new StatFocusRequest(List.of(new StatFocusRequest.StatFocusItem(StatType.PHYSICAL, 100))))
-                .exchange()
-                .expectStatus().isOk();
-
-        MissionResponse[] missions = client.get().uri("/api/missions")
+        GoalTypeResponse[] catalog = client.get().uri("/api/catalog")
                 .header("Authorization", auth)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(MissionResponse[].class)
+                .expectBody(GoalTypeResponse[].class)
                 .returnResult()
                 .getResponseBody();
-        MissionResponse exercise = List.of(missions).stream().filter(m -> m.name().equals("운동")).findFirst().orElseThrow();
+        GoalTypeResponse physical = List.of(catalog).stream()
+                .filter(g -> g.code() == GoalTypeCode.PHYSICAL).findFirst().orElseThrow();
+        StatTypeResponse exerciseStat = physical.stats().get(0);
+        MissionDefinitionResponse exerciseMission = exerciseStat.missions().get(0);
+
+        ProjectSelectionsRequest selections = new ProjectSelectionsRequest(
+                null, null,
+                List.of(new ProjectSelectionsRequest.GoalSelection(GoalTypeCode.PHYSICAL, 100, null, List.of(
+                        new ProjectSelectionsRequest.StatSelection(exerciseStat.id(), 100, null, List.of(
+                                new ProjectSelectionsRequest.MissionSelection(
+                                        exerciseMission.id(), null,
+                                        exerciseMission.defaultTargetValue(), exerciseMission.unit(),
+                                        exerciseMission.defaultAssignedPoints())
+                        ))
+                )))
+        );
+        ProjectResponse project = client.put().uri("/api/projects/active/selections")
+                .header("Authorization", auth)
+                .body(selections)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProjectResponse.class)
+                .returnResult()
+                .getResponseBody();
+        Long userMissionId = project.goals().get(0).stats().get(0).missions().get(0).id();
 
         // Anchor both records to fixed offsets from the week's Monday (rather than
         // "today"/"yesterday") so the test doesn't break when run on a Sunday/Monday boundary.
@@ -73,18 +93,18 @@ class WeeklyReportFlowIT {
 
         client.post().uri("/api/records")
                 .header("Authorization", auth)
-                .body(new RecordRequest(userId, exercise.id(), day1, 1.0, null, null))
+                .body(new RecordRequest(userMissionId, day1, exerciseMission.defaultTargetValue(), null, null))
                 .exchange()
                 .expectStatus().isOk();
 
         client.post().uri("/api/records")
                 .header("Authorization", auth)
-                .body(new RecordRequest(userId, exercise.id(), day2, 1.0, null, null))
+                .body(new RecordRequest(userMissionId, day2, exerciseMission.defaultTargetValue(), null, null))
                 .exchange()
                 .expectStatus().isOk();
 
         WeeklyReportResponse report = client.get()
-                .uri("/api/users/{id}/weekly-report?weekStart={weekStart}", userId, weekStart)
+                .uri("/api/projects/active/weekly-report?weekStart={weekStart}", weekStart)
                 .header("Authorization", auth)
                 .exchange()
                 .expectStatus().isOk()
@@ -92,10 +112,12 @@ class WeeklyReportFlowIT {
                 .returnResult()
                 .getResponseBody();
 
+        java.math.BigDecimal expectedTotal = exerciseMission.defaultAssignedPoints()
+                .add(exerciseMission.defaultAssignedPoints());
         assertThat(report.weekStart()).isEqualTo(weekStart);
-        assertThat(report.totalScore()).isEqualTo(40.0);
-        assertThat(report.statScoreTotals()).containsEntry("physical", 40.0);
-        assertThat(report.missionCompletionCounts()).containsEntry("운동", 2);
+        assertThat(report.totalScore()).isEqualByComparingTo(expectedTotal);
+        assertThat(report.statScoreTotals().get("physical")).isEqualByComparingTo(expectedTotal);
+        assertThat(report.missionCompletionCounts()).containsEntry(exerciseMission.name(), 2);
         assertThat(report.dailyBreakdown()).hasSize(7);
     }
 }
