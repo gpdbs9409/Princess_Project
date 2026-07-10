@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Princess Project</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<main>
+    <h1>Princess Project</h1>
+
+    <section id="login-card" class="card">
+        <h2>시작하기</h2>
+        <label for="nickname">닉네임</label>
+        <input type="text" id="nickname" placeholder="닉네임을 입력하세요" />
+        <button id="login-btn">시작</button>
+    </section>
+
+    <section id="stat-card" class="card hidden">
+        <h2>집중 스탯 선택 (합계는 자유롭게, 미선택 스탯은 사이드 퀘스트로 처리돼요)</h2>
+        <div id="stat-rows"></div>
+        <button id="stat-save-btn">저장하고 오늘의 미션으로</button>
+    </section>
+</main>
+
+<script src="app.js"></script>
+<script>
+    const STAT_LABELS = {
+        PHYSICAL: "신체", ECONOMY: "경제", CULTURE: "문화", KNOWLEDGE: "지식",
+        LANGUAGE: "언어", PSYCHOLOGY: "심리", SYMBOL: "상징"
+    };
+
+    const existingUserId = localStorage.getItem("princess_user_id");
+    const existingToken = localStorage.getItem("princess_token");
+    if (existingUserId && existingToken) {
+        location.href = "today.html?userId=" + existingUserId;
+    }
+
+    const statRows = document.getElementById("stat-rows");
+    Object.entries(STAT_LABELS).forEach(([key, label]) => {
+        const row = document.createElement("div");
+        row.className = "stat-row";
+        row.innerHTML = `
+            <label>${label}</label>
+            <input type="number" min="0" max="100" value="0" data-stat="${key}" />
+        `;
+        statRows.appendChild(row);
+    });
+
+    let currentUserId = null;
+
+    document.getElementById("login-btn").addEventListener("click", async () => {
+        const nickname = document.getElementById("nickname").value.trim();
+        if (!nickname) return;
+
+        const { token, user } = await api("/api/auth/login", "POST", { nickname });
+        currentUserId = user.id;
+        localStorage.setItem("princess_token", token);
+        localStorage.setItem("princess_user_id", currentUserId);
+
+        document.getElementById("login-card").classList.add("hidden");
+        document.getElementById("stat-card").classList.remove("hidden");
+    });
+
+    document.getElementById("stat-save-btn").addEventListener("click", async () => {
+        const stats = Array.from(statRows.querySelectorAll("input"))
+            .map((input) => ({ statType: input.dataset.stat, weightPercent: Number(input.value) }))
+            .filter((s) => s.weightPercent > 0);
+
+        if (stats.length === 0) {
+            alert("최소 하나 이상의 스탯을 선택해주세요.");
+            return;
+        }
+
+        await api(`/api/users/${currentUserId}/stat-focus`, "PUT", { stats });
+
+        location.href = "today.html?userId=" + currentUserId;
+    });
+</script>
+</body>
+</html>
