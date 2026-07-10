@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ApiError } from "../api/client";
 import { getActiveProject, getCatalog, login, replaceSelections } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
 import { SelectionWizard } from "../components/SelectionWizard";
@@ -9,17 +10,18 @@ export function LoginPage() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const [nickname, setNickname] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [catalog, setCatalog] = useState<CatalogGoal[] | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nickname.trim()) return;
+    if (!nickname.trim() || !password) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await login(nickname.trim());
+      const res = await login(nickname.trim(), password);
       signIn(res.token, res.user);
 
       const project = await getActiveProject();
@@ -29,8 +31,12 @@ export function LoginPage() {
       } else {
         navigate("/dashboard");
       }
-    } catch {
-      setError("로그인에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError("닉네임 또는 비밀번호가 올바르지 않습니다.");
+      } else {
+        setError("로그인에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      }
     } finally {
       setLoading(false);
     }
@@ -61,7 +67,7 @@ export function LoginPage() {
       <div className="stack" style={{ marginBottom: 28, textAlign: "center" }}>
         <span className="eyebrow">Princess Project</span>
         <h1 style={{ fontSize: 30 }}>오늘의 나를 기록해요</h1>
-        <p className="muted">닉네임만 입력하면 시작할 수 있어요.</p>
+        <p className="muted">닉네임과 비밀번호로 로그인하세요. 처음 보는 닉네임이면 그 비밀번호로 계정이 만들어져요.</p>
       </div>
       <form className="card stack" onSubmit={handleLogin}>
         <div className="stack" style={{ gap: 6 }}>
@@ -73,6 +79,16 @@ export function LoginPage() {
             onChange={(e) => setNickname(e.target.value)}
             placeholder="예: 공주님"
             autoFocus
+          />
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
+          <label htmlFor="password">비밀번호</label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="비밀번호"
           />
         </div>
         {error && <div className="error-banner">{error}</div>}

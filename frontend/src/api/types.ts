@@ -72,10 +72,12 @@ export interface CatalogGoal {
 
 export interface ProjectMission {
   id: number;
+  missionDefinitionId: number | null;
   name: string;
   targetValue: number;
   unit: string;
   assignedPoints: number;
+  missionType: MissionType;
   requiresPhoto: boolean;
 }
 
@@ -112,6 +114,7 @@ export interface MissionSelectionInput {
   targetValue: number;
   unit: string;
   assignedPoints: number;
+  missionType: MissionType;
 }
 
 export interface StatSelectionInput {

@@ -27,14 +27,18 @@ public class User {
     @Column(length = 50)
     private String nickname;
 
+    @Column(length = 255)
+    private String passwordHash;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
 
     private LocalDateTime lastLoginAt;
 
-    public User(String nickname) {
+    public User(String nickname, String passwordHash) {
         this.nickname = nickname;
+        this.passwordHash = passwordHash;
     }
 
     @PrePersist

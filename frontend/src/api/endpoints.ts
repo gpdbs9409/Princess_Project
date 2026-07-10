@@ -13,7 +13,8 @@ import type {
   WeeklyReportResponse,
 } from "./types";
 
-export const login = (nickname: string) => api.post<LoginResponse>("/api/auth/login", { nickname });
+export const login = (nickname: string, password: string) =>
+  api.post<LoginResponse>("/api/auth/login", { nickname, password });
 
 export const getUser = (userId: number) => api.get<UserResponse>(`/api/users/${userId}`);
 

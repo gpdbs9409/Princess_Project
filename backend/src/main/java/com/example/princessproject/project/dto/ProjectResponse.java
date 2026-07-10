@@ -1,5 +1,6 @@
 package com.example.princessproject.project.dto;
 
+import com.example.princessproject.catalog.model.MissionType;
 import com.example.princessproject.project.model.ProjectStatus;
 import com.example.princessproject.project.model.UserGoal;
 import com.example.princessproject.project.model.UserMission;
@@ -18,10 +19,12 @@ public record ProjectResponse(
 ) {
     public record MissionItem(
             Long id,
+            Long missionDefinitionId,
             String name,
             BigDecimal targetValue,
             String unit,
             BigDecimal assignedPoints,
+            MissionType missionType,
             boolean requiresPhoto
     ) {
         static MissionItem from(UserMission mission) {
@@ -29,10 +32,12 @@ public record ProjectResponse(
                     && mission.getMissionDefinition().isRequiresPhoto();
             return new MissionItem(
                     mission.getId(),
+                    mission.getMissionDefinition() != null ? mission.getMissionDefinition().getId() : null,
                     mission.displayName(),
                     mission.getTargetValue(),
                     mission.getUnit(),
                     mission.getAssignedPoints(),
+                    mission.getMissionType(),
                     requiresPhoto
             );
         }

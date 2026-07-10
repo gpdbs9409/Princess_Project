@@ -105,6 +105,7 @@ public class UserProjectService {
             mission.setTargetValue(missionSelection.targetValue());
             mission.setUnit(missionSelection.unit());
             mission.setAssignedPoints(missionSelection.assignedPoints());
+            mission.setMissionType(missionSelection.missionType());
             missions.add(mission);
         }
         return missions;

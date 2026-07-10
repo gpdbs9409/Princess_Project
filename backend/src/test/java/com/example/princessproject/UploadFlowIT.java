@@ -37,7 +37,7 @@ class UploadFlowIT {
     @Test
     void uploadedFileIsRetrievableAtReturnedUrl() {
         LoginResponse login = client.post().uri("/api/auth/login")
-                .body(new LoginRequest("upload-tester"))
+                .body(new LoginRequest("upload-tester", "test-password"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(LoginResponse.class)

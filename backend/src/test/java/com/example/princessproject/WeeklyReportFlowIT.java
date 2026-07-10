@@ -7,6 +7,7 @@ import com.example.princessproject.auth.dto.LoginResponse;
 import com.example.princessproject.catalog.dto.GoalTypeResponse;
 import com.example.princessproject.catalog.dto.MissionDefinitionResponse;
 import com.example.princessproject.catalog.dto.StatTypeResponse;
+import com.example.princessproject.catalog.model.MissionType;
 import com.example.princessproject.common.model.GoalTypeCode;
 import com.example.princessproject.project.dto.ProjectResponse;
 import com.example.princessproject.project.dto.ProjectSelectionsRequest;
@@ -44,7 +45,7 @@ class WeeklyReportFlowIT {
     @Test
     void aggregatesTwoDaysOfRecordsIntoTheContainingWeek() {
         LoginResponse login = client.post().uri("/api/auth/login")
-                .body(new LoginRequest("weekly-tester"))
+                .body(new LoginRequest("weekly-tester", "test-password"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(LoginResponse.class)
@@ -71,7 +72,7 @@ class WeeklyReportFlowIT {
                                 new ProjectSelectionsRequest.MissionSelection(
                                         exerciseMission.id(), null,
                                         exerciseMission.defaultTargetValue(), exerciseMission.unit(),
-                                        exerciseMission.defaultAssignedPoints())
+                                        exerciseMission.defaultAssignedPoints(), MissionType.DAILY)
                         ))
                 )))
         );

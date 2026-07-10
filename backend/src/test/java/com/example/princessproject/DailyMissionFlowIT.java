@@ -8,6 +8,7 @@ import com.example.princessproject.auth.dto.LoginResponse;
 import com.example.princessproject.catalog.dto.GoalTypeResponse;
 import com.example.princessproject.catalog.dto.MissionDefinitionResponse;
 import com.example.princessproject.catalog.dto.StatTypeResponse;
+import com.example.princessproject.catalog.model.MissionType;
 import com.example.princessproject.common.model.GoalTypeCode;
 import com.example.princessproject.project.dto.ProjectResponse;
 import com.example.princessproject.project.dto.ProjectSelectionsRequest;
@@ -44,7 +45,7 @@ class DailyMissionFlowIT {
 
     private LoginResponse login(String nickname) {
         return client.post().uri("/api/auth/login")
-                .body(new LoginRequest(nickname))
+                .body(new LoginRequest(nickname, "test-password"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(LoginResponse.class)
@@ -87,7 +88,7 @@ class DailyMissionFlowIT {
                                         new ProjectSelectionsRequest.MissionSelection(
                                                 exerciseMission.id(), null,
                                                 exerciseMission.defaultTargetValue(), exerciseMission.unit(),
-                                                exerciseMission.defaultAssignedPoints())
+                                                exerciseMission.defaultAssignedPoints(), MissionType.DAILY)
                                 ))
                         )),
                         new ProjectSelectionsRequest.GoalSelection(GoalTypeCode.PSYCHOLOGY, 30, null, List.of(
@@ -95,7 +96,7 @@ class DailyMissionFlowIT {
                                         new ProjectSelectionsRequest.MissionSelection(
                                                 journalMission.id(), null,
                                                 journalMission.defaultTargetValue(), journalMission.unit(),
-                                                journalMission.defaultAssignedPoints())
+                                                journalMission.defaultAssignedPoints(), MissionType.DAILY)
                                 ))
                         ))
                 )
@@ -188,7 +189,7 @@ class DailyMissionFlowIT {
                                 new ProjectSelectionsRequest.MissionSelection(
                                         exerciseMission.id(), null,
                                         exerciseMission.defaultTargetValue(), exerciseMission.unit(),
-                                        exerciseMission.defaultAssignedPoints())
+                                        exerciseMission.defaultAssignedPoints(), MissionType.DAILY)
                         ))
                 )))
         );

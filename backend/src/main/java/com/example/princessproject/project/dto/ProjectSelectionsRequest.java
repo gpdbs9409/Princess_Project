@@ -1,5 +1,6 @@
 package com.example.princessproject.project.dto;
 
+import com.example.princessproject.catalog.model.MissionType;
 import com.example.princessproject.common.model.GoalTypeCode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -38,7 +39,8 @@ public record ProjectSelectionsRequest(
             String customName,
             @NotNull BigDecimal targetValue,
             @NotNull String unit,
-            @NotNull BigDecimal assignedPoints
+            @NotNull BigDecimal assignedPoints,
+            @NotNull MissionType missionType
     ) {
     }
 }

@@ -1,5 +1,6 @@
 package com.example.princessproject.record.service;
 
+import com.example.princessproject.catalog.model.MissionType;
 import com.example.princessproject.project.model.UserGoal;
 import com.example.princessproject.project.model.UserMission;
 import com.example.princessproject.project.model.UserProject;
@@ -12,7 +13,10 @@ import com.example.princessproject.record.repository.DailyRecordRepository;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,6 +62,9 @@ public class DailyRecordService {
 
         BigDecimal targetValue = userMission.getTargetValue();
         BigDecimal assignedPoints = userMission.getAssignedPoints();
+        // Each record still snapshots its own day's achievement, independent of how WEEKLY
+        // missions get rolled up for display (see getMissionProgress) - this is just this
+        // record's own contribution, kept for history/auditing.
         BigDecimal achievementRate = scoringService.achievementRate(inputValue, targetValue);
         BigDecimal earnedScore = scoringService.earnedScore(assignedPoints, achievementRate);
 
@@ -92,15 +99,28 @@ public class DailyRecordService {
         return getMissionProgress(userId, date);
     }
 
+    /**
+     * Progress "as of" a given day. DAILY missions compare that day's own record to their
+     * target. WEEKLY missions compare the week-to-date sum (Monday..date) of their inputs to
+     * their target, so the weekly goal fills in gradually across the week rather than expecting
+     * the full weekly amount in a single day's record.
+     */
     @Transactional(readOnly = true)
     public MissionProgress getMissionProgress(Long userId, LocalDate date) {
         UserProject project = userProjectService.getOrCreateActive(userId);
         List<ActiveMission> activeMissions = flattenActiveMissions(project);
 
-        List<DailyRecord> records = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, date, date);
-        Map<Long, DailyRecord> recordsByMissionId = new LinkedHashMap<>();
+        LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        List<DailyRecord> records = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, date);
+
+        Map<Long, DailyRecord> todaysRecordByMissionId = new LinkedHashMap<>();
+        Map<Long, BigDecimal> weekToDateInputByMissionId = new LinkedHashMap<>();
         for (DailyRecord record : records) {
-            recordsByMissionId.put(record.getUserMission().getId(), record);
+            Long missionId = record.getUserMission().getId();
+            if (record.getRecordDate().equals(date)) {
+                todaysRecordByMissionId.put(missionId, record);
+            }
+            weekToDateInputByMissionId.merge(missionId, record.getInputValue(), BigDecimal::add);
         }
 
         Map<String, BigDecimal> statScores = new LinkedHashMap<>();
@@ -110,32 +130,95 @@ public class DailyRecordService {
 
         for (ActiveMission active : activeMissions) {
             UserMission mission = active.mission();
-            DailyRecord record = recordsByMissionId.get(mission.getId());
             String statKey = active.goalTypeCode().toLowerCase();
+            statScores.putIfAbsent(statKey, BigDecimal.ZERO);
 
-            if (record != null) {
-                totalScore = totalScore.add(record.getEarnedScore());
-                statScores.merge(statKey, record.getEarnedScore(), BigDecimal::add);
+            boolean isComplete;
+            BigDecimal earnedScore;
 
-                boolean isComplete = record.getInputValue().compareTo(record.getTargetValueSnapshot()) >= 0;
-                (isComplete ? completed : remaining).add(mission.displayName());
+            if (active.missionType() == MissionType.WEEKLY) {
+                BigDecimal weekToDateInput = weekToDateInputByMissionId.getOrDefault(mission.getId(), BigDecimal.ZERO);
+                BigDecimal rate = scoringService.achievementRate(weekToDateInput, mission.getTargetValue());
+                earnedScore = scoringService.earnedScore(mission.getAssignedPoints(), rate);
+                isComplete = weekToDateInput.compareTo(mission.getTargetValue()) >= 0;
             } else {
-                statScores.putIfAbsent(statKey, BigDecimal.ZERO);
-                remaining.add(mission.displayName());
+                DailyRecord todaysRecord = todaysRecordByMissionId.get(mission.getId());
+                if (todaysRecord == null) {
+                    remaining.add(mission.displayName());
+                    continue;
+                }
+                earnedScore = todaysRecord.getEarnedScore();
+                isComplete = todaysRecord.getInputValue().compareTo(todaysRecord.getTargetValueSnapshot()) >= 0;
             }
+
+            totalScore = totalScore.add(earnedScore);
+            statScores.merge(statKey, earnedScore, BigDecimal::add);
+            (isComplete ? completed : remaining).add(mission.displayName());
         }
 
         BigDecimal maxPossible = activeMissions.stream()
                 .map(active -> active.mission().getAssignedPoints())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal progress = maxPossible.signum() > 0
-                ? totalScore.divide(maxPossible, 4, java.math.RoundingMode.HALF_UP)
+                ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         return new MissionProgress(totalScore, progress, statScores, completed, remaining);
     }
 
-    private record ActiveMission(UserMission mission, String goalTypeCode) {
+    /**
+     * The whole week's total, counting each WEEKLY mission's contribution exactly once (its
+     * full-week sum vs target) instead of once per day - summing {@link #getMissionProgress}
+     * across all 7 days would multiply-count WEEKLY missions since their week-to-date score
+     * only grows across the week.
+     */
+    @Transactional(readOnly = true)
+    public MissionProgress getWeekTotalProgress(Long userId, LocalDate weekStart) {
+        UserProject project = userProjectService.getOrCreateActive(userId);
+        List<ActiveMission> activeMissions = flattenActiveMissions(project);
+        LocalDate weekEnd = weekStart.plusDays(6);
+
+        List<DailyRecord> records = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd);
+        Map<Long, List<DailyRecord>> recordsByMissionId = new LinkedHashMap<>();
+        for (DailyRecord record : records) {
+            recordsByMissionId.computeIfAbsent(record.getUserMission().getId(), k -> new ArrayList<>()).add(record);
+        }
+
+        Map<String, BigDecimal> statScores = new LinkedHashMap<>();
+        BigDecimal totalScore = BigDecimal.ZERO;
+        BigDecimal maxPossible = BigDecimal.ZERO;
+
+        for (ActiveMission active : activeMissions) {
+            UserMission mission = active.mission();
+            String statKey = active.goalTypeCode().toLowerCase();
+            statScores.putIfAbsent(statKey, BigDecimal.ZERO);
+            List<DailyRecord> missionRecords = recordsByMissionId.getOrDefault(mission.getId(), List.of());
+
+            BigDecimal earnedScore;
+            if (active.missionType() == MissionType.WEEKLY) {
+                BigDecimal weekSum = missionRecords.stream().map(DailyRecord::getInputValue)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal rate = scoringService.achievementRate(weekSum, mission.getTargetValue());
+                earnedScore = scoringService.earnedScore(mission.getAssignedPoints(), rate);
+                maxPossible = maxPossible.add(mission.getAssignedPoints());
+            } else {
+                earnedScore = missionRecords.stream().map(DailyRecord::getEarnedScore)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                maxPossible = maxPossible.add(mission.getAssignedPoints().multiply(BigDecimal.valueOf(7)));
+            }
+
+            totalScore = totalScore.add(earnedScore);
+            statScores.merge(statKey, earnedScore, BigDecimal::add);
+        }
+
+        BigDecimal progress = maxPossible.signum() > 0
+                ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        return new MissionProgress(totalScore, progress, statScores, List.of(), List.of());
+    }
+
+    private record ActiveMission(UserMission mission, String goalTypeCode, MissionType missionType) {
     }
 
     private List<ActiveMission> flattenActiveMissions(UserProject project) {
@@ -148,7 +231,7 @@ public class DailyRecordService {
                 }
                 for (UserMission mission : stat.getMissions()) {
                     if (mission.isActive()) {
-                        missions.add(new ActiveMission(mission, goalTypeCode));
+                        missions.add(new ActiveMission(mission, goalTypeCode, mission.getMissionType()));
                     }
                 }
             }

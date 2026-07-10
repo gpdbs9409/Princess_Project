@@ -1,7 +1,5 @@
 package com.example.princessproject.record.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -31,28 +29,28 @@ public class WeeklyReportService {
             dailyBreakdown.add(new WeeklyReportResult.DailyEntry(date, progress));
         }
 
-        return aggregate(weekStart, weekEnd, dailyBreakdown);
+        MissionProgress weekTotal = dailyRecordService.getWeekTotalProgress(userId, weekStart);
+        return aggregate(weekStart, weekEnd, weekTotal, dailyBreakdown);
     }
 
-    WeeklyReportResult aggregate(LocalDate weekStart, LocalDate weekEnd, List<WeeklyReportResult.DailyEntry> dailyBreakdown) {
-        BigDecimal totalScore = BigDecimal.ZERO;
-        BigDecimal progressSum = BigDecimal.ZERO;
-        Map<String, BigDecimal> statScoreTotals = new LinkedHashMap<>();
+    /**
+     * totalScore/statScoreTotals/averageProgress come from the pre-computed {@code weekTotal}
+     * (see DailyRecordService#getWeekTotalProgress), NOT from summing dailyBreakdown - a WEEKLY
+     * mission's week-to-date score grows every day, so naively summing 7 days would
+     * multiply-count it. missionCompletionCounts still comes from the day-by-day breakdown
+     * (a WEEKLY mission can show as "completed" on more than one day once its weekly target is
+     * met - a known simplification for this secondary metric).
+     */
+    WeeklyReportResult aggregate(
+            LocalDate weekStart, LocalDate weekEnd, MissionProgress weekTotal, List<WeeklyReportResult.DailyEntry> dailyBreakdown
+    ) {
         Map<String, Integer> missionCompletionCounts = new LinkedHashMap<>();
-
         for (WeeklyReportResult.DailyEntry entry : dailyBreakdown) {
-            MissionProgress progress = entry.progress();
-            totalScore = totalScore.add(progress.totalScore());
-            progressSum = progressSum.add(progress.progress());
-
-            progress.statScores().forEach((stat, score) -> statScoreTotals.merge(stat, score, BigDecimal::add));
-            progress.completedMissions().forEach(name -> missionCompletionCounts.merge(name, 1, Integer::sum));
+            entry.progress().completedMissions().forEach(name -> missionCompletionCounts.merge(name, 1, Integer::sum));
         }
 
-        BigDecimal averageProgress = progressSum.divide(
-                BigDecimal.valueOf(WEEK_LENGTH_DAYS), 4, RoundingMode.HALF_UP);
-
         return new WeeklyReportResult(
-                weekStart, weekEnd, totalScore, averageProgress, statScoreTotals, missionCompletionCounts, dailyBreakdown);
+                weekStart, weekEnd, weekTotal.totalScore(), weekTotal.progress(),
+                weekTotal.statScores(), missionCompletionCounts, dailyBreakdown);
     }
 }
