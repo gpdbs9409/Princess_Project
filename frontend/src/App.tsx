@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { NavBar } from "./components/NavBar";
 import { Footer } from "./components/Footer";
 import { Mascot } from "./components/Mascot";
+import { BubbleEffect } from "./components/BubbleEffect";
 import { RequireAuth } from "./auth/RequireAuth";
 import { useAuth } from "./auth/AuthContext";
 import { LoginPage } from "./pages/LoginPage";
@@ -14,6 +15,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <BubbleEffect />
       <NavBar />
       <Routes>
         <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
