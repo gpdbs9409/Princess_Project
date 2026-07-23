@@ -57,12 +57,10 @@ interface CustomMissionState {
 interface StatState {
   statTypeId: number;
   name: string;
-  selected: boolean;
   missions: MissionState[];
 }
 
 interface CustomStatState {
-  selected: boolean;
   missions: CustomMissionState[];
 }
 
@@ -100,7 +98,6 @@ function buildInitialState(catalog: CatalogGoal[], project?: ProjectResponse): G
         return {
           statTypeId: stat.id,
           name: stat.name,
-          selected: !!existingStat,
           missions: stat.missions.map((mission) => {
             const existingMission = existingStat?.missions.find((m) => m.missionDefinitionId === mission.id);
             return {
@@ -116,7 +113,6 @@ function buildInitialState(catalog: CatalogGoal[], project?: ProjectResponse): G
         };
       }),
       customStat: {
-        selected: !!existingCustomStat,
         missions: (existingCustomStat?.missions ?? []).map((m) => ({
           key: nextCustomMissionKey(),
           name: m.name,
@@ -167,10 +163,6 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
     updateGoal(goalTypeCode, (g) => ({ ...g, weightPercent }));
   };
 
-  const toggleStat = (goalTypeCode: GoalTypeCode, statTypeId: number) => {
-    updateStat(goalTypeCode, statTypeId, (s) => ({ ...s, selected: !s.selected }));
-  };
-
   const toggleMission = (goalTypeCode: GoalTypeCode, statTypeId: number, missionDefinitionId: number) => {
     updateStat(goalTypeCode, statTypeId, (s) => ({
       ...s,
@@ -192,14 +184,6 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
         m.missionDefinitionId === missionDefinitionId ? { ...m, ...patch } : m
       ),
     }));
-  };
-
-  const toggleCustomStat = (goalTypeCode: GoalTypeCode) => {
-    updateGoal(goalTypeCode, (g) => {
-      const selected = !g.customStat.selected;
-      const missions = selected && g.customStat.missions.length === 0 ? [blankCustomMission()] : g.customStat.missions;
-      return { ...g, customStat: { selected, missions } };
-    });
   };
 
   const addCustomMission = (goalTypeCode: GoalTypeCode) => {
@@ -232,7 +216,6 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
       .filter((g) => g.selected)
       .map((g) => {
         const catalogStats = g.stats
-          .filter((s) => s.selected)
           .map((s) => ({
             statTypeId: s.statTypeId,
             missions: s.missions
@@ -247,17 +230,15 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
           }))
           .filter((s) => s.missions.length > 0);
 
-        const customMissions = g.customStat.selected
-          ? g.customStat.missions
-              .filter((m) => m.name.trim().length > 0)
-              .map((m) => ({
-                customName: m.name.trim(),
-                targetValue: m.targetValue,
-                unit: m.unit,
-                assignedPoints: m.assignedPoints,
-                missionType: m.missionType,
-              }))
-          : [];
+        const customMissions = g.customStat.missions
+          .filter((m) => m.name.trim().length > 0)
+          .map((m) => ({
+            customName: m.name.trim(),
+            targetValue: m.targetValue,
+            unit: m.unit,
+            assignedPoints: m.assignedPoints,
+            missionType: m.missionType,
+          }));
 
         const stats = [
           ...catalogStats,
@@ -343,76 +324,61 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
             <div className="stack" style={{ marginTop: 12, gap: 10, paddingLeft: 8, borderLeft: "2px solid var(--border)" }}>
               {goal.stats.map((stat) => (
                 <div key={stat.statTypeId}>
-                  <label className="row" style={{ gap: 8 }}>
-                    <input
-                      type="checkbox"
-                      checked={stat.selected}
-                      onChange={() => toggleStat(goal.goalTypeCode, stat.statTypeId)}
-                    />
-                    <span style={{ fontSize: 13.5 }}>{stat.name}</span>
-                  </label>
+                  <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>
+                    {stat.name}
+                  </span>
 
-                  {stat.selected && (
-                    <div className="stack" style={{ marginTop: 6, gap: 6, paddingLeft: 24 }}>
-                      {stat.missions.map((mission) => (
-                        <div key={mission.missionDefinitionId} className="row-between" style={{ fontSize: 13 }}>
-                          <label className="row" style={{ gap: 6 }}>
-                            <input
-                              type="checkbox"
-                              checked={mission.selected}
-                              onChange={() => toggleMission(goal.goalTypeCode, stat.statTypeId, mission.missionDefinitionId)}
-                            />
-                            {mission.name}
-                          </label>
-                          {mission.selected && (
-                            <span className="row" style={{ gap: 4 }}>
-                              <select
-                                value={mission.missionType}
-                                onChange={(e) =>
-                                  updateMission(goal.goalTypeCode, stat.statTypeId, mission.missionDefinitionId, {
-                                    missionType: e.target.value as MissionType,
-                                  })
-                                }
-                                style={{ fontSize: 12, padding: "4px 6px" }}
-                              >
-                                <option value="DAILY">{MISSION_TYPE_LABELS.DAILY}</option>
-                                <option value="WEEKLY">{MISSION_TYPE_LABELS.WEEKLY}</option>
-                              </select>
-                              <input
-                                type="number"
-                                value={mission.targetValue}
-                                onChange={(e) =>
-                                  updateMission(goal.goalTypeCode, stat.statTypeId, mission.missionDefinitionId, {
-                                    targetValue: Number(e.target.value) || 0,
-                                  })
-                                }
-                                style={{ maxWidth: 60 }}
-                              />
-                              <span className="muted">{mission.unit}</span>
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="stack" style={{ marginTop: 6, gap: 6, paddingLeft: 8 }}>
+                    {stat.missions.map((mission) => (
+                      <div key={mission.missionDefinitionId} className="row-between" style={{ fontSize: 13, flexWrap: "wrap", gap: 6 }}>
+                        <label className="row" style={{ gap: 6 }}>
+                          <input
+                            type="checkbox"
+                            checked={mission.selected}
+                            onChange={() => toggleMission(goal.goalTypeCode, stat.statTypeId, mission.missionDefinitionId)}
+                          />
+                          {mission.name}
+                        </label>
+                        <span className="row" style={{ gap: 4 }}>
+                          <select
+                            value={mission.missionType}
+                            onChange={(e) =>
+                              updateMission(goal.goalTypeCode, stat.statTypeId, mission.missionDefinitionId, {
+                                missionType: e.target.value as MissionType,
+                              })
+                            }
+                            style={{ fontSize: 12, padding: "4px 6px" }}
+                          >
+                            <option value="DAILY">{MISSION_TYPE_LABELS.DAILY}</option>
+                            <option value="WEEKLY">{MISSION_TYPE_LABELS.WEEKLY}</option>
+                          </select>
+                          <input
+                            type="number"
+                            value={mission.targetValue}
+                            onChange={(e) =>
+                              updateMission(goal.goalTypeCode, stat.statTypeId, mission.missionDefinitionId, {
+                                targetValue: Number(e.target.value) || 0,
+                              })
+                            }
+                            style={{ maxWidth: 60 }}
+                          />
+                          <span className="muted">{mission.unit}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
 
-              {/* "나만의 미션" sits as its own checklist row, a sibling of the catalog stats
-                  above (신체 -> 운동/식단/수면/나만의 미션), not nested inside any one of them. */}
+              {/* "나만의 미션" sits as its own section, a sibling of the catalog stats above
+                  (신체 -> 운동/식단/수면/나만의 미션), not nested inside any one of them. */}
               <div>
-                <label className="row" style={{ gap: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={goal.customStat.selected}
-                    onChange={() => toggleCustomStat(goal.goalTypeCode)}
-                  />
-                  <span style={{ fontSize: 13.5 }}>{CUSTOM_STAT_NAME}</span>
-                </label>
+                <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>
+                  {CUSTOM_STAT_NAME}
+                </span>
 
-                {goal.customStat.selected && (
-                  <div className="stack" style={{ marginTop: 6, gap: 10, paddingLeft: 24 }}>
-                    {goal.customStat.missions.map((mission) => (
+                <div className="stack" style={{ marginTop: 6, gap: 10, paddingLeft: 8 }}>
+                  {goal.customStat.missions.map((mission) => (
                       <div key={mission.key} className="stack" style={{ gap: 6, fontSize: 13 }}>
                         <div className="row" style={{ gap: 6 }}>
                           <input
@@ -461,16 +427,15 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                       </div>
                     ))}
 
-                    <button
-                      type="button"
-                      className="ghost"
-                      style={{ alignSelf: "flex-start", padding: "4px 10px", fontSize: 12 }}
-                      onClick={() => addCustomMission(goal.goalTypeCode)}
-                    >
-                      + 미션 추가
-                    </button>
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    className="ghost"
+                    style={{ alignSelf: "flex-start", padding: "4px 10px", fontSize: 12 }}
+                    onClick={() => addCustomMission(goal.goalTypeCode)}
+                  >
+                    + 미션 추가
+                  </button>
+                </div>
               </div>
             </div>
           )}
