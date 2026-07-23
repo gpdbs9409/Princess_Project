@@ -4,18 +4,19 @@ interface DayPoint {
   date: string;
   label: string;
   value: number;
+  /** achievement rate against that day's own max possible score, 0-1 */
+  progress: number;
   isToday: boolean;
 }
 
 export function WeeklyBarChart({ days }: { days: DayPoint[] }) {
   const [hovered, setHovered] = useState<number | null>(null);
-  const max = Math.max(1, ...days.map((d) => d.value));
 
   return (
     <div>
       <div className="week-chart">
         {days.map((day, i) => {
-          const heightPct = Math.max(2, (day.value / max) * 100);
+          const heightPct = day.value > 0 ? Math.max(2, Math.min(100, day.progress * 100)) : 0;
           return (
             <div
               key={day.date}

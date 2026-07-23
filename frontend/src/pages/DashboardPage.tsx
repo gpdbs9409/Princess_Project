@@ -56,6 +56,37 @@ function isoDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * Max possible score per goal type, matching the backend's own maxPossible math
+ * (DailyRecordService) instead of scaling bars against whatever the highest actual
+ * score happens to be - otherwise the best-scoring stat always renders as a full bar
+ * even at 20% of what's actually achievable.
+ */
+function dailyMaxByGoal(project: ProjectResponse | null): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const goal of project?.goals ?? []) {
+    result[goal.goalTypeCode.toLowerCase()] = goal.stats.reduce(
+      (sum, stat) => sum + stat.missions.reduce((ms, m) => ms + m.assignedPoints, 0),
+      0
+    );
+  }
+  return result;
+}
+
+/** Weekly ceiling: DAILY missions can earn their points once per day (x7), WEEKLY
+ * missions only once for the whole week - mirrors getWeekTotalProgress's no-double-count rule. */
+function weeklyMaxByGoal(project: ProjectResponse | null): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const goal of project?.goals ?? []) {
+    result[goal.goalTypeCode.toLowerCase()] = goal.stats.reduce(
+      (sum, stat) =>
+        sum + stat.missions.reduce((ms, m) => ms + (m.missionType === "DAILY" ? m.assignedPoints * 7 : m.assignedPoints), 0),
+      0
+    );
+  }
+  return result;
+}
+
 export function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -84,12 +115,8 @@ export function DashboardPage() {
   const today = report?.dailyBreakdown[report.dailyBreakdown.length - 1] ?? null;
   const todayIso = isoDate(new Date());
 
-  const statMax = report
-    ? Math.max(1, ...GOAL_TYPE_CODES.map((s) => report.statScoreTotals[s.toLowerCase()] ?? 0))
-    : 1;
-  const todayStatMax = today
-    ? Math.max(1, ...GOAL_TYPE_CODES.map((s) => today.statScores[s.toLowerCase()] ?? 0))
-    : 1;
+  const dailyMax = dailyMaxByGoal(project);
+  const weeklyMax = weeklyMaxByGoal(project);
 
   return (
     <div className="container">
@@ -153,7 +180,7 @@ export function DashboardPage() {
                 key={s}
                 label={GOAL_TYPE_LABELS[s]}
                 value={today.statScores[s.toLowerCase()] ?? 0}
-                max={todayStatMax}
+                max={dailyMax[s.toLowerCase()] ?? 1}
               />
             ))}
           </div>
@@ -175,6 +202,7 @@ export function DashboardPage() {
                   date: d.date,
                   label: WEEKDAY_LABELS[dow],
                   value: d.totalScore,
+                  progress: d.progress,
                   isToday: d.date === todayIso,
                 };
               })}
@@ -192,7 +220,7 @@ export function DashboardPage() {
                 key={s}
                 label={GOAL_TYPE_LABELS[s]}
                 value={report.statScoreTotals[s.toLowerCase()] ?? 0}
-                max={statMax}
+                max={weeklyMax[s.toLowerCase()] ?? 1}
               />
             ))}
           </div>
