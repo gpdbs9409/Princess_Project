@@ -37,6 +37,17 @@ export const GOAL_TYPE_EMOJI: Record<GoalTypeCode, string> = {
   SYMBOL: "💎",
 };
 
+// frontend/public/capitals/<name>.png - falls back to a solid color card if missing
+export const GOAL_TYPE_IMAGE: Record<GoalTypeCode, string> = {
+  PHYSICAL: "/capitals/physical.png",
+  ECONOMY: "/capitals/economy.png",
+  CULTURE: "/capitals/culture.png",
+  KNOWLEDGE: "/capitals/knowledge.png",
+  LANGUAGE: "/capitals/language.png",
+  PSYCHOLOGY: "/capitals/psychology.png",
+  SYMBOL: "/capitals/symbol.png",
+};
+
 export type MissionType = "DAILY" | "WEEKLY" | "TOTAL";
 
 export interface UserResponse {

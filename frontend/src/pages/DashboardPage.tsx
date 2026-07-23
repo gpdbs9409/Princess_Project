@@ -4,6 +4,7 @@ import { getActiveProject, getWeeklyReport } from "../api/endpoints";
 import {
   GOAL_TYPE_CODES,
   GOAL_TYPE_EMOJI,
+  GOAL_TYPE_IMAGE,
   GOAL_TYPE_LABELS,
   type ProjectResponse,
   type WeeklyReportResponse,
@@ -115,6 +116,9 @@ export function DashboardPage() {
                 key={code}
                 type="button"
                 className="capital-card is-selected"
+                style={{
+                  backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.6)), url(${GOAL_TYPE_IMAGE[code]})`,
+                }}
                 onClick={() => navigate("/record")}
               >
                 <span className="capital-card-emoji">{GOAL_TYPE_EMOJI[code]}</span>
