@@ -4,6 +4,7 @@ import type {
   DailySummaryResponse,
   LoginResponse,
   AiFeedbackResponse,
+  ProfileStatsResponse,
   ProjectResponse,
   ProjectSelectionsRequest,
   RecordRequest,
@@ -17,6 +18,9 @@ export const login = (nickname: string, password: string) =>
   api.post<LoginResponse>("/api/auth/login", { nickname, password });
 
 export const getUser = (userId: number) => api.get<UserResponse>(`/api/users/${userId}`);
+
+export const getProfileStats = (userId: number) =>
+  api.get<ProfileStatsResponse>(`/api/users/${userId}/profile-stats`);
 
 export const updateProfileImage = (userId: number, file: File) => {
   const formData = new FormData();

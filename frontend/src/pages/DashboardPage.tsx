@@ -10,6 +10,7 @@ import {
   type WeeklyReportResponse,
 } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
+import { ProfileHeader } from "../components/ProfileHeader";
 import { SideWidget } from "../components/SideWidget";
 import { StatMeter } from "../components/StatMeter";
 import { WeeklyBarChart } from "../components/WeeklyBarChart";
@@ -94,6 +95,7 @@ export function DashboardPage() {
   return (
     <div className="container">
       <SideWidget project={project} />
+      <ProfileHeader />
 
       <div className="stack" style={{ marginBottom: 20 }}>
         <span className="eyebrow">My Dashboard</span>

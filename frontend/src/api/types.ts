@@ -56,6 +56,11 @@ export interface UserResponse {
   profileImageUrl: string | null;
 }
 
+export interface ProfileStatsResponse {
+  recordCount: number;
+  totalUsers: number;
+}
+
 export interface LoginResponse {
   token: string;
   user: UserResponse;
