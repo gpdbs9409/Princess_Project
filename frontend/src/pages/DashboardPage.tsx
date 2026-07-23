@@ -108,19 +108,18 @@ export function DashboardPage() {
       <div className="section">
         <div className="section-band">습관자본 바로가기</div>
         <div className="capital-grid">
-          {GOAL_TYPE_CODES.map((code) => {
+          {GOAL_TYPE_CODES.filter((code) => project?.goals.some((g) => g.goalTypeCode === code)).map((code) => {
             const goal = project?.goals.find((g) => g.goalTypeCode === code);
-            const selected = !!goal;
             return (
               <button
                 key={code}
                 type="button"
-                className={`capital-card ${selected ? "is-selected" : "is-unselected"}`}
-                onClick={() => navigate(selected ? "/record" : "/stat-focus")}
+                className="capital-card is-selected"
+                onClick={() => navigate("/record")}
               >
                 <span className="capital-card-emoji">{GOAL_TYPE_EMOJI[code]}</span>
                 <span className="capital-card-label">{GOAL_TYPE_LABELS[code]}</span>
-                <span className="capital-card-sub">{selected ? `비중 ${goal.weightPercent}%` : "설정하기 →"}</span>
+                <span className="capital-card-sub">비중 {goal?.weightPercent}%</span>
               </button>
             );
           })}
