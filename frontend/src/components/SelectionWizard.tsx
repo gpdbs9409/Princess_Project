@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ApiError } from "../api/client";
+import { useToast } from "./ToastProvider";
 import {
   GOAL_TYPE_LABELS,
   type CatalogGoal,
@@ -137,6 +138,7 @@ interface SelectionWizardProps {
 }
 
 export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit }: SelectionWizardProps) {
+  const { showToast } = useToast();
   const [goalHuman, setGoalHuman] = useState(initialProject?.goalHuman ?? "");
   const [goalEnding, setGoalEnding] = useState(initialProject?.goalEnding ?? "");
   const [goals, setGoals] = useState<GoalState[]>(() => buildInitialState(catalog, initialProject));
@@ -286,6 +288,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
     setSubmitting(true);
     try {
       await onSubmit({ goalHuman: goalHuman || undefined, goalEnding: goalEnding || undefined, goals: selectedGoals });
+      showToast("저장되었어요");
     } catch (err) {
       setError(saveErrorMessage(err));
     } finally {

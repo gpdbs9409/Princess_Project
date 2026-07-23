@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import { analyzeVisionPhoto, saveRecord, uploadFile } from "../api/endpoints";
 import { GOAL_TYPE_EMOJI, type GoalTypeCode } from "../api/types";
+import { useToast } from "./ToastProvider";
 
 export interface FlatMission {
   userMissionId: number;
@@ -20,6 +21,7 @@ interface MissionCardProps {
 }
 
 export function MissionCard({ mission, date, completed, onSaved }: MissionCardProps) {
+  const { showToast } = useToast();
   const [inputValue, setInputValue] = useState("");
   const [memo, setMemo] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -76,6 +78,7 @@ export function MissionCard({ mission, date, completed, onSaved }: MissionCardPr
         memo: memo || undefined,
       });
       onSaved();
+      showToast("기록이 저장되었어요");
     } catch (err) {
       if (err instanceof ApiError && err.code === "PHOTO_REQUIRED") {
         setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
