@@ -408,48 +408,53 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                 </label>
 
                 {goal.customStat.selected && (
-                  <div className="stack" style={{ marginTop: 6, gap: 6, paddingLeft: 24 }}>
+                  <div className="stack" style={{ marginTop: 6, gap: 10, paddingLeft: 24 }}>
                     {goal.customStat.missions.map((mission) => (
-                      <div key={mission.key} className="row" style={{ gap: 4, fontSize: 13 }}>
-                        <input
-                          type="text"
-                          placeholder="미션 이름"
-                          value={mission.name}
-                          onChange={(e) => updateCustomMission(goal.goalTypeCode, mission.key, { name: e.target.value })}
-                          style={{ flex: 1 }}
-                        />
-                        <select
-                          value={mission.missionType}
-                          onChange={(e) =>
-                            updateCustomMission(goal.goalTypeCode, mission.key, { missionType: e.target.value as MissionType })
-                          }
-                          style={{ fontSize: 12, padding: "4px 6px" }}
-                        >
-                          <option value="DAILY">{MISSION_TYPE_LABELS.DAILY}</option>
-                          <option value="WEEKLY">{MISSION_TYPE_LABELS.WEEKLY}</option>
-                        </select>
-                        <input
-                          type="number"
-                          value={mission.targetValue}
-                          onChange={(e) =>
-                            updateCustomMission(goal.goalTypeCode, mission.key, { targetValue: Number(e.target.value) || 0 })
-                          }
-                          style={{ maxWidth: 60 }}
-                        />
-                        <input
-                          type="text"
-                          value={mission.unit}
-                          onChange={(e) => updateCustomMission(goal.goalTypeCode, mission.key, { unit: e.target.value })}
-                          style={{ maxWidth: 50 }}
-                        />
-                        <button
-                          type="button"
-                          className="ghost"
-                          style={{ padding: "4px 8px" }}
-                          onClick={() => removeCustomMission(goal.goalTypeCode, mission.key)}
-                        >
-                          삭제
-                        </button>
+                      <div key={mission.key} className="stack" style={{ gap: 6, fontSize: 13 }}>
+                        <div className="row" style={{ gap: 6 }}>
+                          <input
+                            type="text"
+                            placeholder="미션 이름"
+                            value={mission.name}
+                            onChange={(e) => updateCustomMission(goal.goalTypeCode, mission.key, { name: e.target.value })}
+                            style={{ flex: 1 }}
+                          />
+                          <button
+                            type="button"
+                            className="ghost"
+                            style={{ padding: "4px 8px" }}
+                            onClick={() => removeCustomMission(goal.goalTypeCode, mission.key)}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                        <div className="row" style={{ gap: 6 }}>
+                          <select
+                            value={mission.missionType}
+                            onChange={(e) =>
+                              updateCustomMission(goal.goalTypeCode, mission.key, { missionType: e.target.value as MissionType })
+                            }
+                            style={{ fontSize: 12, padding: "4px 6px", maxWidth: 90 }}
+                          >
+                            <option value="DAILY">{MISSION_TYPE_LABELS.DAILY}</option>
+                            <option value="WEEKLY">{MISSION_TYPE_LABELS.WEEKLY}</option>
+                          </select>
+                          <input
+                            type="number"
+                            value={mission.targetValue}
+                            onChange={(e) =>
+                              updateCustomMission(goal.goalTypeCode, mission.key, { targetValue: Number(e.target.value) || 0 })
+                            }
+                            style={{ maxWidth: 60 }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="단위"
+                            value={mission.unit}
+                            onChange={(e) => updateCustomMission(goal.goalTypeCode, mission.key, { unit: e.target.value })}
+                            style={{ maxWidth: 60 }}
+                          />
+                        </div>
                       </div>
                     ))}
 
