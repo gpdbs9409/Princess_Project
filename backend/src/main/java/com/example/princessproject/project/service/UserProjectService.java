@@ -6,6 +6,7 @@ import com.example.princessproject.catalog.model.StatType;
 import com.example.princessproject.catalog.repository.GoalTypeRepository;
 import com.example.princessproject.catalog.repository.MissionDefinitionRepository;
 import com.example.princessproject.catalog.repository.StatTypeRepository;
+import com.example.princessproject.project.dto.ProjectResponse;
 import com.example.princessproject.project.dto.ProjectSelectionsRequest;
 import com.example.princessproject.project.model.ProjectStatus;
 import com.example.princessproject.project.model.UserGoal;
@@ -51,6 +52,19 @@ public class UserProjectService {
                             .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
                     return userProjectRepository.save(new UserProject(user, "나의 성장 프로젝트"));
                 });
+    }
+
+    /**
+     * With spring.jpa.open-in-view=false, the session closes when getOrCreateActive() returns -
+     * mapping to ProjectResponse has to happen while that session is still open (goalType/statType/
+     * missionDefinition are all lazy associations), so this stays inside its own @Transactional
+     * rather than letting the controller map after the fact like it does for replaceSelections
+     * (there mission/goal/stat type entities come straight out of a query in the same call, never
+     * a lazy proxy, so that path never actually needed this).
+     */
+    @Transactional(readOnly = true)
+    public ProjectResponse getActiveProjectResponse(Long userId) {
+        return ProjectResponse.from(getOrCreateActive(userId));
     }
 
     @Transactional

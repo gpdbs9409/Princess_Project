@@ -28,8 +28,7 @@ public class ProjectController {
     @GetMapping("/api/projects/active")
     public ProjectResponse getActive(Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
-        UserProject project = userProjectService.getOrCreateActive(userId);
-        return ProjectResponse.from(project);
+        return userProjectService.getActiveProjectResponse(userId);
     }
 
     @PutMapping("/api/projects/active/selections")
