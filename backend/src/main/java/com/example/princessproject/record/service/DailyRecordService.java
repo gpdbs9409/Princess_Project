@@ -109,7 +109,10 @@ public class DailyRecordService {
      * their target, so the weekly goal fills in gradually across the week rather than expecting
      * the full weekly amount in a single day's record.
      */
-    @Transactional(readOnly = true)
+    // Not readOnly: getOrCreateActive() inserts a new project on a user's very first call, and a
+    // readOnly transaction puts the JDBC connection itself in read-only mode, which fails that
+    // insert for a brand-new user who hasn't had a project created yet.
+    @Transactional
     public MissionProgress getMissionProgress(Long userId, LocalDate date) {
         UserProject project = userProjectService.getOrCreateActive(userId);
         List<ActiveMission> activeMissions = flattenActiveMissions(project);
@@ -176,7 +179,8 @@ public class DailyRecordService {
      * across all 7 days would multiply-count WEEKLY missions since their week-to-date score
      * only grows across the week.
      */
-    @Transactional(readOnly = true)
+    // Not readOnly: same reason as getMissionProgress above.
+    @Transactional
     public MissionProgress getWeekTotalProgress(Long userId, LocalDate weekStart) {
         UserProject project = userProjectService.getOrCreateActive(userId);
         List<ActiveMission> activeMissions = flattenActiveMissions(project);

@@ -68,7 +68,10 @@ public class AiFeedbackService {
         return result;
     }
 
-    @Transactional(readOnly = true)
+    // Not readOnly: getOrCreateActive() inserts a new project on a user's very first call, and a
+    // readOnly transaction puts the JDBC connection itself in read-only mode, which fails that
+    // insert for a brand-new user who hasn't had a project created yet.
+    @Transactional
     public AiFeedbackResult getStoredFeedback(Long userId, LocalDate date) {
         UserProject project = userProjectService.getOrCreateActive(userId);
         return aiFeedbackRepository

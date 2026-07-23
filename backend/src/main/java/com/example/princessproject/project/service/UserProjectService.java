@@ -61,8 +61,12 @@ public class UserProjectService {
      * rather than letting the controller map after the fact like it does for replaceSelections
      * (there mission/goal/stat type entities come straight out of a query in the same call, never
      * a lazy proxy, so that path never actually needed this).
+     *
+     * Not readOnly: getOrCreateActive() inserts a new project on a user's very first call, and a
+     * readOnly transaction puts the JDBC connection itself in read-only mode, which made that
+     * insert fail for every brand-new user ("Connection is read-only").
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public ProjectResponse getActiveProjectResponse(Long userId) {
         return ProjectResponse.from(getOrCreateActive(userId));
     }
