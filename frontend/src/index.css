@@ -92,6 +92,8 @@ body {
   color: var(--text);
   font-family: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  /* frontend/public/cursor/cursor.png - falls back to the normal arrow if missing */
+  cursor: url("/cursor/cursor.png") 4 4, auto;
 }
 
 h1,
