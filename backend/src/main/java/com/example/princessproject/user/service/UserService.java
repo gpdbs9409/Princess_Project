@@ -41,4 +41,11 @@ public class UserService {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
     }
+
+    @Transactional
+    public User updateProfileImage(Long userId, String profileImageUrl) {
+        User user = getById(userId);
+        user.setProfileImageUrl(profileImageUrl);
+        return userRepository.save(user);
+    }
 }

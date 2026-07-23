@@ -81,11 +81,15 @@ MySQL 8.0.16+/9.x rejects a `CHECK` constraint on a column that's also part of a
 that FK's `ON UPDATE`/`ON DELETE` to `RESTRICT` before adding the CHECK. Hit this for
 `user_missions.mission_definition_id` (Phase 0) and `user_stats.stat_type_id` (custom-stat work).
 
-## Deployment — IN PROGRESS right now (Railway + Vercel)
+## Deployment — LIVE (Railway + Vercel)
 
 Goal: live deployed demo before a 5-week deadline (user is solo, no other devs). Decided to
 deploy early (week 1 of 5) rather than leave it to the end, precisely because of the kind of
 infra surprises documented below.
+
+**Live URLs**:
+- Frontend: https://princess-project-frontend.vercel.app
+- Backend: https://backend-production-e551.up.railway.app
 
 **Railway project**: `princess-project` (workspace `gpdbs9409's Projects`), CLI installed
 (`@railway/cli`) and logged in as `gpdbs9409@naver.com`. Both `railway` and `vercel` CLIs are
@@ -101,7 +105,11 @@ re-login.
   into the backend service's env vars** — still TODO once backend is actually running (need
   `BUCKET_NAME`, `BUCKET_ENDPOINT`, `BUCKET_REGION=auto`, `BUCKET_PATH_STYLE_ACCESS=false`,
   `BUCKET_ACCESS_KEY_ID`, `BUCKET_SECRET_ACCESS_KEY`).
-- 🔧 **Backend service** — this is where all the trouble has been. Timeline:
+- ✅ **Backend service** — LIVE at `https://backend-production-e551.up.railway.app`. Verified via curl:
+  login (creates account on first use) → 200 + JWT, `GET /api/catalog` → 200, `GET
+  /api/projects/active` → 200. `BUCKET_*` env vars confirmed already wired on the service.
+  `CORS_ALLOWED_ORIGINS` still the `localhost:5173` placeholder — update once frontend has a
+  real URL. Troubleshooting timeline that got it here:
   1. Created empty service (`railway add --service backend`), set `DB_*` vars referencing
      `${{MySQL.MYSQLHOST}}` etc, `JWT_SECRET` (random, generated via `openssl rand -base64 48`),
      `CORS_ALLOWED_ORIGINS` (placeholder `http://localhost:5173`, needs updating once frontend
@@ -133,18 +141,48 @@ re-login.
      `DOCKERFILE` builder value. Instead, explicitly set `dockerfilePath: "Dockerfile"` via the
      same `serviceInstanceUpdate` mutation (keeping `builder: RAILPACK`) — Railpack uses a
      Dockerfile when told where one is, it just wasn't auto-detecting ours from the repo file.
-  7. Redeployed again — **result not yet known as of writing this**, a background watcher
-     (polls `railway status --json` every 10s until terminal status) was running when this note
-     was written. Check `railway status --json` / `railway logs --service backend --latest` for
-     the outcome; if still `RAILPACK`+wrong jar-glob error, the config truly isn't being read
-     and the dockerfilePath mutation is the reliable fallback going forward for any *new*
-     GitHub-connected service too.
-- ⬜ **Frontend** — not started yet. Plan (per `docs/DEPLOYMENT.md`): Vercel (root directory
-  `frontend`, `VITE_API_BASE_URL` env var) is the recommended path; a Railway option
-  (`frontend/Dockerfile` + `serve`) is documented as an alternative if preferred, not yet built.
-- ⬜ Once backend has a public domain (`railway domain --service backend`) and frontend is
-  deployed: update backend's `CORS_ALLOWED_ORIGINS` to the real frontend URL and redeploy;
-  update frontend's `VITE_API_BASE_URL` to the backend's public URL.
+  7. Redeploy with the explicit `dockerfilePath` succeeded (`BUILDING`→`DEPLOYING`→`SUCCESS`),
+     confirming our Dockerfile was actually used this time.
+  8. Even with a `SUCCESS` deploy, the public URL returned `502 Application failed to respond`.
+     `railway logs --service backend --latest -n 200` showed the real cause: Hibernate
+     `Schema validation: missing table [ai_feedbacks]` (and by extension the other tables) —
+     `schema.sql` had never actually been applied to Railway's MySQL.
+  9. First fix attempt ran the **full** `schema.sql` (including its own
+     `DROP DATABASE IF EXISTS princess_project; CREATE DATABASE princess_project; USE
+     princess_project;` header) against the MySQL public proxy. This silently created the tables
+     in a brand-new `princess_project` database — **not** the database the app actually connects
+     to. Railway's MySQL plugin always names its database `railway` (see the `MYSQLDATABASE` env
+     var / `DB_NAME=railway`), regardless of what a local script's own `CREATE DATABASE` header
+     says. Caught via `SHOW TABLES` against `railway` coming back empty.
+  10. Real fix: stripped the DROP/CREATE DATABASE/USE header (`tail -n +14 schema.sql`) and
+      re-ran just the `CREATE TABLE` statements directly against the `railway` database. Verified
+      all 10 tables now exist there, dropped the stray `princess_project` database, and ran
+      `railway restart --service backend --yes`.
+  11. **Confirmed live and fully working** via curl against
+      `https://backend-production-e551.up.railway.app`: login → 200 + JWT (creates account on
+      first use), `GET /api/catalog` → 200, `GET /api/projects/active` → 200. The 502/missing-table
+      issue is resolved. (Test user created during this verification was deleted afterward to
+      keep the production DB clean.)
+- ✅ **Frontend** — deployed to Vercel via CLI (`vercel link` then `vercel --prod`), project
+  `gpdbs9409s-projects/princess-project-frontend`, live at
+  `https://princess-project-frontend.vercel.app`. `VITE_API_BASE_URL` set as a production env
+  var (`vercel env add ... production`) pointing at the Railway backend URL — Vite bakes this in
+  at build time, so it's baked into that deploy's bundle already.
+- ✅ Backend's `CORS_ALLOWED_ORIGINS` updated to `https://princess-project-frontend.vercel.app`
+  via `railway variables --service backend --set` — this alone triggers an automatic redeploy
+  (no separate `railway redeploy` needed). Confirmed working with a real `OPTIONS` preflight
+  curl from that origin → `access-control-allow-origin` echoes back correctly.
+- ✅ Full flow re-verified end-to-end against the **live production URLs** after both pieces
+  were wired together: login → `PUT /api/projects/active/selections` (goal+stat+mission pick) →
+  `POST /api/records` → `GET /api/projects/active/daily` (score reflects the record) → `GET
+  /api/projects/active/weekly-report` (correct day bucketing). Test account's data was deleted
+  from the live DB afterward.
+- ⬜ **Not verified in an actual browser** — no browser-automation tool was available in this
+  environment, so the above was confirmed via direct API calls matching exactly what the
+  frontend sends (checked field names against `ProjectSelectionsRequest.java`/`RecordRequest`),
+  not by clicking through the deployed site itself. Worth a manual click-through pass (signup →
+  wizard → record → dashboard → weekly report in an actual browser) before the demo, especially
+  for anything CSS/layout/interaction-related that a curl check can't catch.
 - ⬜ `JWT_SECRET` was already set to a real random value at service creation (not the dev
   default) — nothing further needed there.
 

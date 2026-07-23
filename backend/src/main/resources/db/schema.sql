@@ -33,6 +33,9 @@ CREATE TABLE users (
 
     last_login_at TIMESTAMP NULL,
 
+    -- 회원가입 시 선택적으로 등록하는 본인 사진 URL
+    profile_image_url VARCHAR(500) NULL,
+
     CONSTRAINT uk_users_nickname
         UNIQUE (nickname)
 ) ENGINE = InnoDB;

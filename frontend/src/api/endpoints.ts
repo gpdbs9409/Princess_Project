@@ -18,6 +18,12 @@ export const login = (nickname: string, password: string) =>
 
 export const getUser = (userId: number) => api.get<UserResponse>(`/api/users/${userId}`);
 
+export const updateProfileImage = (userId: number, file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.putMultipart<UserResponse>(`/api/users/${userId}/profile-image`, formData);
+};
+
 export const getCatalog = () => api.get<CatalogGoal[]>("/api/catalog");
 
 export const getActiveProject = () => api.get<ProjectResponse>("/api/projects/active");

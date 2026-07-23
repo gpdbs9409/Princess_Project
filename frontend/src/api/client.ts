@@ -45,4 +45,6 @@ export const api = {
   put: <T>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),
   postMultipart: <T>(path: string, formData: FormData) =>
     request<T>(path, { method: "POST", body: formData, isMultipart: true }),
+  putMultipart: <T>(path: string, formData: FormData) =>
+    request<T>(path, { method: "PUT", body: formData, isMultipart: true }),
 };

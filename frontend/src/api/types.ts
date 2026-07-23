@@ -32,6 +32,7 @@ export type MissionType = "DAILY" | "WEEKLY" | "TOTAL";
 export interface UserResponse {
   id: number;
   nickname: string;
+  profileImageUrl: string | null;
 }
 
 export interface LoginResponse {

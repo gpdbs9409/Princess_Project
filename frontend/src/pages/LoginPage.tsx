@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
-import { getActiveProject, getCatalog, login, replaceSelections } from "../api/endpoints";
+import { getActiveProject, getCatalog, login, replaceSelections, updateProfileImage } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
 import { SelectionWizard } from "../components/SelectionWizard";
 import type { CatalogGoal } from "../api/types";
 
 export function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, updateUser } = useAuth();
   const navigate = useNavigate();
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [catalog, setCatalog] = useState<CatalogGoal[] | null>(null);
@@ -23,6 +24,11 @@ export function LoginPage() {
     try {
       const res = await login(nickname.trim(), password);
       signIn(res.token, res.user);
+
+      if (photo) {
+        const updated = await updateProfileImage(res.user.id, photo);
+        updateUser(updated);
+      }
 
       const project = await getActiveProject();
       if (project.goals.length === 0) {
@@ -89,6 +95,15 @@ export function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="비밀번호"
+          />
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
+          <label htmlFor="photo">본인 사진 (선택, 처음 가입할 때만 사용돼요)</label>
+          <input
+            id="photo"
+            type="file"
+            accept="image/*"
+            onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
           />
         </div>
         {error && <div className="error-banner">{error}</div>}
