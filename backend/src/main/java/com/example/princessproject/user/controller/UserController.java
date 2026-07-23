@@ -2,6 +2,7 @@ package com.example.princessproject.user.controller;
 
 import com.example.princessproject.upload.service.FileStorageClient;
 import com.example.princessproject.user.service.UserService;
+import com.example.princessproject.user.dto.ProfileStatsResponse;
 import com.example.princessproject.user.dto.UserResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,5 +44,11 @@ public class UserController {
         }
         String url = fileStorageClient.store(file);
         return UserResponse.from(userService.updateProfileImage(id, url));
+    }
+
+    @GetMapping("/{id}/profile-stats")
+    @PreAuthorize("#id == authentication.principal")
+    public ProfileStatsResponse getProfileStats(@PathVariable Long id) {
+        return userService.getProfileStats(id);
     }
 }

@@ -11,4 +11,6 @@ public interface DailyRecordRepository extends JpaRepository<DailyRecord, Long> 
     Optional<DailyRecord> findByUserIdAndUserMissionIdAndRecordDate(Long userId, Long userMissionId, LocalDate recordDate);
 
     List<DailyRecord> findByUserIdAndRecordDateBetween(Long userId, LocalDate start, LocalDate end);
+
+    long countByUserId(Long userId);
 }

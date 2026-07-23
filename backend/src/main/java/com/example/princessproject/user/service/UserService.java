@@ -1,5 +1,7 @@
 package com.example.princessproject.user.service;
 
+import com.example.princessproject.record.repository.DailyRecordRepository;
+import com.example.princessproject.user.dto.ProfileStatsResponse;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -13,10 +15,16 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final DailyRecordRepository dailyRecordRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            DailyRecordRepository dailyRecordRepository
+    ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.dailyRecordRepository = dailyRecordRepository;
     }
 
     /**
@@ -47,5 +55,12 @@ public class UserService {
         User user = getById(userId);
         user.setProfileImageUrl(profileImageUrl);
         return userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public ProfileStatsResponse getProfileStats(Long userId) {
+        long recordCount = dailyRecordRepository.countByUserId(userId);
+        long totalUsers = userRepository.count();
+        return new ProfileStatsResponse(recordCount, totalUsers);
     }
 }
