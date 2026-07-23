@@ -19,7 +19,8 @@ class WeeklyReportServiceTest {
     ) {
         Map<String, BigDecimal> scores = new LinkedHashMap<>();
         statScores.forEach((k, v) -> scores.put(k, BigDecimal.valueOf(v)));
-        return new MissionProgress(BigDecimal.valueOf(totalScore), BigDecimal.valueOf(progressRatio), scores, completed, remaining);
+        return new MissionProgress(
+                BigDecimal.valueOf(totalScore), BigDecimal.valueOf(progressRatio), scores, completed, remaining, Map.of());
     }
 
     private WeeklyReportResult.DailyEntry entry(LocalDate date, List<String> completed, List<String> remaining) {

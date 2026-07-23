@@ -1,6 +1,7 @@
 package com.example.princessproject.record.service;
 
 import com.example.princessproject.catalog.model.MissionType;
+import com.example.princessproject.record.dto.TodayRecordEntry;
 import com.example.princessproject.project.model.UserGoal;
 import com.example.princessproject.project.model.UserMission;
 import com.example.princessproject.project.model.UserProject;
@@ -170,7 +171,15 @@ public class DailyRecordService {
                 ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
-        return new MissionProgress(totalScore, progress, statScores, completed, remaining);
+        Map<Long, TodayRecordEntry> todayRecords = new LinkedHashMap<>();
+        for (ActiveMission active : activeMissions) {
+            DailyRecord todaysRecord = todaysRecordByMissionId.get(active.mission().getId());
+            if (todaysRecord != null) {
+                todayRecords.put(active.mission().getId(), TodayRecordEntry.from(todaysRecord));
+            }
+        }
+
+        return new MissionProgress(totalScore, progress, statScores, completed, remaining, todayRecords);
     }
 
     /**
@@ -223,7 +232,7 @@ public class DailyRecordService {
                 ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
-        return new MissionProgress(totalScore, progress, statScores, List.of(), List.of());
+        return new MissionProgress(totalScore, progress, statScores, List.of(), List.of(), Map.of());
     }
 
     private record ActiveMission(UserMission mission, String goalTypeCode, MissionType missionType) {

@@ -14,6 +14,7 @@ public record DailySummaryResponse(
         Map<String, BigDecimal> statScores,
         List<String> completedMissions,
         List<String> remainingMissions,
+        Map<Long, TodayRecordEntry> todayRecords,
         AiFeedbackResponse aiFeedback
 ) {
     public static DailySummaryResponse from(LocalDate date, MissionProgress progress, AiFeedbackResponse aiFeedback) {
@@ -24,6 +25,7 @@ public record DailySummaryResponse(
                 progress.statScores(),
                 progress.completedMissions(),
                 progress.remainingMissions(),
+                progress.todayRecords(),
                 aiFeedback
         );
     }
