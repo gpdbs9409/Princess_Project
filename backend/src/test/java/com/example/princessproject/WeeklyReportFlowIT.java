@@ -44,7 +44,7 @@ class WeeklyReportFlowIT {
 
     @Test
     void aggregatesTwoDaysOfRecordsIntoTheContainingWeek() {
-        LoginResponse login = client.post().uri("/api/auth/login")
+        LoginResponse login = client.post().uri("/api/auth/signup")
                 .body(new LoginRequest("weekly-tester", "test-password"))
                 .exchange()
                 .expectStatus().isOk()

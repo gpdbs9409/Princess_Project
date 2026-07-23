@@ -28,9 +28,16 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
+    @PostMapping("/signup")
+    public LoginResponse signup(@Valid @RequestBody LoginRequest request) {
+        User user = userService.signup(request.nickname(), request.password());
+        String token = jwtService.generateToken(user);
+        return new LoginResponse(token, UserResponse.from(user));
+    }
+
     /**
-     * First login for a nickname creates the account with that password; a nickname that
-     * already exists must supply the matching password (401 otherwise).
+     * Nickname must already exist (404-equivalent NICKNAME_NOT_FOUND otherwise) and the
+     * password must match (401 otherwise) - no more implicit account creation on login.
      */
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {

@@ -1,5 +1,6 @@
 package com.example.princessproject.user.service;
 
+import com.example.princessproject.auth.service.AuthValidationException;
 import com.example.princessproject.record.repository.DailyRecordRepository;
 import com.example.princessproject.user.dto.ProfileStatsResponse;
 import com.example.princessproject.user.model.User;
@@ -28,13 +29,22 @@ public class UserService {
     }
 
     /**
-     * First login for a nickname creates the account with that password; every later login
-     * with the same nickname must supply the matching password.
+     * Signup and login used to be one combined "first use creates the account" flow, but that
+     * silently created a brand-new empty account on any nickname typo instead of telling the
+     * user their nickname was wrong - now separate, each with its own clear failure mode.
      */
+    @Transactional
+    public User signup(String nickname, String rawPassword) {
+        if (userRepository.findByNickname(nickname).isPresent()) {
+            throw new AuthValidationException("NICKNAME_TAKEN", "Nickname already exists: " + nickname);
+        }
+        return userRepository.save(new User(nickname, passwordEncoder.encode(rawPassword)));
+    }
+
     @Transactional
     public User authenticate(String nickname, String rawPassword) {
         User user = userRepository.findByNickname(nickname)
-                .orElseGet(() -> userRepository.save(new User(nickname, passwordEncoder.encode(rawPassword))));
+                .orElseThrow(() -> new AuthValidationException("NICKNAME_NOT_FOUND", "No such nickname: " + nickname));
 
         if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
             throw new BadCredentialsException("Invalid nickname or password");

@@ -44,7 +44,7 @@ class DailyMissionFlowIT {
     }
 
     private LoginResponse login(String nickname) {
-        return client.post().uri("/api/auth/login")
+        return client.post().uri("/api/auth/signup")
                 .body(new LoginRequest(nickname, "test-password"))
                 .exchange()
                 .expectStatus().isOk()

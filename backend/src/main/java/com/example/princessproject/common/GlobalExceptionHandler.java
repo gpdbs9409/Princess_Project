@@ -1,5 +1,6 @@
 package com.example.princessproject.common;
 
+import com.example.princessproject.auth.service.AuthValidationException;
 import com.example.princessproject.project.service.ProjectValidationException;
 import com.example.princessproject.record.service.RecordValidationException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -10,6 +11,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AuthValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiErrorResponse onAuthValidation(AuthValidationException ex) {
+        return new ApiErrorResponse(ex.getCode(), ex.getMessage());
+    }
 
     @ExceptionHandler(ProjectValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
