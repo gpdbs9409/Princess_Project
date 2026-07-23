@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import { analyzeVisionPhoto, saveRecord, uploadFile } from "../api/endpoints";
-import { GOAL_TYPE_EMOJI, type GoalTypeCode } from "../api/types";
+import type { GoalTypeCode } from "../api/types";
 import { useToast } from "./ToastProvider";
 
 export interface FlatMission {
@@ -94,7 +94,6 @@ export function MissionCard({ mission, date, completed, onSaved }: MissionCardPr
     <div className="habit-tracker-row">
       <div className="row-between">
         <div className="habit-tracker-row-head">
-          <span className="habit-tracker-emoji">{GOAL_TYPE_EMOJI[mission.goalTypeCode]}</span>
           <div>
             <strong>{mission.name}</strong>
             <div className="muted">

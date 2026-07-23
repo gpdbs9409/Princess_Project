@@ -27,16 +27,6 @@ export const GOAL_TYPE_CODES: GoalTypeCode[] = [
   "SYMBOL",
 ];
 
-export const GOAL_TYPE_EMOJI: Record<GoalTypeCode, string> = {
-  PHYSICAL: "🏃",
-  ECONOMY: "💰",
-  CULTURE: "🎭",
-  KNOWLEDGE: "📚",
-  LANGUAGE: "🗣️",
-  PSYCHOLOGY: "🧘",
-  SYMBOL: "💎",
-};
-
 // frontend/public/capitals/<name>.png - falls back to a solid color card if missing
 export const GOAL_TYPE_IMAGE: Record<GoalTypeCode, string> = {
   PHYSICAL: "/capitals/physical.png",

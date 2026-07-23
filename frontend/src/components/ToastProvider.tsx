@@ -34,7 +34,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toast-stack">
         {toasts.map((t) => (
           <div key={t.id} className="toast">
-            ✓ {t.message}
+            {t.message}
           </div>
         ))}
       </div>

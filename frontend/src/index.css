@@ -594,9 +594,6 @@ a.link:hover {
 .capital-card:hover {
   transform: translateY(-2px);
 }
-.capital-card-emoji {
-  font-size: 26px;
-}
 .capital-card-label {
   font-weight: 700;
   font-size: 14.5px;
@@ -650,9 +647,6 @@ a.link:hover {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-.habit-tracker-emoji {
-  font-size: 20px;
 }
 
 /* corner mascot that trails the cursor across every screen */

@@ -32,9 +32,6 @@ export function ProfileHeader() {
         <span className="profile-header-title">Princess Project</span>
         <span className="row" style={{ gap: 12 }}>
           <span className="profile-header-icon-btn" aria-hidden="true">
-            🔔
-          </span>
-          <span className="profile-header-icon-btn" aria-hidden="true">
             ⋯
           </span>
         </span>

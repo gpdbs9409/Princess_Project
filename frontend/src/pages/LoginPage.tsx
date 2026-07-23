@@ -72,7 +72,7 @@ export function LoginPage() {
         {showWelcome && (
           <div className="modal-overlay">
             <div className="modal-card">
-              <h2 style={{ fontSize: 22 }}>환영합니다! 🌷</h2>
+              <h2 style={{ fontSize: 22 }}>환영합니다!</h2>
               <p className="muted">습관자본과 미션을 설정하고 오늘부터 성장을 시작해봐요.</p>
               <button className="primary" onClick={() => setShowWelcome(false)}>
                 시작하기

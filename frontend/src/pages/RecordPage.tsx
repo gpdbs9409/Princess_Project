@@ -113,7 +113,7 @@ export function RecordPage() {
       {missions.length > 0 && (
         <div className="habit-tracker-card" style={{ marginTop: 16 }}>
           <div className="row-between" style={{ marginBottom: 4 }}>
-            <span className="badge good">✓ Habit Tracker</span>
+            <span className="badge good">Habit Tracker</span>
           </div>
           {missions.map((mission) => (
             <MissionCard
@@ -138,10 +138,10 @@ export function RecordPage() {
           {summary?.aiFeedback && (
             <div className="stack" style={{ marginTop: 12, gap: 8 }}>
               <p>{summary.aiFeedback.summary}</p>
-              <p className="muted">👏 {summary.aiFeedback.praise}</p>
-              <p className="muted">🌱 {summary.aiFeedback.improvement}</p>
-              <p className="muted">➡️ {summary.aiFeedback.tomorrow}</p>
-              <p className="muted">💌 {summary.aiFeedback.cheer}</p>
+              <p className="muted">{summary.aiFeedback.praise}</p>
+              <p className="muted">{summary.aiFeedback.improvement}</p>
+              <p className="muted">{summary.aiFeedback.tomorrow}</p>
+              <p className="muted">{summary.aiFeedback.cheer}</p>
             </div>
           )}
         </div>
