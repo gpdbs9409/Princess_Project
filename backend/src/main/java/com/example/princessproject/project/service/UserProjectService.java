@@ -76,12 +76,18 @@ public class UserProjectService {
      * INSERTs before the old orphan-removal DELETEs, so re-selecting a goal type the project
      * already had collides with uk_user_goals_project_goal_type. Flushing the clear separately
      * forces the deletes through first.
+     *
+     * Goals/missions are only settable once, on first setup - refund eligibility is judged
+     * against the originally declared missions, so they can't be changed after the fact.
      */
     @Transactional
     public UserProject replaceSelections(Long userId, ProjectSelectionsRequest request) {
         validateSelections(request);
 
         UserProject project = getOrCreateActive(userId);
+        if (!project.getGoals().isEmpty()) {
+            throw new ProjectValidationException("GOALS_ALREADY_SET", "Goals and missions can only be set once");
+        }
         project.setGoalHuman(request.goalHuman());
         project.setGoalEnding(request.goalEnding());
         project.getGoals().clear();
