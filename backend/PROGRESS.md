@@ -37,6 +37,14 @@ below — hit this twice).
 - **Auth**: JWT + password (`POST /api/auth/login {nickname, password}`) — first login for a
   nickname creates the account with that password (BCrypt-hashed), later logins must match
   (401 on mismatch via `BadCredentialsException` → `@ExceptionHandler` in `AuthController`).
+- **Profile photo (optional, at signup)**: `users.profile_image_url` (nullable). Login itself
+  stays JSON-only (unchanged, so existing tests didn't need touching) — the frontend calls
+  `login()` first, and if a photo file was picked on the login/signup form, immediately follows
+  up with `PUT /api/users/{id}/profile-image` (multipart, `@PreAuthorize("#id ==
+  authentication.principal")`, reuses `FileStorageClient.store` directly — same bucket as record
+  photos) using the token just issued. Works for both new and existing accounts (re-uploading
+  changes the photo). Verified live: uploaded a test PNG, got back
+  `/api/uploads/<uuid>.png`, confirmed `GET` on that URL returns `200 image/png`.
 - **Catalog**: 7 habitus × ~2-3 behavior categories × ~1-2 missions each, seeded by
   `catalog/CatalogSeeder` (idempotent, skips if `goal_types` non-empty).
 - **Project selections**: `GET /api/projects/active` (auto-creates), `PUT
