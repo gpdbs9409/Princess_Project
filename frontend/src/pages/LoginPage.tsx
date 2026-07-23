@@ -16,6 +16,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [catalog, setCatalog] = useState<CatalogGoal[] | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -50,6 +51,7 @@ export function LoginPage() {
       if (project.goals.length === 0) {
         const catalogData = await getCatalog();
         setCatalog(catalogData);
+        setShowWelcome(true);
       } else {
         navigate("/dashboard");
       }
@@ -67,6 +69,17 @@ export function LoginPage() {
   if (catalog) {
     return (
       <div className="container" style={{ maxWidth: 560, paddingTop: 48 }}>
+        {showWelcome && (
+          <div className="modal-overlay">
+            <div className="modal-card">
+              <h2 style={{ fontSize: 22 }}>환영합니다! 🌷</h2>
+              <p className="muted">습관자본과 미션을 설정하고 오늘부터 성장을 시작해봐요.</p>
+              <button className="primary" onClick={() => setShowWelcome(false)}>
+                시작하기
+              </button>
+            </div>
+          </div>
+        )}
         <div className="stack" style={{ marginBottom: 24 }}>
           <span className="eyebrow">온보딩</span>
           <h1 style={{ fontSize: 26 }}>어떤 습관을 키워볼까요?</h1>

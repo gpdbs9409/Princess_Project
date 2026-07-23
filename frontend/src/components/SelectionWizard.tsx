@@ -295,6 +295,9 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
 
   return (
     <form className="stack" onSubmit={handleSubmit}>
+      <a href="/guide.html" target="_blank" rel="noopener noreferrer" className="link">
+        가이드라인 보기 →
+      </a>
       <div className="card stack">
         <div className="stack" style={{ gap: 6 }}>
           <label>이상적인 나의 모습 (선택)</label>
