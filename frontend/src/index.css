@@ -604,7 +604,7 @@ a.link:hover {
 }
 
 .capital-card.is-selected {
-  background: var(--accent);
+  background-color: var(--accent);
   border: 1px solid var(--accent-strong);
   color: #fff;
   box-shadow: var(--shadow);
@@ -614,7 +614,7 @@ a.link:hover {
 }
 
 .capital-card.is-unselected {
-  background: var(--surface-2);
+  background-color: var(--surface-2);
   border: 1px dashed var(--border);
   color: var(--text-muted);
 }
