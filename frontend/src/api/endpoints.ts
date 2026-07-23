@@ -17,6 +17,9 @@ import type {
 export const login = (nickname: string, password: string) =>
   api.post<LoginResponse>("/api/auth/login", { nickname, password });
 
+export const signup = (nickname: string, password: string) =>
+  api.post<LoginResponse>("/api/auth/signup", { nickname, password });
+
 export const getUser = (userId: number) => api.get<UserResponse>(`/api/users/${userId}`);
 
 export const getProfileStats = (userId: number) =>

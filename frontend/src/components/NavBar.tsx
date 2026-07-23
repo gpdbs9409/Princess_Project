@@ -20,7 +20,7 @@ export function NavBar() {
             대시보드
           </NavLink>
           <NavLink to="/stat-focus" className={({ isActive }) => (isActive ? "link active" : "link")}>
-            스탯 비중
+            나의 목표
           </NavLink>
           <a href="#" className="link" onClick={(e) => { e.preventDefault(); signOut(); }}>
             로그아웃
