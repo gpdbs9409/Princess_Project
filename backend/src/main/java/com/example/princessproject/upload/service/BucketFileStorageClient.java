@@ -27,6 +27,12 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
  * public object URL, so {@link #store} returns a URL that is proxied through our own
  * {@code GET /api/uploads/{key}} endpoint (see UploadController) instead of a direct bucket
  * URL - that way the link stays valid regardless of the bucket's public-access settings.
+ *
+ * <p>That URL must be absolute, not host-relative: the frontend (Vercel) and this backend
+ * (Railway) are different origins, so an {@code <img src="/api/uploads/...">} would resolve
+ * against the frontend's own domain and 404. app.base-url is explicit; RAILWAY_PUBLIC_DOMAIN
+ * is Railway's own auto-injected env var for this service's public hostname, used as a
+ * fallback so this works with zero extra configuration on Railway specifically.
  */
 @Component
 @ConditionalOnExpression("!'${storage.bucket.name:}'.isEmpty()")
@@ -34,6 +40,7 @@ public class BucketFileStorageClient implements FileStorageClient {
 
     private final S3Client s3Client;
     private final String bucket;
+    private final String baseUrl;
 
     public BucketFileStorageClient(
             @Value("${storage.bucket.name}") String bucket,
@@ -41,9 +48,21 @@ public class BucketFileStorageClient implements FileStorageClient {
             @Value("${storage.bucket.endpoint:}") String endpoint,
             @Value("${storage.bucket.path-style-access:true}") boolean pathStyleAccess,
             @Value("${storage.bucket.access-key-id:}") String accessKeyId,
-            @Value("${storage.bucket.secret-access-key:}") String secretAccessKey
+            @Value("${storage.bucket.secret-access-key:}") String secretAccessKey,
+            @Value("${app.base-url:}") String configuredBaseUrl,
+            @Value("${RAILWAY_PUBLIC_DOMAIN:}") String railwayPublicDomain
     ) {
         this.bucket = bucket;
+        if (!configuredBaseUrl.isBlank()) {
+            this.baseUrl = configuredBaseUrl.endsWith("/")
+                    ? configuredBaseUrl.substring(0, configuredBaseUrl.length() - 1)
+                    : configuredBaseUrl;
+        } else if (!railwayPublicDomain.isBlank()) {
+            this.baseUrl = "https://" + railwayPublicDomain;
+        } else {
+            this.baseUrl = "";
+        }
+
         var builder = S3Client.builder().region(Region.of(region));
         if (!endpoint.isBlank()) {
             // Path-style (endpoint/bucket/key) vs virtual-host style (bucket.endpoint/key)
@@ -72,7 +91,7 @@ public class BucketFileStorageClient implements FileStorageClient {
         } catch (IOException e) {
             throw new IllegalStateException("Failed to upload file to bucket", e);
         }
-        return "/api/uploads/" + key;
+        return baseUrl + "/api/uploads/" + key;
     }
 
     @Override
