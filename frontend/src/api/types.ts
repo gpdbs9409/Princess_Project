@@ -164,6 +164,12 @@ export interface AiFeedbackResponse {
   cheer: string;
 }
 
+export interface TodayRecordEntry {
+  inputValue: number;
+  memo: string | null;
+  photoUrl: string | null;
+}
+
 export interface DailySummaryResponse {
   date: string;
   totalScore: number;
@@ -171,6 +177,7 @@ export interface DailySummaryResponse {
   statScores: Partial<Record<string, number>>;
   completedMissions: string[];
   remainingMissions: string[];
+  todayRecords: Partial<Record<number, TodayRecordEntry>>;
   aiFeedback: AiFeedbackResponse | null;
 }
 

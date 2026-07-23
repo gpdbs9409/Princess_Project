@@ -167,6 +167,9 @@ export function DashboardPage() {
               </strong>
               <span className="muted">오늘 달성률 {Math.round(today.progress * 100)}%</span>
             </div>
+            <div className="stat-meter-track" style={{ marginTop: 10 }}>
+              <div className="stat-meter-fill" style={{ width: `${Math.min(100, today.progress * 100)}%` }} />
+            </div>
           </div>
         </div>
       )}

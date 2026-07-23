@@ -111,16 +111,17 @@ export function RecordPage() {
       )}
 
       {missions.length > 0 && (
-        <div className="habit-tracker-card" style={{ marginTop: 16 }}>
-          <div className="row-between" style={{ marginBottom: 4 }}>
-            <span className="badge good">Habit Tracker</span>
-          </div>
+        <div className="stack" style={{ marginTop: 16, gap: 12 }}>
+          <span className="badge good" style={{ alignSelf: "flex-start" }}>
+            Habit Tracker
+          </span>
           {missions.map((mission) => (
             <MissionCard
               key={mission.userMissionId}
               mission={mission}
               date={date}
               completed={summary?.completedMissions.includes(mission.name) ?? false}
+              record={summary?.todayRecords[mission.userMissionId]}
               onSaved={load}
             />
           ))}

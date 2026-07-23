@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import { analyzeVisionPhoto, saveRecord, uploadFile } from "../api/endpoints";
-import type { GoalTypeCode } from "../api/types";
+import type { GoalTypeCode, TodayRecordEntry } from "../api/types";
 import { useToast } from "./ToastProvider";
 
 export interface FlatMission {
@@ -17,10 +17,11 @@ interface MissionCardProps {
   mission: FlatMission;
   date: string;
   completed: boolean;
+  record?: TodayRecordEntry;
   onSaved: () => void;
 }
 
-export function MissionCard({ mission, date, completed, onSaved }: MissionCardProps) {
+export function MissionCard({ mission, date, completed, record, onSaved }: MissionCardProps) {
   const { showToast } = useToast();
   const [inputValue, setInputValue] = useState("");
   const [memo, setMemo] = useState("");
@@ -90,10 +91,10 @@ export function MissionCard({ mission, date, completed, onSaved }: MissionCardPr
     }
   };
 
-  return (
-    <div className="habit-tracker-row">
-      <div className="row-between">
-        <div className="habit-tracker-row-head">
+  if (record) {
+    return (
+      <div className="card recorded-mission-card">
+        <div className="row-between">
           <div>
             <strong>{mission.name}</strong>
             <div className="muted">
@@ -101,10 +102,41 @@ export function MissionCard({ mission, date, completed, onSaved }: MissionCardPr
               {mission.unit} · {mission.goalLabel}
             </div>
           </div>
+          {completed && <span className="badge good">완료</span>}
+        </div>
+        <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+          <div className="recorded-field">
+            <span className="muted">기록한 값</span>
+            <strong>
+              {record.inputValue}
+              {mission.unit}
+            </strong>
+          </div>
+          <div className="recorded-field">
+            <span className="muted">오늘의 소감</span>
+            <span>{record.memo || "작성하지 않았어요"}</span>
+          </div>
+          {record.photoUrl && (
+            <img src={record.photoUrl} alt="기록한 인증 사진" className="photo-preview" />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <div className="row-between">
+        <div>
+          <strong>{mission.name}</strong>
+          <div className="muted">
+            목표 {mission.targetValue}
+            {mission.unit} · {mission.goalLabel}
+          </div>
         </div>
         {completed && <span className="badge good">완료</span>}
       </div>
-      <div className="stack" style={{ gap: 10 }}>
+      <div className="stack" style={{ gap: 10, marginTop: 12 }}>
         <div className="row" style={{ gap: 8 }}>
           <input
             type="number"

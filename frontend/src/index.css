@@ -623,32 +623,20 @@ a.link:hover {
   color: var(--text);
 }
 
-/* record page: habit-tracker mood */
-.habit-tracker-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 18px 20px;
+/* record page: each mission is its own card, clearly split between
+   "awaiting input" (default .card look) and "already recorded" (below) */
+.recorded-mission-card {
+  background: var(--surface-2);
+  border: 1px solid var(--good);
 }
-.habit-tracker-row {
+.recorded-field {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--border);
+  gap: 2px;
+  font-size: 13.5px;
 }
-.habit-tracker-row:last-child {
-  border-bottom: none;
-  padding-bottom: 4px;
-}
-.habit-tracker-row:first-child {
-  padding-top: 4px;
-}
-.habit-tracker-row-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.recorded-field .muted {
+  font-size: 11.5px;
 }
 
 /* corner mascot that trails the cursor across every screen */
