@@ -15,6 +15,39 @@ import { WeeklyBarChart } from "../components/WeeklyBarChart";
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
+const GREETINGS = [
+  "오늘도 성장 중이에요 🌷",
+  "오늘 하루도 빛나볼까요 ✨",
+  "작은 습관이 큰 변화를 만들어요 🌱",
+  "오늘의 나를 응원해요 💪",
+  "한 걸음씩, 꾸준히 나아가는 중이에요 🚶‍♀️",
+  "오늘도 예쁜 하루 보내요 🌸",
+  "당신의 노력을 지켜보고 있어요 👀",
+  "오늘도 자기 자신에게 진심인 당신 💖",
+  "습관이 곧 미래가 됩니다 🔮",
+  "오늘 하루, 나답게 채워봐요 🎀",
+  "매일이 쌓여 인생이 됩니다 📚",
+  "오늘도 리스트업! 체크체크 ✅",
+  "작은 노력들이 모여 반짝이는 중이에요 ✨",
+  "오늘의 습관자본을 쌓아볼까요 💎",
+  "성장하는 오늘의 당신, 멋져요 🏆",
+  "오늘도 나만의 속도로 천천히 🐢",
+  "습관 하나가 하루를 바꿔요 🌤️",
+  "오늘도 최선을 다하는 당신에게 박수를 👏",
+  "루틴이 곧 실력이 됩니다 💪",
+  "오늘 하루도 알차게 보내봐요 📅",
+  "당신의 하루를 응원할게요 🎉",
+  "오늘도 한 뼘 더 성장 중이에요 🌿",
+  "꾸준함이 진짜 실력이에요 🔥",
+  "오늘도 자신과의 약속을 지켜봐요 🤝",
+  "매일 조금씩, 확실하게 나아가는 중이에요 🚀",
+  "오늘의 기록이 내일의 자신감이 됩니다 📖",
+  "습관이 쌓이면 자존감이 됩니다 💕",
+  "오늘도 스스로를 가꾸는 시간이에요 🪞",
+  "작은 성취가 모여 큰 자신감이 돼요 🌟",
+  "오늘 하루도 나답게, 반짝이게 ✨",
+];
+
 function isoDate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -29,6 +62,7 @@ export function DashboardPage() {
   const [report, setReport] = useState<WeeklyReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
 
   useEffect(() => {
     const today = new Date();
@@ -62,7 +96,7 @@ export function DashboardPage() {
 
       <div className="stack" style={{ marginBottom: 20 }}>
         <span className="eyebrow">My Dashboard</span>
-        <h1 style={{ fontSize: 28 }}>{user.nickname}님, 오늘도 성장 중이에요 🌷</h1>
+        <h1 style={{ fontSize: 28 }}>{user.nickname}님, {greeting}</h1>
         <div className="hub-header-band">
           “{project?.goalHuman || "오늘의 한 걸음이 내일의 나를 만듭니다"}”
         </div>
