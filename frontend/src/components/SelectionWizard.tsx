@@ -137,7 +137,10 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
   };
 
   const toggleGoal = (goalTypeCode: GoalTypeCode) => {
-    updateGoal(goalTypeCode, (g) => ({ ...g, selected: !g.selected }));
+    updateGoal(goalTypeCode, (g) => {
+      const selected = !g.selected;
+      return { ...g, selected, weightPercent: selected && g.weightPercent < 1 ? 100 : g.weightPercent };
+    });
   };
 
   const updateGoalWeight = (goalTypeCode: GoalTypeCode, weightPercent: number) => {
@@ -249,6 +252,10 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
       setError("최소 하나의 습관자본에서, 행동양식과 미션을 하나 이상 선택해주세요.");
       return;
     }
+    if (selectedGoals.some((g) => g.weightPercent < 1)) {
+      setError("선택한 습관자본의 비중(%)은 1 이상이어야 합니다.");
+      return;
+    }
 
     setError(null);
     setSubmitting(true);
@@ -290,10 +297,10 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
               <div className="row" style={{ gap: 6 }}>
                 <input
                   type="number"
-                  min={0}
+                  min={1}
                   max={100}
                   value={goal.weightPercent}
-                  onChange={(e) => updateGoalWeight(goal.goalTypeCode, Number(e.target.value) || 0)}
+                  onChange={(e) => updateGoalWeight(goal.goalTypeCode, Number(e.target.value) || 1)}
                   style={{ maxWidth: 70 }}
                 />
                 <span className="muted">%</span>
