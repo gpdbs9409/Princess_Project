@@ -31,7 +31,7 @@ public class UploadController {
 
     /**
      * Proxies files back out of storage backends whose buckets are private by default
-     * (e.g. Railway Buckets) - see S3FileStorageClient. Public (see SecurityConfig): an
+     * (e.g. Railway Buckets) - see BucketFileStorageClient. Public (see SecurityConfig): an
      * <img src> can't attach an Authorization header.
      */
     @GetMapping("/api/uploads/{key}")

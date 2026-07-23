@@ -4,67 +4,162 @@
 
 - `backend/` — Spring Boot (this directory)
 - `frontend/` — React + Vite + TS
-- `docs/` — `API_SPEC.md` (Notion-friendly tables), `ERD.md` + `schema.dbml` (dbdiagram.io), `DEPLOYMENT.md` (Vercel + Railway)
+- `docs/` — `API_SPEC.md` (Notion-friendly tables), `ERD.md` + `schema.dbml` (dbdiagram.io), `DEPLOYMENT.md` (Vercel/Railway)
 
-## Done (previous pass)
-
-- Split the original single-folder Spring Boot project into `backend/` + `frontend/`, removed the old static HTML/JS prototype in favor of a real React app (login/onboarding → today's record input → dashboard).
-- Backend reorganized from layer-based (`domain/repository/service/web`) to **feature-based** packages: `auth/`, `user/`, `goal/`, `mission/`, `record/`, `aifeedback/`, `vision/`, `upload/`, `common/`, each with its own `model/repository/service/dto/controller`.
-- Split `User`↔`UserGoal` into a proper 1:1 (was embedded fields on `User`).
-- CORS wired for a separate frontend origin; `S3FileStorageClient` supports a custom endpoint + proxies reads through `GET /api/uploads/{key}` (needed for Railway Buckets, which are private by default, unlike public AWS S3 URLs).
-- Deployment scaffolding: `backend/Dockerfile` (JDK 21), env-driven `server.port`/DB host-port-name for Railway, `frontend/vercel.json` SPA rewrites.
-- Fixed a real pre-existing bug found during verification: `VisionAnalysisService`'s constructor couldn't be autowired (plain `String` params, no `@Value`), which crashed the **entire app** at startup, not just the vision feature.
-
-## In progress — hierarchical schema migration (NOT runnable right now)
-
-The user hand-designed a much richer MySQL schema directly (10 tables) to replace the flat MVP model:
+## Data model (current, fully implemented)
 
 ```
 User → UserProject (goalHuman/goalEnding/status; one auto-created "active" project per user for now)
-     → UserGoal   (habitus/자본 selection: which of the 7 fixed goal_types + weight%)
-     → UserStat   (behavior-category selection under a chosen habitus, e.g. 신체→운동/식단)
-     → UserMission (from the mission_definitions catalog, or custom)
-     → DailyRecord (per-mission-per-day input, with snapshotted target/points + computed
-                    achievement_rate/earned_score at record time — no more materialized
-                    DailyScore/DailyStatScore aggregate tables; aggregation is computed live)
+     → UserGoal    (habitus/자본 selection: which of the 7 fixed goal_types + weight%)
+     → UserStat    (behavior-category selection under a chosen habitus, e.g. 신체→운동/식단,
+                     OR a custom "나만의 미션" pseudo-stat — stat_type_id is nullable,
+                     sibling-level to catalog stats, not nested inside one)
+     → UserMission (from the mission_definitions catalog, or fully custom; missionType
+                     DAILY or WEEKLY per mission)
+     → DailyRecord (per-mission-per-day input, snapshotted target/points, computed
+                    achievement_rate/earned_score)
 ```
 
-Full plan: `/Users/kimhyeyoon/.claude/plans/eventual-wibbling-river.md`
+Catalog (read-only reference tree, seeded on first boot by `CatalogSeeder`): `GoalType`(7 fixed
+habitus) → `StatType`(behavior categories) → `MissionDefinition`(missions), exposed via
+`GET /api/catalog`.
 
-**Status**: only Phase 0 is done —
-- `backend/src/main/resources/db/schema.sql` holds the canonical DDL for all 10 tables (applied
-  to the local `princess_project` MySQL DB). One fix was needed vs. the original paste: MySQL
-  8.0.16+/9.x rejects `ON UPDATE CASCADE` on a FK column that's also referenced by a `CHECK`
-  constraint (`fk_user_missions_definition` → changed to `ON UPDATE RESTRICT`).
-- `application.properties`: `spring.jpa.hibernate.ddl-auto` switched from `update` to `validate`
-  — **this SQL file is now the schema's source of truth**; Hibernate no longer auto-migrates the
-  real MySQL DB (the H2 test profile is untouched, still `create-drop`).
+Schema is **hand-authored SQL, not Hibernate-managed**: `backend/src/main/resources/db/schema.sql`
+is canonical; `spring.jpa.hibernate.ddl-auto=validate` (Hibernate checks entities match at boot,
+never mutates). Any schema change = edit `schema.sql` + `ALTER TABLE` by hand on the real DB, then
+update the matching `@Entity`/`@Column` annotations to match (see "MySQL CHECK constraint gotcha"
+below — hit this twice).
 
-**Not done yet** (Phases 1–4 of the plan) — because these aren't done, the app **will not boot**
-against the current DB: the Java entities (`User`, old `goal`/`mission` packages, `DailyRecord`,
-`DailyScore`, `DailyStatScore`, `AiFeedback`) still reflect the *old* flat schema, which no longer
-exists (the old tables were dropped when `schema.sql` recreated the database). Still to build:
-- `catalog/` package (replaces `mission/`): `GoalType`/`StatType`/`MissionDefinition` entities +
-  `CatalogSeeder` (7 habitus × behavior categories × missions — content drafted in the plan file)
-  + `GET /api/catalog` (nested tree).
-- `project/` package (replaces `goal/`, absorbs old `user/` stat-focus): `UserProject`/`UserGoal`/
-  `UserStat`/`UserMission` + `GET /api/projects/active` + `PUT /api/projects/active/selections`
-  (bulk replace of the whole goals→stats→missions tree in one call).
-- `record/` rewrite: `DailyRecord` gains snapshot fields (`BigDecimal`, matching the DDL's
-  `DECIMAL` columns — not `Double`), `DailyScore`/`DailyStatScore` entities deleted, daily/weekly
-  aggregation computed live from `daily_records` instead of read from a materialized table.
-  `RecordRequest` takes `userMissionId`, not a flat `missionId`.
-- `aifeedback/` update: add `project` FK + `feedbackType` enum, drop the `prompt` column (not in
-  the new DDL).
-- Delete old `goal/` and `mission/` packages entirely; trim `user/` (no more embedded
-  `goal`/`statFocus`).
-- Frontend rewire: onboarding wizard (habitus % → behavior categories → missions) replacing the
-  old flat stat-focus screen; record screen keys off `userMissionId`; `types.ts`/`endpoints.ts`
-  updated for the new shapes.
+## Done
+
+- Full feature-based backend package structure: `auth/`, `user/`, `goal/`(unused now, superseded
+  by `project/`), `catalog/`, `project/`, `record/`, `aifeedback/`, `vision/`, `upload/`, `common/`.
+- **Auth**: JWT + password (`POST /api/auth/login {nickname, password}`) — first login for a
+  nickname creates the account with that password (BCrypt-hashed), later logins must match
+  (401 on mismatch via `BadCredentialsException` → `@ExceptionHandler` in `AuthController`).
+- **Catalog**: 7 habitus × ~2-3 behavior categories × ~1-2 missions each, seeded by
+  `catalog/CatalogSeeder` (idempotent, skips if `goal_types` non-empty).
+- **Project selections**: `GET /api/projects/active` (auto-creates), `PUT
+  /api/projects/active/selections` (bulk clear-and-rebuild of the whole goals→stats→missions
+  tree in one call — mirrors the old flat stat-focus endpoint's replace semantics).
+  - Custom missions supported (`missionDefinitionId` null + `customName`) — presented in the
+    frontend wizard as a **sibling checklist row** ("나만의 미션") next to the catalog stats
+    within a habitus, not nested inside one specific stat (user explicitly asked for this after
+    an initial version nested it under each stat).
+  - Custom **stats** also supported the same way (`statTypeId` null + `customStatName`) — needed
+    a schema change: `user_stats.stat_type_id` made nullable + a CHECK constraint mirroring the
+    `user_missions` pattern.
+- **Scoring, branched by mission type** (`DailyRecordService`):
+  - `DAILY` missions: that day's own record vs. its own target.
+  - `WEEKLY` missions: week-to-date (Mon..date) sum of inputs vs. the weekly target — fills in
+    gradually across the week rather than expecting the full weekly amount in one day's record.
+  - `WeeklyReportService` uses a dedicated `getWeekTotalProgress` (NOT a naive sum of 7 daily
+    `getMissionProgress` calls) so a WEEKLY mission's score counts exactly once toward the week
+    total instead of being multiplied ~7x (its week-to-date score grows every day it's queried).
+  - Verified end-to-end via curl against real MySQL: a "3x/week" mission recorded twice showed
+    1/3 → 2/3 cumulative on successive days, and the weekly report totalScore was exactly the
+    2-occurrence sum, not 7x that.
+- **File storage**: renamed away from AWS-branded naming since we only ever target Railway
+  Buckets (S3-*protocol*-compatible, not actually AWS) — `S3FileStorageClient` →
+  `BucketFileStorageClient`, `aws.s3.*` properties → `storage.bucket.*`, env vars `AWS_S3_*` →
+  `BUCKET_*`. Credentials are read explicitly via our own properties and wired into a
+  `StaticCredentialsProvider`, not via the AWS SDK's implicit `AWS_ACCESS_KEY_ID` env chain.
+  Also added `storage.bucket.path-style-access` (default true) since Railway Buckets
+  (Tigris-backed) use **virtual-host style** URLs, not path-style like MinIO — this must be
+  `false` for Railway Buckets specifically (confirmed via `railway bucket credentials`, which
+  reports `"urlStyle": "virtual-host"`).
+- Frontend fully rewired to match: onboarding wizard (habitus % → behavior categories → missions,
+  DAILY/WEEKLY picker per mission, custom mission/stat add), record page (keyed off
+  `userMissionId`), dashboard (project-based goal display, stat accumulation).
+- Backend: 16/17 tests passing (pure unit + `RestTestClient` integration tests against H2),
+  rewritten for the new schema shapes throughout this migration.
+
+## MySQL CHECK constraint gotcha (hit twice, will hit again if more custom-FK columns are added)
+
+MySQL 8.0.16+/9.x rejects a `CHECK` constraint on a column that's also part of a FK with a
+`CASCADE`/`SET NULL` referential action on that same column — error 3823. Fix each time: change
+that FK's `ON UPDATE`/`ON DELETE` to `RESTRICT` before adding the CHECK. Hit this for
+`user_missions.mission_definition_id` (Phase 0) and `user_stats.stat_type_id` (custom-stat work).
+
+## Deployment — IN PROGRESS right now (Railway + Vercel)
+
+Goal: live deployed demo before a 5-week deadline (user is solo, no other devs). Decided to
+deploy early (week 1 of 5) rather than leave it to the end, precisely because of the kind of
+infra surprises documented below.
+
+**Railway project**: `princess-project` (workspace `gpdbs9409's Projects`), CLI installed
+(`@railway/cli`) and logged in as `gpdbs9409@naver.com`. Both `railway` and `vercel` CLIs are
+authenticated on this machine — `railway <cmd>` / `vercel <cmd>` work directly, no need to
+re-login.
+
+- ✅ **MySQL** — Railway plugin added, running fine (`railway add --database mysql`). Connection
+  vars: `MYSQLHOST=mysql.railway.internal` (private), public proxy
+  `sakura.proxy.rlwy.net:41558` for external tools (e.g. MySQL Workbench) — user is using
+  Workbench directly against this, same as they did locally.
+- ✅ **Bucket** — created via `railway bucket create uploads --region sin` (Singapore, closest
+  to Korea). Credentials via `railway bucket credentials --bucket uploads`. **Not yet wired
+  into the backend service's env vars** — still TODO once backend is actually running (need
+  `BUCKET_NAME`, `BUCKET_ENDPOINT`, `BUCKET_REGION=auto`, `BUCKET_PATH_STYLE_ACCESS=false`,
+  `BUCKET_ACCESS_KEY_ID`, `BUCKET_SECRET_ACCESS_KEY`).
+- 🔧 **Backend service** — this is where all the trouble has been. Timeline:
+  1. Created empty service (`railway add --service backend`), set `DB_*` vars referencing
+     `${{MySQL.MYSQLHOST}}` etc, `JWT_SECRET` (random, generated via `openssl rand -base64 48`),
+     `CORS_ALLOWED_ORIGINS` (placeholder `http://localhost:5173`, needs updating once frontend
+     is deployed).
+  2. `railway up` (local directory upload of `backend/`) failed **repeatedly**, every time,
+     instantly, with zero build-log output beyond `"scheduling build on Metal builder ..."`.
+     Ruled out as the cause: file size (upload was only 129KB), a malformed `railway.json`
+     (removed it, still failed), and a platform-wide outage (a throwaway `nginx:latest` image
+     deploy to a test service succeeded fine, and the Dockerfile builds perfectly with plain
+     local `docker build` — proved both Railway's deploy pipeline and our Dockerfile are fine
+     in isolation). Root cause of the *local-upload* failures specifically was never
+     conclusively identified — abandoned in favor of GitHub-connected deploys instead.
+  3. Connected the service to GitHub (`railway service source connect --repo
+     gpdbs9409/Princess_Project --branch develop --service backend`) — needed the user to
+     authorize Railway's GitHub App on the repo first (a browser action only they could do;
+     initially failed with "User does not have access to the repo" until they did this).
+  4. Set the service's root directory to `backend` via a direct GraphQL mutation (no CLI flag
+     for this exists): `serviceInstanceUpdate(serviceId, environmentId, input:
+     {rootDirectory: "backend"})`.
+  5. First GitHub-connected redeploy got further (status `BUILDING` then `CRASHED`, vs. instant
+     `FAILED` before) but was still not using our Dockerfile — logs showed `ls: cannot access
+     '*/build/libs/*jar'`, which doesn't match our exact `*-SNAPSHOT.jar` glob, proving Railway's
+     **Railpack** auto-builder was generating its own Java/Gradle build plan instead of reading
+     `backend/Dockerfile`. Confirmed via `serviceInstance.builder` (GraphQL) = `RAILPACK` even
+     with `backend/railway.json` (`{"build":{"builder":"DOCKERFILE","dockerfilePath":"Dockerfile"}}`)
+     committed in the repo — **that config-as-code file is not being picked up at all** in this
+     setup, for reasons not yet understood.
+  6. Fix applied: `Builder` enum only has `HEROKU|NIXPACKS|PAKETO|RAILPACK` — there's no separate
+     `DOCKERFILE` builder value. Instead, explicitly set `dockerfilePath: "Dockerfile"` via the
+     same `serviceInstanceUpdate` mutation (keeping `builder: RAILPACK`) — Railpack uses a
+     Dockerfile when told where one is, it just wasn't auto-detecting ours from the repo file.
+  7. Redeployed again — **result not yet known as of writing this**, a background watcher
+     (polls `railway status --json` every 10s until terminal status) was running when this note
+     was written. Check `railway status --json` / `railway logs --service backend --latest` for
+     the outcome; if still `RAILPACK`+wrong jar-glob error, the config truly isn't being read
+     and the dockerfilePath mutation is the reliable fallback going forward for any *new*
+     GitHub-connected service too.
+- ⬜ **Frontend** — not started yet. Plan (per `docs/DEPLOYMENT.md`): Vercel (root directory
+  `frontend`, `VITE_API_BASE_URL` env var) is the recommended path; a Railway option
+  (`frontend/Dockerfile` + `serve`) is documented as an alternative if preferred, not yet built.
+- ⬜ Once backend has a public domain (`railway domain --service backend`) and frontend is
+  deployed: update backend's `CORS_ALLOWED_ORIGINS` to the real frontend URL and redeploy;
+  update frontend's `VITE_API_BASE_URL` to the backend's public URL.
+- ⬜ `JWT_SECRET` was already set to a real random value at service creation (not the dev
+  default) — nothing further needed there.
+
+**Useful commands discovered this session** (Railway CLI is quite complete — `railway --help`
+covers add/service/variable/domain/bucket/logs, `railway api` gives raw GraphQL access with
+`search`/`describe` for schema introspection when the CLI itself has no flag for something,
+e.g. `rootDirectory` and `dockerfilePath` had no dedicated CLI flags, only reachable via
+`railway api 'mutation {...}' --variables '{...}'`).
 
 ## Local dev notes
 
-- MySQL (Homebrew) root password was reset to empty to match `application.properties` defaults
-  (`DB_USERNAME=root`, `DB_PASSWORD=` empty) — standard `--skip-grant-tables` procedure, done
-  because the previous root password was unknown/forgotten.
-- `princess_project` DB currently has all 10 tables, all empty (no seed/user data yet).
+- MySQL (Homebrew) root password reset to empty to match `application.properties` defaults.
+- `princess_project` DB has all 10 tables + catalog seed data; user/project/record tables get
+  truncated after each manual test pass to keep local dev DB clean.
+- Local `bootRun` + `npm run dev` (frontend :5173) both working and were the state used for all
+  the scoring-branch/custom-mission verification above.
+- Docker Desktop needed to be started (`open -a Docker`) to test-build the backend Dockerfile
+  locally — wasn't running by default in this environment.
