@@ -2,9 +2,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  code?: string;
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -33,7 +35,18 @@ async function request<T>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new ApiError(res.status, text || `요청 실패 (${res.status})`);
+    let code: string | undefined;
+    let message = text || `요청 실패 (${res.status})`;
+    if (text) {
+      try {
+        const parsed = JSON.parse(text) as { code?: string; message?: string };
+        if (parsed.code) code = parsed.code;
+        if (parsed.message) message = parsed.message;
+      } catch {
+        // not a JSON body - fall back to raw text
+      }
+    }
+    throw new ApiError(res.status, message, code);
   }
   if (res.status === 204) return null as T;
   return (await res.json()) as T;

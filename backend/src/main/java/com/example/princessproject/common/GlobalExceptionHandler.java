@@ -1,0 +1,29 @@
+package com.example.princessproject.common;
+
+import com.example.princessproject.project.service.ProjectValidationException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ProjectValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiErrorResponse onProjectValidation(ProjectValidationException ex) {
+        return new ApiErrorResponse(ex.getCode(), ex.getMessage());
+    }
+
+    /**
+     * Safety net for constraint violations that slip past application-level validation
+     * (e.g. a race between two saves) - still structured instead of the raw Hibernate/SQL
+     * message leaking to the client.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiErrorResponse onDataIntegrityViolation(DataIntegrityViolationException ex) {
+        return new ApiErrorResponse("CONSTRAINT_VIOLATION", "Data integrity violation");
+    }
+}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ApiError } from "../api/client";
 import {
   GOAL_TYPE_LABELS,
   type CatalogGoal,
@@ -7,6 +8,23 @@ import {
   type ProjectResponse,
   type ProjectSelectionsRequest,
 } from "../api/types";
+
+const SAVE_ERROR_MESSAGES: Record<string, string> = {
+  WEIGHT_SUM_INVALID: "습관자본 비중의 합계가 100%가 아니어서 저장할 수 없어요. 비중 합계를 100%로 맞춰주세요.",
+  DUPLICATE_GOAL_TYPE: "같은 습관자본이 중복 선택되어 있어서 저장할 수 없어요. 중복된 항목을 확인해주세요.",
+  UNKNOWN_GOAL_TYPE: "선택한 습관자본 정보를 찾을 수 없어서 저장할 수 없어요. 새로고침 후 다시 시도해주세요.",
+  STAT_TYPE_NOT_FOUND: "선택한 행동양식 정보를 찾을 수 없어서 저장할 수 없어요. 새로고침 후 다시 시도해주세요.",
+  CUSTOM_STAT_NAME_REQUIRED: "나만의 미션에 이름이 비어 있어서 저장할 수 없어요. 미션 이름을 입력해주세요.",
+  MISSION_DEFINITION_NOT_FOUND: "선택한 미션 정보를 찾을 수 없어서 저장할 수 없어요. 새로고침 후 다시 시도해주세요.",
+  CONSTRAINT_VIOLATION: "입력한 값이 조건에 맞지 않아서 저장할 수 없어요. 비중(%)과 목표값을 확인해주세요.",
+};
+
+function saveErrorMessage(err: unknown): string {
+  if (err instanceof ApiError && err.code && SAVE_ERROR_MESSAGES[err.code]) {
+    return SAVE_ERROR_MESSAGES[err.code];
+  }
+  return "저장에 실패했어요. 네트워크 상태를 확인하고 다시 시도해주세요.";
+}
 
 const MISSION_TYPE_LABELS: Record<MissionType, string> = {
   DAILY: "매일",
@@ -256,13 +274,20 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
       setError("선택한 습관자본의 비중(%)은 1 이상이어야 합니다.");
       return;
     }
+    const weightSum = selectedGoals.reduce((sum, g) => sum + g.weightPercent, 0);
+    if (weightSum !== 100) {
+      setError(
+        `습관자본 비중의 합계가 100%가 아니어서 저장할 수 없어요. 현재 합계는 ${weightSum}%예요. 100%가 되도록 비중을 조정해주세요.`
+      );
+      return;
+    }
 
     setError(null);
     setSubmitting(true);
     try {
       await onSubmit({ goalHuman: goalHuman || undefined, goalEnding: goalEnding || undefined, goals: selectedGoals });
-    } catch {
-      setError("저장에 실패했습니다. 다시 시도해주세요.");
+    } catch (err) {
+      setError(saveErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
