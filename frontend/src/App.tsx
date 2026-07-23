@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { NavBar } from "./components/NavBar";
 import { Footer } from "./components/Footer";
+import { Mascot } from "./components/Mascot";
 import { RequireAuth } from "./auth/RequireAuth";
 import { useAuth } from "./auth/AuthContext";
 import { LoginPage } from "./pages/LoginPage";
@@ -43,6 +44,7 @@ function App() {
         <Route path="*" element={<Navigate to={token ? "/dashboard" : "/login"} replace />} />
       </Routes>
       <Footer />
+      <Mascot />
     </div>
   );
 }

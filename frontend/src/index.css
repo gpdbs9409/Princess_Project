@@ -648,3 +648,21 @@ a.link:hover {
 .habit-tracker-emoji {
   font-size: 20px;
 }
+
+/* corner mascot that trails the cursor across every screen */
+.mascot-follower {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 50;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
+}
+@media (max-width: 720px) {
+  .mascot-follower {
+    display: none;
+  }
+}
