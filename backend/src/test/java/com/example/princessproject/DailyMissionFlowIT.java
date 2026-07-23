@@ -117,7 +117,7 @@ class DailyMissionFlowIT {
 
         DailySummaryResponse afterExercise = client.post().uri("/api/records")
                 .header("Authorization", auth)
-                .body(new RecordRequest(exerciseUserMissionId, today, exerciseMission.defaultTargetValue(), null, "완료!"))
+                .body(new RecordRequest(exerciseUserMissionId, today, exerciseMission.defaultTargetValue(), "https://example.com/photo.jpg", "완료!"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DailySummaryResponse.class)
@@ -128,7 +128,7 @@ class DailyMissionFlowIT {
 
         DailySummaryResponse afterJournal = client.post().uri("/api/records")
                 .header("Authorization", auth)
-                .body(new RecordRequest(journalUserMissionId, today, journalMission.defaultTargetValue(), null, null))
+                .body(new RecordRequest(journalUserMissionId, today, journalMission.defaultTargetValue(), "https://example.com/photo.jpg", null))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DailySummaryResponse.class)
@@ -206,7 +206,7 @@ class DailyMissionFlowIT {
 
         client.post().uri("/api/records")
                 .header("Authorization", authB)
-                .body(new RecordRequest(userAMissionId, LocalDate.now(), BigDecimal.TEN, null, null))
+                .body(new RecordRequest(userAMissionId, LocalDate.now(), BigDecimal.TEN, "https://example.com/photo.jpg", null))
                 .exchange()
                 .expectStatus().is5xxServerError();
     }

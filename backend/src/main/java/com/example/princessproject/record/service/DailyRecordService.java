@@ -60,6 +60,10 @@ public class DailyRecordService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
+        if (photoUrl == null || photoUrl.isBlank()) {
+            throw new RecordValidationException("PHOTO_REQUIRED", "A photo is required to save a record");
+        }
+
         BigDecimal targetValue = userMission.getTargetValue();
         BigDecimal assignedPoints = userMission.getAssignedPoints();
         // Each record still snapshots its own day's achievement, independent of how WEEKLY

@@ -1,6 +1,7 @@
 package com.example.princessproject.common;
 
 import com.example.princessproject.project.service.ProjectValidationException;
+import com.example.princessproject.record.service.RecordValidationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,6 +14,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ProjectValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiErrorResponse onProjectValidation(ProjectValidationException ex) {
+        return new ApiErrorResponse(ex.getCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(RecordValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiErrorResponse onRecordValidation(RecordValidationException ex) {
         return new ApiErrorResponse(ex.getCode(), ex.getMessage());
     }
 
