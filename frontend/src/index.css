@@ -579,14 +579,14 @@ a.link:hover {
   gap: 8px;
   align-items: flex-start;
   justify-content: flex-end;
-  min-height: 140px;
+  aspect-ratio: 3 / 4;
   border-radius: var(--radius);
   padding: 16px;
   text-align: left;
   cursor: pointer;
   font: inherit;
   background-size: cover;
-  background-position: center;
+  background-position: center top;
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 .capital-card:hover {
