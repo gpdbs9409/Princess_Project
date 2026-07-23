@@ -27,6 +27,16 @@ export const GOAL_TYPE_CODES: GoalTypeCode[] = [
   "SYMBOL",
 ];
 
+export const GOAL_TYPE_EMOJI: Record<GoalTypeCode, string> = {
+  PHYSICAL: "🏃",
+  ECONOMY: "💰",
+  CULTURE: "🎭",
+  KNOWLEDGE: "📚",
+  LANGUAGE: "🗣️",
+  PSYCHOLOGY: "🧘",
+  SYMBOL: "💎",
+};
+
 export type MissionType = "DAILY" | "WEEKLY" | "TOTAL";
 
 export interface UserResponse {

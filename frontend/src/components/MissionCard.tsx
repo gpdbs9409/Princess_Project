@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ApiError } from "../api/client";
 import { analyzeVisionPhoto, saveRecord, uploadFile } from "../api/endpoints";
+import { GOAL_TYPE_EMOJI, type GoalTypeCode } from "../api/types";
 
 export interface FlatMission {
   userMissionId: number;
@@ -7,6 +9,7 @@ export interface FlatMission {
   targetValue: number;
   unit: string;
   goalLabel: string;
+  goalTypeCode: GoalTypeCode;
 }
 
 interface MissionCardProps {
@@ -20,14 +23,28 @@ export function MissionCard({ mission, date, completed, onSaved }: MissionCardPr
   const [inputValue, setInputValue] = useState("");
   const [memo, setMemo] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [visionNote, setVisionNote] = useState<{ text: string; ok: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Object URLs aren't garbage-collected on their own - revoke the previous one whenever
+  // the selected file changes or the card unmounts, so we don't leak blob URLs.
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    };
+  }, [photoPreviewUrl]);
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setPhotoFile(file);
     setVisionNote(null);
+    setError(null);
+    setPhotoPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return file ? URL.createObjectURL(file) : null;
+    });
     if (!file) return;
     try {
       const result = await analyzeVisionPhoto(file, mission.name);
@@ -43,37 +60,44 @@ export function MissionCard({ mission, date, completed, onSaved }: MissionCardPr
       setError("입력값을 확인해주세요.");
       return;
     }
+    if (!photoFile) {
+      setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      let photoUrl: string | undefined;
-      if (photoFile) {
-        const uploaded = await uploadFile(photoFile);
-        photoUrl = uploaded.url;
-      }
+      const uploaded = await uploadFile(photoFile);
       await saveRecord({
         userMissionId: mission.userMissionId,
         date,
         inputValue: value,
-        photoUrl,
+        photoUrl: uploaded.url,
         memo: memo || undefined,
       });
       onSaved();
-    } catch {
-      setError("저장에 실패했습니다. 다시 시도해주세요.");
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "PHOTO_REQUIRED") {
+        setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
+      } else {
+        setError("저장에 실패했습니다. 다시 시도해주세요.");
+      }
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="card">
-      <div className="row-between" style={{ marginBottom: 10 }}>
-        <div>
-          <strong>{mission.name}</strong>
-          <div className="muted">
-            목표 {mission.targetValue}
-            {mission.unit} · {mission.goalLabel}
+    <div className="habit-tracker-row">
+      <div className="row-between">
+        <div className="habit-tracker-row-head">
+          <span className="habit-tracker-emoji">{GOAL_TYPE_EMOJI[mission.goalTypeCode]}</span>
+          <div>
+            <strong>{mission.name}</strong>
+            <div className="muted">
+              목표 {mission.targetValue}
+              {mission.unit} · {mission.goalLabel}
+            </div>
           </div>
         </div>
         {completed && <span className="badge good">완료</span>}
@@ -95,9 +119,24 @@ export function MissionCard({ mission, date, completed, onSaved }: MissionCardPr
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
         />
-        <div className="stack" style={{ gap: 4 }}>
-          <label>사진 인증 (선택)</label>
-          <input type="file" accept="image/*" onChange={handlePhotoChange} />
+        <div className="stack" style={{ gap: 8 }}>
+          <label>사진 인증 (필수)</label>
+          {photoPreviewUrl && (
+            <img src={photoPreviewUrl} alt="첨부한 인증 사진 미리보기" className="photo-preview" />
+          )}
+          <div className="row" style={{ gap: 10 }}>
+            <label htmlFor={`photo-${mission.userMissionId}`} className="file-picker-button">
+              {photoFile ? "사진 변경" : "사진 선택"}
+            </label>
+            <input
+              id={`photo-${mission.userMissionId}`}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="visually-hidden-input"
+            />
+            {photoFile && <span className="muted">{photoFile.name}</span>}
+          </div>
           {visionNote && (
             <span className="muted" style={{ color: visionNote.ok ? "var(--good)" : "var(--warn)" }}>
               {visionNote.text}

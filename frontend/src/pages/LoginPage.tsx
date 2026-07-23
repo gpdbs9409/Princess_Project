@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { getActiveProject, getCatalog, login, replaceSelections, updateProfileImage } from "../api/endpoints";
@@ -12,9 +12,25 @@ export function LoginPage() {
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [catalog, setCatalog] = useState<CatalogGoal[] | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    };
+  }, [photoPreviewUrl]);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setPhoto(file);
+    setPhotoPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return file ? URL.createObjectURL(file) : null;
+    });
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,14 +113,16 @@ export function LoginPage() {
             placeholder="비밀번호"
           />
         </div>
-        <div className="stack" style={{ gap: 6 }}>
+        <div className="stack" style={{ gap: 8 }}>
           <label htmlFor="photo">본인 사진 (선택, 처음 가입할 때만 사용돼요)</label>
-          <input
-            id="photo"
-            type="file"
-            accept="image/*"
-            onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
-          />
+          {photoPreviewUrl && <img src={photoPreviewUrl} alt="선택한 사진 미리보기" className="photo-preview" />}
+          <div className="row" style={{ gap: 10 }}>
+            <label htmlFor="photo" className="file-picker-button">
+              {photo ? "사진 변경" : "사진 선택"}
+            </label>
+            <input id="photo" type="file" accept="image/*" onChange={handlePhotoChange} className="visually-hidden-input" />
+            {photo && <span className="muted">{photo.name}</span>}
+          </div>
         </div>
         {error && <div className="error-banner">{error}</div>}
         <button type="submit" className="primary" disabled={loading}>

@@ -1,13 +1,13 @@
 :root {
-  --bg: #faf7f5;
-  --surface: #ffffff;
-  --surface-2: #f3ecea;
-  --border: #e6dcd8;
-  --text: #2b2230;
-  --text-muted: #7c6f77;
-  --accent: #9b3f63;
-  --accent-strong: #7c2f4f;
-  --accent-soft: rgba(155, 63, 99, 0.12);
+  --bg: #faf7f3;
+  --surface: #f3e4e4;
+  --surface-2: #faf7f3;
+  --border: #a9a29a;
+  --text: #1d1a17;
+  --text-muted: #a9a29a;
+  --accent: #d48a94;
+  --accent-strong: #aa6e76;
+  --accent-soft: rgba(212, 138, 148, 0.16);
   --good: #3e7a72;
   --good-soft: rgba(62, 122, 114, 0.14);
   --warn: #a5732c;
@@ -58,15 +58,15 @@
   --danger-soft: rgba(229, 129, 126, 0.16);
 }
 :root[data-theme="light"] {
-  --bg: #faf7f5;
-  --surface: #ffffff;
-  --surface-2: #f3ecea;
-  --border: #e6dcd8;
-  --text: #2b2230;
-  --text-muted: #7c6f77;
-  --accent: #9b3f63;
-  --accent-strong: #7c2f4f;
-  --accent-soft: rgba(155, 63, 99, 0.12);
+  --bg: #faf7f3;
+  --surface: #f3e4e4;
+  --surface-2: #faf7f3;
+  --border: #a9a29a;
+  --text: #1d1a17;
+  --text-muted: #a9a29a;
+  --accent: #d48a94;
+  --accent-strong: #aa6e76;
+  --accent-soft: rgba(212, 138, 148, 0.16);
   --good: #3e7a72;
   --good-soft: rgba(62, 122, 114, 0.14);
   --warn: #a5732c;
@@ -87,16 +87,16 @@ body,
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* the side bands flanking the centered .app-shell column */
+  background: var(--surface);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", sans-serif;
+  font-family: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 h1,
 h2,
 h3 {
-  font-family: ui-serif, Georgia, "Noto Serif KR", serif;
   font-weight: 600;
   letter-spacing: -0.01em;
   text-wrap: balance;
@@ -111,6 +111,17 @@ h3 {
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  width: min(60%, 1100px);
+  margin: 0 auto;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    width: 100%;
+    box-shadow: none;
+  }
 }
 
 .container {
@@ -160,7 +171,6 @@ label {
 input[type="text"],
 input[type="password"],
 input[type="number"],
-input[type="file"],
 select {
   font: inherit;
   color: var(--text);
@@ -374,4 +384,267 @@ a.link:hover {
 .week-bar-label.is-today {
   color: var(--accent);
   font-weight: 700;
+}
+
+/* file uploads: the native input is visually hidden and triggered via a labeled button */
+.visually-hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.file-picker-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.file-picker-button:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.photo-preview {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* footer */
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  margin-top: auto;
+}
+.site-footer-inner {
+  padding: 28px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.site-footer h2 {
+  font-size: 14px;
+}
+.site-footer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.site-footer-section p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.site-footer-copyright {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+/* floating side widget, docked in the margin band beside the centered .app-shell column */
+.side-widget {
+  position: fixed;
+  top: 110px;
+  right: calc((100vw - min(60vw, 1100px)) / 4 - 90px);
+  width: 180px;
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 3;
+}
+@media (min-width: 1240px) {
+  .side-widget {
+    display: flex;
+  }
+}
+
+.side-widget-photo {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.side-widget-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.side-widget-goal {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.side-widget-priority-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.side-widget-clock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 10px;
+  font-weight: 700;
+  color: var(--text);
+}
+.side-widget-clock-seg {
+  background: var(--surface-2);
+  border-radius: 6px;
+  padding: 6px 7px;
+  font-variant-numeric: tabular-nums;
+  font-size: 20px;
+}
+.side-widget-meridiem {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-left: 2px;
+  align-self: flex-end;
+}
+
+/* Notion-planner mood: full-width bar used to label a page section */
+.section-band {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+.section {
+  margin-top: 20px;
+}
+.section:first-child {
+  margin-top: 0;
+}
+
+.hub-header-band {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--accent-strong);
+}
+
+.capital-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.capital-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.capital-card:hover {
+  transform: translateY(-2px);
+}
+.capital-card-emoji {
+  font-size: 26px;
+}
+.capital-card-label {
+  font-weight: 700;
+  font-size: 14.5px;
+}
+.capital-card-sub {
+  font-size: 11.5px;
+}
+
+.capital-card.is-selected {
+  background: var(--accent);
+  border: 1px solid var(--accent-strong);
+  color: #fff;
+  box-shadow: var(--shadow);
+}
+.capital-card.is-selected .capital-card-sub {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.capital-card.is-unselected {
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+}
+.capital-card.is-unselected .capital-card-label {
+  color: var(--text);
+}
+
+/* record page: habit-tracker mood */
+.habit-tracker-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+}
+.habit-tracker-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.habit-tracker-row:last-child {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+.habit-tracker-row:first-child {
+  padding-top: 4px;
+}
+.habit-tracker-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.habit-tracker-emoji {
+  font-size: 20px;
 }

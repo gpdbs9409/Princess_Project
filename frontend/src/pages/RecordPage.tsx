@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { generateAiFeedback, getActiveProject, getDailySummary } from "../api/endpoints";
-import { GOAL_TYPE_LABELS, type DailySummaryResponse } from "../api/types";
+import { GOAL_TYPE_LABELS, type DailySummaryResponse, type ProjectResponse } from "../api/types";
 import { MissionCard, type FlatMission } from "../components/MissionCard";
+import { SideWidget } from "../components/SideWidget";
 
 function todayIso(): string {
   const now = new Date();
@@ -13,6 +14,7 @@ function todayIso(): string {
 }
 
 export function RecordPage() {
+  const [project, setProject] = useState<ProjectResponse | null>(null);
   const [missions, setMissions] = useState<FlatMission[]>([]);
   const [summary, setSummary] = useState<DailySummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,8 +25,8 @@ export function RecordPage() {
 
   const load = useCallback(async () => {
     try {
-      const [project, dailySummary] = await Promise.all([getActiveProject(), getDailySummary(date)]);
-      const flattened: FlatMission[] = project.goals.flatMap((goal) =>
+      const [projectData, dailySummary] = await Promise.all([getActiveProject(), getDailySummary(date)]);
+      const flattened: FlatMission[] = projectData.goals.flatMap((goal) =>
         goal.stats.flatMap((stat) =>
           stat.missions.map((mission) => ({
             userMissionId: mission.id,
@@ -32,9 +34,11 @@ export function RecordPage() {
             targetValue: mission.targetValue,
             unit: mission.unit,
             goalLabel: GOAL_TYPE_LABELS[goal.goalTypeCode],
+            goalTypeCode: goal.goalTypeCode,
           }))
         )
       );
+      setProject(projectData);
       setMissions(flattened);
       setHasNoMissions(flattened.length === 0);
       setSummary(dailySummary);
@@ -63,6 +67,8 @@ export function RecordPage() {
 
   return (
     <div className="container">
+      <SideWidget project={project} />
+
       <div className="row-between" style={{ marginBottom: 20 }}>
         <div>
           <span className="eyebrow">{date}</span>
@@ -104,17 +110,22 @@ export function RecordPage() {
         </div>
       )}
 
-      <div className="stack" style={{ marginTop: 16 }}>
-        {missions.map((mission) => (
-          <MissionCard
-            key={mission.userMissionId}
-            mission={mission}
-            date={date}
-            completed={summary?.completedMissions.includes(mission.name) ?? false}
-            onSaved={load}
-          />
-        ))}
-      </div>
+      {missions.length > 0 && (
+        <div className="habit-tracker-card" style={{ marginTop: 16 }}>
+          <div className="row-between" style={{ marginBottom: 4 }}>
+            <span className="badge good">✓ Habit Tracker</span>
+          </div>
+          {missions.map((mission) => (
+            <MissionCard
+              key={mission.userMissionId}
+              mission={mission}
+              date={date}
+              completed={summary?.completedMissions.includes(mission.name) ?? false}
+              onSaved={load}
+            />
+          ))}
+        </div>
+      )}
 
       {missions.length > 0 && (
         <div className="card" style={{ marginTop: 16 }}>
