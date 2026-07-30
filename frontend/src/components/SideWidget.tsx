@@ -6,6 +6,10 @@ interface SideWidgetProps {
   project: ProjectResponse | null;
 }
 
+// Challenge start line: before it, a countdown to 9/1 00:00:00; from that instant on,
+// elapsed time counted up from zero - same H:M:S layout both sides of the line.
+const CHALLENGE_START = new Date(2026, 8, 1, 0, 0, 0);
+
 function useClock() {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -21,9 +25,13 @@ function pad(n: number): string {
 
 export function SideWidget({ project }: SideWidgetProps) {
   const now = useClock();
-  const hours24 = now.getHours();
-  const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
-  const meridiem = hours24 < 12 ? "AM" : "PM";
+  const diffMs = now.getTime() - CHALLENGE_START.getTime();
+  const isBeforeStart = diffMs < 0;
+  const totalSeconds = Math.floor(Math.abs(diffMs) / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const dDayLabel = isBeforeStart ? "D-DAY" : "D+DAY";
 
   const topGoals = [...(project?.goals ?? [])].sort((a, b) => b.weightPercent - a.weightPercent).slice(0, 3);
 
@@ -44,12 +52,15 @@ export function SideWidget({ project }: SideWidgetProps) {
       </div>
 
       <div className="side-widget-clock">
-        <div className="side-widget-clock-seg">{pad(hours12)}</div>
+        <div className="side-widget-clock-seg">
+          {isBeforeStart ? "-" : ""}
+          {pad(hours)}
+        </div>
         <span>:</span>
-        <div className="side-widget-clock-seg">{pad(now.getMinutes())}</div>
+        <div className="side-widget-clock-seg">{pad(minutes)}</div>
         <span>:</span>
-        <div className="side-widget-clock-seg">{pad(now.getSeconds())}</div>
-        <span className="side-widget-meridiem">{meridiem}</span>
+        <div className="side-widget-clock-seg">{pad(seconds)}</div>
+        <span className="side-widget-meridiem">{dDayLabel}</span>
       </div>
 
       <div className="side-widget-card">

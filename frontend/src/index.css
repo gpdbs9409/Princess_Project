@@ -288,6 +288,10 @@ a.link:hover {
   align-items: center;
   justify-content: space-between;
 }
+.topnav-brand {
+  color: inherit;
+  text-decoration: none;
+}
 .topnav-links {
   display: flex;
   gap: 18px;
@@ -439,30 +443,11 @@ a.link:hover {
   margin-top: auto;
 }
 .site-footer-inner {
-  padding: 28px 20px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.site-footer h2 {
-  font-size: 14px;
-}
-.site-footer-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.site-footer-section p {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--text-muted);
-  line-height: 1.6;
+  padding: 20px;
 }
 .site-footer-copyright {
   font-size: 11.5px;
   color: var(--text-muted);
-  border-top: 1px solid var(--border);
-  padding-top: 14px;
 }
 
 /* floating side widget, docked in the margin band beside the centered .app-shell column */

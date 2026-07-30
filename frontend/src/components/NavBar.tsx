@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
 export function NavBar() {
@@ -9,7 +9,9 @@ export function NavBar() {
     <nav className="topnav">
       <div className="topnav-inner">
         <div className="row">
-          <strong>Princess Project</strong>
+          <Link to="/dashboard" className="topnav-brand">
+            <strong>Princess Project</strong>
+          </Link>
           <span className="muted">{user.nickname}</span>
         </div>
         <div className="topnav-links">

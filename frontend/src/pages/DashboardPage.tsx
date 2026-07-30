@@ -13,6 +13,7 @@ import { ProfileHeader } from "../components/ProfileHeader";
 import { SideWidget } from "../components/SideWidget";
 import { StatMeter } from "../components/StatMeter";
 import { WeeklyBarChart } from "../components/WeeklyBarChart";
+import { WeeklyStatLineChart } from "../components/WeeklyStatLineChart";
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -218,14 +219,7 @@ export function DashboardPage() {
         <div className="section">
           <div className="section-band">이번 주 스탯 누적</div>
           <div className="card">
-            {GOAL_TYPE_CODES.map((s) => (
-              <StatMeter
-                key={s}
-                label={GOAL_TYPE_LABELS[s]}
-                value={report.statScoreTotals[s.toLowerCase()] ?? 0}
-                max={weeklyMax[s.toLowerCase()] ?? 1}
-              />
-            ))}
+            <WeeklyStatLineChart scores={report.statScoreTotals} maxByGoal={weeklyMax} />
           </div>
         </div>
       )}
