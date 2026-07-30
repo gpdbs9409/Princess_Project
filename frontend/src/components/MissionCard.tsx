@@ -95,10 +95,13 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
       if (err instanceof ApiError && err.code === "PHOTO_REQUIRED") {
         setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
       } else if (err instanceof ApiError && err.code === "PHOTO_NOT_FROM_TODAY") {
-        setError("오늘 찍은 사진이 아닌 것 같아요. 오늘 찍은 사진으로 다시 업로드해주세요.");
+        setError("오늘 찍은 사진이 아니에요. 오늘 찍은 사진으로 바꿔주세요.");
       } else if (err instanceof ApiError && err.code === "PHOTO_DATE_UNKNOWN") {
-        setError("직접 찍은 사진만 인증할 수 있어요. 스크린샷이나 캡처, 다른 앱을 거친 사진은 안 돼요.");
+        setError("사진 촬영 날짜를 확인할 수 없어요. 오늘 찍은 사진으로 바꿔주세요.");
       } else {
+        // Not one of our known validation codes - log the real cause so it's debuggable
+        // instead of only ever showing the generic message below.
+        console.error("saveRecord failed", err);
         setError("저장에 실패했습니다. 다시 시도해주세요.");
       }
     } finally {

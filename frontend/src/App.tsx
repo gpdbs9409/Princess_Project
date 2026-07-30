@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { NavBar } from "./components/NavBar";
 import { Footer } from "./components/Footer";
 import { Mascot } from "./components/Mascot";
@@ -9,9 +10,21 @@ import { LoginPage } from "./pages/LoginPage";
 import { RecordPage } from "./pages/RecordPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { StatFocusPage } from "./pages/StatFocusPage";
+import { initAnalytics, trackPageView } from "./lib/analytics";
 
 function App() {
   const { token } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
+  // Fires on every route change (including the first) - a plain gtag config only ever
+  // reports the initial load in an SPA, since there's no full page reload afterwards.
+  useEffect(() => {
+    trackPageView(location.pathname + location.search);
+  }, [location]);
 
   return (
     <div className="app-shell">
