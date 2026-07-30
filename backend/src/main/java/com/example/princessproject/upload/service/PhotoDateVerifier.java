@@ -13,9 +13,9 @@ import org.springframework.stereotype.Component;
 /**
  * Rejects mission-verification photos that weren't taken today, read from the file's own
  * EXIF DateTimeOriginal tag - catches someone re-uploading an old photo to fake a mission.
- * A photo with no EXIF date at all (screenshots, or photos re-encoded by an app that strips
- * metadata) is let through rather than rejected, since we can't tell it's actually old either -
- * this only blocks the case we can positively verify.
+ * A photo with no EXIF date at all (screenshots, or photos that passed through a messenger
+ * app like KakaoTalk, which strips metadata on send) is also rejected - we can't prove it
+ * was taken today, so it doesn't get the benefit of the doubt.
  */
 @Component
 public class PhotoDateVerifier {
@@ -26,7 +26,9 @@ public class PhotoDateVerifier {
     public void verifyTakenToday(InputStream inputStream) {
         LocalDate takenDate = readTakenDate(inputStream);
         if (takenDate == null) {
-            return;
+            throw new UploadValidationException(
+                    "PHOTO_DATE_UNKNOWN",
+                    "Photo has no readable EXIF capture date - cannot verify it was taken today");
         }
 
         LocalDate today = LocalDate.now(ZONE);
@@ -50,8 +52,8 @@ public class PhotoDateVerifier {
             }
             return LocalDateTime.parse(raw, EXIF_DATE_FORMAT).toLocalDate();
         } catch (Exception e) {
-            // Unreadable format, no metadata, or a malformed date string - we can't verify
-            // either way, so let the upload proceed rather than blocking on an unrelated failure.
+            // Unreadable format, no metadata, or a malformed date string - treated the same as
+            // "no date at all" by the caller, i.e. rejected.
             return null;
         }
     }
