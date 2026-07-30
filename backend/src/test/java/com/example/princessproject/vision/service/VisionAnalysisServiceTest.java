@@ -8,9 +8,10 @@ import org.springframework.mock.web.MockMultipartFile;
 
 class VisionAnalysisServiceTest {
 
+    private final VisionAnalysisService service = new VisionAnalysisService(new MockVisionClient());
+
     @Test
-    void detectsReadingPhotoAsLikelyValidForReadingGoal() {
-        VisionAnalysisService service = new VisionAnalysisService("", "gpt-4o-mini");
+    void passesThroughWhenNoRealVisionClientIsConfigured() {
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "book-reading.jpg",
@@ -25,14 +26,8 @@ class VisionAnalysisServiceTest {
     }
 
     @Test
-    void rejectsUnrelatedPhotoForReadingGoal() {
-        VisionAnalysisService service = new VisionAnalysisService("", "gpt-4o-mini");
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "selfie.png",
-                "image/png",
-                "dummy-image".getBytes()
-        );
+    void rejectsWhenImageBytesAreEmpty() {
+        MockMultipartFile file = new MockMultipartFile("file", "empty.png", "image/png", new byte[0]);
 
         VisionAnalysisResult result = service.analyze(file, "독서");
 

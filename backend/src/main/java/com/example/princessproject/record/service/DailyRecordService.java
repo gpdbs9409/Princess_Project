@@ -50,7 +50,8 @@ public class DailyRecordService {
 
     @Transactional
     public MissionProgress saveRecord(
-            Long userId, Long userMissionId, LocalDate date, BigDecimal inputValue, String photoUrl, String memo
+            Long userId, Long userMissionId, LocalDate date, BigDecimal inputValue, String photoUrl, String memo,
+            Boolean aiVerified
     ) {
         UserMission userMission = userMissionRepository.findById(userMissionId)
                 .orElseThrow(() -> new IllegalArgumentException("Mission not found: " + userMissionId));
@@ -99,6 +100,7 @@ public class DailyRecordService {
         record.setAchievementRate(achievementRate);
         record.setEarnedScore(earnedScore);
         record.setVerificationStatus(verificationStatus);
+        record.setAiVerified(aiVerified);
         dailyRecordRepository.save(record);
 
         return getMissionProgress(userId, date);

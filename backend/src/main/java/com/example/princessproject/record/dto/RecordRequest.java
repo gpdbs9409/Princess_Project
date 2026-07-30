@@ -9,6 +9,7 @@ public record RecordRequest(
         @NotNull LocalDate date,
         @NotNull BigDecimal inputValue,
         String photoUrl,
-        String memo
+        String memo,
+        Boolean aiVerified
 ) {
 }

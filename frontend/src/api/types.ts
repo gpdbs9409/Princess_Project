@@ -168,6 +168,7 @@ export interface TodayRecordEntry {
   inputValue: number;
   memo: string | null;
   photoUrl: string | null;
+  aiVerified: boolean | null;
 }
 
 export interface DailySummaryResponse {
@@ -197,6 +198,7 @@ export interface RecordRequest {
   inputValue: number;
   photoUrl?: string;
   memo?: string;
+  aiVerified?: boolean;
 }
 
 export interface UploadResponse {

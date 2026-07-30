@@ -61,6 +61,13 @@ public class DailyRecord {
     @Column(length = 1000)
     private String memo;
 
+    /**
+     * Result of the GPT-4o mini vision check against the mission's expected topic. Null means
+     * the check was never run (e.g. no photo required, or the client didn't report a result).
+     */
+    @Column(name = "ai_verified")
+    private Boolean aiVerified;
+
     @Column(precision = 10, scale = 2)
     private BigDecimal targetValueSnapshot;
 

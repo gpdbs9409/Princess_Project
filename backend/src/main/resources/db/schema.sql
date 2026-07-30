@@ -550,6 +550,9 @@ CREATE TABLE daily_records (
     photo_url VARCHAR(1000),
     memo VARCHAR(1000),
 
+    -- GPT-4o mini 사진 검수 결과 (NULL = 검수 미실행)
+    ai_verified BOOLEAN NULL,
+
     /*
       미션 설정이 나중에 변경되더라도
       과거 점수가 변하지 않도록 계산 당시 값을 저장한다.

@@ -77,12 +77,15 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
         inputValue: value,
         photoUrl: uploaded.url,
         memo: memo || undefined,
+        aiVerified: visionNote?.ok,
       });
       onSaved();
       showToast("기록이 저장되었어요");
     } catch (err) {
       if (err instanceof ApiError && err.code === "PHOTO_REQUIRED") {
         setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
+      } else if (err instanceof ApiError && err.code === "PHOTO_NOT_FROM_TODAY") {
+        setError("오늘 찍은 사진이 아닌 것 같아요. 오늘 찍은 사진으로 다시 업로드해주세요.");
       } else {
         setError("저장에 실패했습니다. 다시 시도해주세요.");
       }
