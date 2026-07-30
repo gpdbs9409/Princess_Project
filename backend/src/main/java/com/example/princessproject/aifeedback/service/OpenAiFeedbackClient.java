@@ -75,10 +75,24 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
 
         try {
             String content = response.path("choices").get(0).path("message").path("content").asString();
-            return objectMapper.readValue(content, AiFeedbackResult.class);
+            AiFeedbackResult result = objectMapper.readValue(content, AiFeedbackResult.class);
+            return new AiFeedbackResult(
+                    collapseNewlines(result.summary()),
+                    collapseNewlines(result.praise()),
+                    collapseNewlines(result.improvement()),
+                    collapseNewlines(result.tomorrow()),
+                    collapseNewlines(result.cheer())
+            );
         } catch (Exception e) {
             throw new IllegalStateException("Failed to parse OpenAI response", e);
         }
+    }
+
+    // The model sometimes inserts its own paragraph breaks inside a single field - each
+    // field renders as one line in the UI, so a raw "\n" reads as a truncated sentence
+    // followed by an orphan fragment rather than a real line break.
+    private String collapseNewlines(String text) {
+        return text == null ? null : text.replaceAll("\\s*\\n+\\s*", " ").trim();
     }
 
     private String userContent(AiFeedbackContext context) {

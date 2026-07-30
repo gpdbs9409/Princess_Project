@@ -33,6 +33,7 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.apache.commons:commons-imaging:1.0.0-alpha6'
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 	testRuntimeOnly 'com.h2database:h2'
