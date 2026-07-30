@@ -504,9 +504,9 @@ a.link:hover {
 
 .side-widget-clock {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  gap: 6px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -514,6 +514,11 @@ a.link:hover {
   padding: 12px 10px;
   font-weight: 700;
   color: var(--text);
+}
+.side-widget-clock-segs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .side-widget-clock-seg {
   background: var(--surface-2);
@@ -524,9 +529,8 @@ a.link:hover {
 }
 .side-widget-meridiem {
   font-size: 10.5px;
+  letter-spacing: 0.05em;
   color: var(--text-muted);
-  margin-left: 2px;
-  align-self: flex-end;
 }
 
 /* Notion-planner mood: full-width bar used to label a page section */

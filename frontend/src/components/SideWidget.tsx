@@ -52,15 +52,17 @@ export function SideWidget({ project }: SideWidgetProps) {
       </div>
 
       <div className="side-widget-clock">
-        <div className="side-widget-clock-seg">
-          {isBeforeStart ? "-" : ""}
-          {pad(days)}
-        </div>
-        <span>:</span>
-        <div className="side-widget-clock-seg">{pad(hours)}</div>
-        <span>:</span>
-        <div className="side-widget-clock-seg">{pad(minutes)}</div>
         <span className="side-widget-meridiem">{dDayLabel}</span>
+        <div className="side-widget-clock-segs">
+          <div className="side-widget-clock-seg">
+            {isBeforeStart ? "-" : ""}
+            {pad(days)}
+          </div>
+          <span>:</span>
+          <div className="side-widget-clock-seg">{pad(hours)}</div>
+          <span>:</span>
+          <div className="side-widget-clock-seg">{pad(minutes)}</div>
+        </div>
       </div>
 
       <div className="side-widget-card">
