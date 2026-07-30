@@ -27,10 +27,10 @@ export function SideWidget({ project }: SideWidgetProps) {
   const now = useClock();
   const diffMs = now.getTime() - CHALLENGE_START.getTime();
   const isBeforeStart = diffMs < 0;
-  const totalSeconds = Math.floor(Math.abs(diffMs) / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
+  const totalMinutes = Math.floor(Math.abs(diffMs) / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
   const dDayLabel = isBeforeStart ? "D-DAY" : "D+DAY";
 
   const topGoals = [...(project?.goals ?? [])].sort((a, b) => b.weightPercent - a.weightPercent).slice(0, 3);
@@ -54,12 +54,12 @@ export function SideWidget({ project }: SideWidgetProps) {
       <div className="side-widget-clock">
         <div className="side-widget-clock-seg">
           {isBeforeStart ? "-" : ""}
-          {pad(hours)}
+          {pad(days)}
         </div>
         <span>:</span>
-        <div className="side-widget-clock-seg">{pad(minutes)}</div>
+        <div className="side-widget-clock-seg">{pad(hours)}</div>
         <span>:</span>
-        <div className="side-widget-clock-seg">{pad(seconds)}</div>
+        <div className="side-widget-clock-seg">{pad(minutes)}</div>
         <span className="side-widget-meridiem">{dDayLabel}</span>
       </div>
 

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { GOAL_TYPE_CODES, GOAL_TYPE_LABELS, type GoalTypeCode } from "../api/types";
+import { GOAL_TYPE_CODES, GOAL_TYPE_LABELS } from "../api/types";
 
 interface WeeklyStatLineChartProps {
   scores: Partial<Record<string, number>>;
@@ -7,13 +6,11 @@ interface WeeklyStatLineChartProps {
 }
 
 const WIDTH = 320;
-const HEIGHT = 160;
-const PAD_X = 16;
-const PAD_Y = 16;
+const HEIGHT = 170;
+const PAD_X = 24;
+const PAD_Y = 28;
 
 export function WeeklyStatLineChart({ scores, maxByGoal }: WeeklyStatLineChartProps) {
-  const [hovered, setHovered] = useState<number | null>(null);
-
   const points = GOAL_TYPE_CODES.map((code, i) => {
     const key = code.toLowerCase();
     const value = scores[key] ?? 0;
@@ -28,24 +25,23 @@ export function WeeklyStatLineChart({ scores, maxByGoal }: WeeklyStatLineChartPr
   const baselineY = PAD_Y + (HEIGHT - PAD_Y * 2);
 
   return (
-    <div style={{ position: "relative" }}>
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" height={HEIGHT} role="img" aria-label="이번 주 스탯 누적 달성률">
+    <div>
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        width="100%"
+        height={HEIGHT}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="이번 주 스탯 누적 달성률"
+      >
         <line x1={PAD_X} y1={baselineY} x2={WIDTH - PAD_X} y2={baselineY} stroke="var(--border)" strokeWidth={1} />
         <polyline points={linePath} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-        {points.map((p, i) => (
+        {points.map((p) => (
           <g key={p.code}>
-            <circle
-              cx={p.x}
-              cy={p.y}
-              r={7}
-              fill="var(--accent)"
-              stroke="var(--surface)"
-              strokeWidth={2}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered((h) => (h === i ? null : h))}
-              style={{ cursor: "pointer" }}
-            />
-            <circle cx={p.x} cy={p.y} r={14} fill="transparent" onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered((h) => (h === i ? null : h))} />
+            <text x={p.x} y={p.y - 12} textAnchor="middle" fontSize={10.5} fill="var(--text)">
+              {Math.round(p.pct)}%
+            </text>
+            <circle cx={p.x} cy={p.y} r={7} fill="var(--accent)" stroke="var(--surface)" strokeWidth={2} />
           </g>
         ))}
       </svg>
@@ -56,20 +52,6 @@ export function WeeklyStatLineChart({ scores, maxByGoal }: WeeklyStatLineChartPr
           </span>
         ))}
       </div>
-      {hovered !== null && (
-        <div
-          className="week-bar-tooltip"
-          style={{
-            position: "absolute",
-            left: `${(points[hovered].x / WIDTH) * 100}%`,
-            top: points[hovered].y - 34,
-            transform: "translateX(-50%)",
-          }}
-        >
-          {GOAL_TYPE_LABELS[points[hovered].code as GoalTypeCode]} · {Math.round(points[hovered].value)}점 (
-          {Math.round(points[hovered].pct)}%)
-        </div>
-      )}
     </div>
   );
 }
