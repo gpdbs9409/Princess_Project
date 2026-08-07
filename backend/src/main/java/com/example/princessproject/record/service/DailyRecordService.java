@@ -123,11 +123,48 @@ public class DailyRecordService {
         LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         List<DailyRecord> records = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, date);
 
+        return computeProgress(activeMissions, records, weekStart, date);
+    }
+
+    /**
+     * Same per-day math as {@link #getMissionProgress}, but for all 7 days of a week at once,
+     * in a single DB round trip instead of 7 (one per day). Callers that need a whole week's
+     * worth of daily snapshots - the weekly report, and the admin weekly-refund tracker which
+     * does this once per participant - used to call getMissionProgress() in a day-by-day loop,
+     * which re-queried an overlapping, ever-growing date range on every iteration (Monday..day1,
+     * Monday..day2, ...). That's fine for a single user's own dashboard but multiplies badly
+     * once it runs once per member in a cohort.
+     */
+    @Transactional
+    public List<MissionProgress> getWeekDailyProgress(Long userId, LocalDate weekStart) {
+        UserProject project = userProjectService.getOrCreateActive(userId);
+        List<ActiveMission> activeMissions = flattenActiveMissions(project);
+        LocalDate weekEnd = weekStart.plusDays(6);
+
+        List<DailyRecord> weekRecords = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd);
+
+        List<MissionProgress> result = new ArrayList<>(7);
+        for (LocalDate date = weekStart; !date.isAfter(weekEnd); date = date.plusDays(1)) {
+            // weekRecords already covers the whole week - computeProgress only needs the
+            // slice up to `date` for "week-to-date", so hand it the same in-memory list each
+            // time (it filters by date itself) instead of re-hitting the DB.
+            result.add(computeProgress(activeMissions, weekRecords, weekStart, date));
+        }
+        return result;
+    }
+
+    private MissionProgress computeProgress(
+            List<ActiveMission> activeMissions, List<DailyRecord> recordsInRange, LocalDate weekStart, LocalDate date
+    ) {
         Map<Long, DailyRecord> todaysRecordByMissionId = new LinkedHashMap<>();
         Map<Long, BigDecimal> weekToDateInputByMissionId = new LinkedHashMap<>();
-        for (DailyRecord record : records) {
+        for (DailyRecord record : recordsInRange) {
+            LocalDate recordDate = record.getRecordDate();
+            if (recordDate.isBefore(weekStart) || recordDate.isAfter(date)) {
+                continue;
+            }
             Long missionId = record.getUserMission().getId();
-            if (record.getRecordDate().equals(date)) {
+            if (recordDate.equals(date)) {
                 todaysRecordByMissionId.put(missionId, record);
             }
             weekToDateInputByMissionId.merge(missionId, record.getInputValue(), BigDecimal::add);

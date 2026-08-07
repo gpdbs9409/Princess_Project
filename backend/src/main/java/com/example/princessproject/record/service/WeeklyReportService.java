@@ -23,10 +23,14 @@ public class WeeklyReportService {
     public WeeklyReportResult getWeeklyReport(Long userId, LocalDate weekStart) {
         LocalDate weekEnd = weekStart.plusDays(WEEK_LENGTH_DAYS - 1L);
 
+        // Single query for the whole week instead of a growing-range query per day
+        // (Monday..day1, Monday..day2, ...) - see DailyRecordService#getWeekDailyProgress.
+        List<MissionProgress> weekProgress = dailyRecordService.getWeekDailyProgress(userId, weekStart);
         List<WeeklyReportResult.DailyEntry> dailyBreakdown = new ArrayList<>();
-        for (LocalDate date = weekStart; !date.isAfter(weekEnd); date = date.plusDays(1)) {
-            MissionProgress progress = dailyRecordService.getMissionProgress(userId, date);
+        LocalDate date = weekStart;
+        for (MissionProgress progress : weekProgress) {
             dailyBreakdown.add(new WeeklyReportResult.DailyEntry(date, progress));
+            date = date.plusDays(1);
         }
 
         MissionProgress weekTotal = dailyRecordService.getWeekTotalProgress(userId, weekStart);

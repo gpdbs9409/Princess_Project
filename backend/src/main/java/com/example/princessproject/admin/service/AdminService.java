@@ -22,7 +22,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -106,6 +108,11 @@ public class AdminService {
     /**
      * cohort == null -> every tagged participant across all cohorts, sorted by cohort then
      * nickname. Otherwise just that cohort.
+     *
+     * Fetches refunds and MVPs for the whole week ONCE (2 queries total, not 2-per-member) and
+     * reuses them via in-memory maps - see buildWeekResponse. The per-member success-day
+     * calculation still hits the DB once per member (getWeekDailyProgress), but that's now a
+     * single query per member instead of 7.
      */
     @Transactional
     public List<AdminMemberWeekResponse> listParticipantsForWeek(String cohort, LocalDate weekStart) {
@@ -113,12 +120,20 @@ public class AdminService {
                 ? userRepository.findByCohortIsNotNullOrderByCohortAscNicknameAsc()
                 : userRepository.findByCohortOrderByNicknameAsc(cohort);
 
+        Map<Long, WeeklyRefund> refundsByUserId = new HashMap<>();
+        for (WeeklyRefund refund : weeklyRefundRepository.findByWeekStart(weekStart)) {
+            refundsByUserId.put(refund.getUserId(), refund);
+        }
+        Map<String, Long> mvpUserIdByCohort = new HashMap<>();
+        for (WeeklyMvp mvp : weeklyMvpRepository.findByWeekStart(weekStart)) {
+            mvpUserIdByCohort.put(mvp.getCohort(), mvp.getUserId());
+        }
+
         List<AdminMemberWeekResponse> result = new ArrayList<>();
         for (User user : members) {
-            Long mvpUserId = weeklyMvpRepository.findByCohortAndWeekStart(user.getCohort(), weekStart)
-                    .map(WeeklyMvp::getUserId)
-                    .orElse(null);
-            result.add(buildWeekResponse(user, weekStart, mvpUserId));
+            Long mvpUserId = mvpUserIdByCohort.get(user.getCohort());
+            WeeklyRefund refund = refundsByUserId.get(user.getId());
+            result.add(buildWeekResponse(user, weekStart, mvpUserId, refund));
         }
         return result;
     }
@@ -192,14 +207,12 @@ public class AdminService {
         Long mvpUserId = weeklyMvpRepository.findByCohortAndWeekStart(user.getCohort(), weekStart)
                 .map(WeeklyMvp::getUserId)
                 .orElse(null);
-        return buildWeekResponse(user, weekStart, mvpUserId);
+        return buildWeekResponse(user, weekStart, mvpUserId, refund);
     }
 
-    private AdminMemberWeekResponse buildWeekResponse(User user, LocalDate weekStart, Long mvpUserId) {
+    private AdminMemberWeekResponse buildWeekResponse(User user, LocalDate weekStart, Long mvpUserId, WeeklyRefund refund) {
         double successDays = computeSuccessDays(user.getId(), weekStart);
         boolean eligible = successDays >= ELIGIBLE_SUCCESS_DAYS;
-
-        WeeklyRefund refund = weeklyRefundRepository.findByUserIdAndWeekStart(user.getId(), weekStart).orElse(null);
         boolean paid = refund != null && refund.isPaid();
 
         return new AdminMemberWeekResponse(
@@ -223,12 +236,15 @@ public class AdminService {
      * no active missions that day). Approximated from the same per-mission completion data
      * DailyRecordService already computes for the daily/weekly report views - there's no
      * separately-tracked "day success" concept in the schema, so this is derived, not stored.
+     *
+     * Uses DailyRecordService#getWeekDailyProgress, which fetches the whole week's records in
+     * ONE query instead of one growing-range query per day - this used to be 7 DB round trips
+     * per participant (49+ per admin page load for a 7-person cohort), which is what made the
+     * admin weekly view noticeably heavy.
      */
     private double computeSuccessDays(Long userId, LocalDate weekStart) {
         double total = 0;
-        for (int i = 0; i < 7; i++) {
-            LocalDate date = weekStart.plusDays(i);
-            MissionProgress progress = dailyRecordService.getMissionProgress(userId, date);
+        for (MissionProgress progress : dailyRecordService.getWeekDailyProgress(userId, weekStart)) {
             int completed = progress.completedMissions().size();
             int remaining = progress.remainingMissions().size();
             int activeCount = completed + remaining;
