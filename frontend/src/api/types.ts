@@ -93,6 +93,26 @@ export interface AdminAdjustmentResponse {
   createdAt: string;
 }
 
+export type RecruitmentStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+
+export interface RecruitmentApplicantResponse {
+  id: number;
+  name: string;
+  contact: string | null;
+  note: string | null;
+  status: RecruitmentStatus;
+  appliedAt: string | null;
+  createdAt: string;
+}
+
+export interface RecruitmentApplicantRequest {
+  name: string;
+  contact?: string;
+  note?: string;
+  status?: RecruitmentStatus;
+  appliedAt?: string;
+}
+
 export interface ProfileStatsResponse {
   recordCount: number;
   totalUsers: number;

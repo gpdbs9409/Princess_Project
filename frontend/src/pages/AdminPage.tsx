@@ -1,20 +1,40 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   addAdminAdjustment,
+  addRecruitmentApplicant,
   assignAdminCohort,
   clearAdminMvp,
   deleteAdminAdjustment,
+  deleteRecruitmentApplicant,
   getAdminAdjustments,
   getAdminApplicants,
   getAdminCohorts,
   getAdminParticipants,
+  getRecruitmentApplicants,
   setAdminMvp,
   setAdminRefundPaid,
+  updateRecruitmentApplicant,
 } from "../api/endpoints";
-import type { AdminAdjustmentResponse, AdminApplicantResponse, AdminMemberWeekResponse } from "../api/types";
+import type {
+  AdminAdjustmentResponse,
+  AdminApplicantResponse,
+  AdminMemberWeekResponse,
+  RecruitmentApplicantResponse,
+  RecruitmentStatus,
+} from "../api/types";
 import { GOAL_TYPE_CODES, GOAL_TYPE_LABELS } from "../api/types";
 
-type Tab = "applicants" | "participants";
+type Tab = "participants" | "unassigned" | "recruitment";
+
+const RECRUITMENT_STATUS_LABELS: Record<RecruitmentStatus, string> = {
+  PENDING: "검토중",
+  ACCEPTED: "합격",
+  REJECTED: "불합격",
+};
+
+function blankRecruitmentForm() {
+  return { name: "", contact: "", note: "", status: "PENDING" as RecruitmentStatus };
+}
 
 function mondayOf(date: Date): Date {
   const d = new Date(date);
@@ -70,6 +90,8 @@ export function AdminPage() {
     points: "",
     reason: "",
   });
+  const [recruitmentApplicants, setRecruitmentApplicants] = useState<RecruitmentApplicantResponse[]>([]);
+  const [recruitmentForm, setRecruitmentForm] = useState(blankRecruitmentForm());
 
   const weekStartIso = useMemo(() => isoDate(weekStart), [weekStart]);
 
@@ -88,7 +110,19 @@ export function AdminPage() {
     try {
       setApplicants(await getAdminApplicants());
     } catch {
-      setError("지원자 목록을 불러오지 못했어요.");
+      setError("목록을 불러오지 못했어요.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadRecruitmentApplicants = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setRecruitmentApplicants(await getRecruitmentApplicants());
+    } catch {
+      setError("지원서 목록을 불러오지 못했어요.");
     } finally {
       setLoading(false);
     }
@@ -111,14 +145,43 @@ export function AdminPage() {
   }, [loadCohorts]);
 
   useEffect(() => {
-    if (tab === "applicants") loadApplicants();
+    if (tab === "unassigned") loadApplicants();
+    else if (tab === "recruitment") loadRecruitmentApplicants();
     else loadParticipants();
-  }, [tab, loadApplicants, loadParticipants]);
+  }, [tab, loadApplicants, loadParticipants, loadRecruitmentApplicants]);
 
   const handleAssignCohort = async (userId: number, cohort: string) => {
     if (!cohort.trim()) return;
     await assignAdminCohort(userId, cohort.trim());
     await Promise.all([loadCohorts(), loadApplicants()]);
+  };
+
+  const handleAddRecruitmentApplicant = async () => {
+    if (!recruitmentForm.name.trim()) return;
+    const created = await addRecruitmentApplicant({
+      name: recruitmentForm.name.trim(),
+      contact: recruitmentForm.contact || undefined,
+      note: recruitmentForm.note || undefined,
+      status: recruitmentForm.status,
+    });
+    setRecruitmentApplicants((prev) => [created, ...prev]);
+    setRecruitmentForm(blankRecruitmentForm());
+  };
+
+  const handleRecruitmentStatusChange = async (applicant: RecruitmentApplicantResponse, status: RecruitmentStatus) => {
+    const updated = await updateRecruitmentApplicant(applicant.id, {
+      name: applicant.name,
+      contact: applicant.contact ?? undefined,
+      note: applicant.note ?? undefined,
+      status,
+      appliedAt: applicant.appliedAt ?? undefined,
+    });
+    setRecruitmentApplicants((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+  };
+
+  const handleDeleteRecruitmentApplicant = async (id: number) => {
+    await deleteRecruitmentApplicant(id);
+    setRecruitmentApplicants((prev) => prev.filter((a) => a.id !== id));
   };
 
   const handleTogglePaid = async (member: AdminMemberWeekResponse) => {
@@ -196,7 +259,11 @@ export function AdminPage() {
       <div className="stack" style={{ marginBottom: 20 }}>
         <span className="eyebrow">Admin</span>
         <h1 style={{ fontSize: 26 }}>회원 관리</h1>
-        <p className="muted">지원자 배정과 기수별 주간 인증·환급 현황을 관리해요.</p>
+        <p className="muted">
+          회원가입 = 참가자예요 (앱 URL은 이미 선발된 분들에게만 전달되니까요). 여기서는
+          기수 배정과 기수별 주간 인증·환급 현황을 관리하고, 별도로 모집 단계의 지원서를
+          내부 기록용으로 남겨요.
+        </p>
       </div>
 
       <div className="row" style={{ gap: 10, marginBottom: 16 }}>
@@ -209,19 +276,30 @@ export function AdminPage() {
         </button>
         <button
           type="button"
-          className={tab === "applicants" ? "primary" : "ghost"}
-          onClick={() => setTab("applicants")}
+          className={tab === "unassigned" ? "primary" : "ghost"}
+          onClick={() => setTab("unassigned")}
         >
-          지원자
+          기수 미배정 회원
+        </button>
+        <button
+          type="button"
+          className={tab === "recruitment" ? "primary" : "ghost"}
+          onClick={() => setTab("recruitment")}
+        >
+          지원서 (내부 기록용)
         </button>
       </div>
 
       {error && <div className="error-banner" style={{ marginBottom: 16 }}>{error}</div>}
 
-      {tab === "applicants" && (
+      {tab === "unassigned" && (
         <div className="card">
+          <p className="muted" style={{ marginTop: 0 }}>
+            이미 회원가입한, 아직 기수 태그만 없는 회원이에요. 이 목록의 "지원서(내부
+            기록용)" 탭과는 무관해요 - 저건 회원가입 전 단계의 모집 기록이에요.
+          </p>
           {loading && <p className="muted">불러오는 중...</p>}
-          {!loading && applicants.length === 0 && <p className="muted">대기 중인 지원자가 없어요.</p>}
+          {!loading && applicants.length === 0 && <p className="muted">기수 미배정 회원이 없어요.</p>}
           {!loading && applicants.length > 0 && (
             <table className="admin-table">
               <thead>
@@ -261,6 +339,107 @@ export function AdminPage() {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {tab === "recruitment" && (
+        <div className="stack" style={{ gap: 12 }}>
+          <div className="card">
+            <p className="muted" style={{ marginTop: 0 }}>
+              앱 회원(users)과 무관한, 팀 내부 모집 기록용 리스트예요. 지금은 수기 입력만
+              가능해요 (엑셀 업로드는 나중에 결정).
+            </p>
+            <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+              <input
+                type="text"
+                placeholder="이름"
+                value={recruitmentForm.name}
+                onChange={(e) => setRecruitmentForm((f) => ({ ...f, name: e.target.value }))}
+                style={{ maxWidth: 140 }}
+              />
+              <input
+                type="text"
+                placeholder="연락처 (전화/인스타 등)"
+                value={recruitmentForm.contact}
+                onChange={(e) => setRecruitmentForm((f) => ({ ...f, contact: e.target.value }))}
+                style={{ maxWidth: 180 }}
+              />
+              <select
+                value={recruitmentForm.status}
+                onChange={(e) =>
+                  setRecruitmentForm((f) => ({ ...f, status: e.target.value as RecruitmentStatus }))
+                }
+                style={{ maxWidth: 110 }}
+              >
+                {(Object.keys(RECRUITMENT_STATUS_LABELS) as RecruitmentStatus[]).map((s) => (
+                  <option key={s} value={s}>
+                    {RECRUITMENT_STATUS_LABELS[s]}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="메모"
+                value={recruitmentForm.note}
+                onChange={(e) => setRecruitmentForm((f) => ({ ...f, note: e.target.value }))}
+                style={{ flex: 1, minWidth: 160 }}
+              />
+              <button type="button" className="primary" onClick={handleAddRecruitmentApplicant}>
+                추가
+              </button>
+            </div>
+          </div>
+
+          <div className="card">
+            {loading && <p className="muted">불러오는 중...</p>}
+            {!loading && recruitmentApplicants.length === 0 && <p className="muted">기록된 지원서가 없어요.</p>}
+            {!loading && recruitmentApplicants.length > 0 && (
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>연락처</th>
+                    <th>메모</th>
+                    <th>상태</th>
+                    <th>기록일</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recruitmentApplicants.map((a) => (
+                    <tr key={a.id}>
+                      <td>{a.name}</td>
+                      <td>{a.contact}</td>
+                      <td>{a.note}</td>
+                      <td>
+                        <select
+                          value={a.status}
+                          onChange={(e) => handleRecruitmentStatusChange(a, e.target.value as RecruitmentStatus)}
+                        >
+                          {(Object.keys(RECRUITMENT_STATUS_LABELS) as RecruitmentStatus[]).map((s) => (
+                            <option key={s} value={s}>
+                              {RECRUITMENT_STATUS_LABELS[s]}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>{new Date(a.createdAt).toLocaleDateString("ko-KR")}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="ghost"
+                          style={{ padding: "4px 8px", fontSize: 12 }}
+                          onClick={() => handleDeleteRecruitmentApplicant(a.id)}
+                        >
+                          삭제
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       )}
 

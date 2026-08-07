@@ -4,9 +4,13 @@ import com.example.princessproject.admin.dto.AdjustmentResponse;
 import com.example.princessproject.admin.dto.AdminApplicantResponse;
 import com.example.princessproject.admin.dto.AdminMemberWeekResponse;
 import com.example.princessproject.admin.dto.MvpResponse;
+import com.example.princessproject.admin.dto.RecruitmentApplicantRequest;
+import com.example.princessproject.admin.dto.RecruitmentApplicantResponse;
+import com.example.princessproject.admin.model.RecruitmentApplicant;
 import com.example.princessproject.admin.model.ScoreAdjustment;
 import com.example.princessproject.admin.model.WeeklyMvp;
 import com.example.princessproject.admin.model.WeeklyRefund;
+import com.example.princessproject.admin.repository.RecruitmentApplicantRepository;
 import com.example.princessproject.admin.repository.ScoreAdjustmentRepository;
 import com.example.princessproject.admin.repository.WeeklyMvpRepository;
 import com.example.princessproject.admin.repository.WeeklyRefundRepository;
@@ -33,6 +37,7 @@ public class AdminService {
     private final WeeklyRefundRepository weeklyRefundRepository;
     private final WeeklyMvpRepository weeklyMvpRepository;
     private final ScoreAdjustmentRepository scoreAdjustmentRepository;
+    private final RecruitmentApplicantRepository recruitmentApplicantRepository;
     private final DailyRecordService dailyRecordService;
 
     public AdminService(
@@ -40,13 +45,50 @@ public class AdminService {
             WeeklyRefundRepository weeklyRefundRepository,
             WeeklyMvpRepository weeklyMvpRepository,
             ScoreAdjustmentRepository scoreAdjustmentRepository,
+            RecruitmentApplicantRepository recruitmentApplicantRepository,
             DailyRecordService dailyRecordService
     ) {
         this.userRepository = userRepository;
         this.weeklyRefundRepository = weeklyRefundRepository;
         this.weeklyMvpRepository = weeklyMvpRepository;
         this.scoreAdjustmentRepository = scoreAdjustmentRepository;
+        this.recruitmentApplicantRepository = recruitmentApplicantRepository;
         this.dailyRecordService = dailyRecordService;
+    }
+
+    // ---- recruitment applicants (internal-only, decoupled from users) ----
+
+    @Transactional(readOnly = true)
+    public List<RecruitmentApplicantResponse> listRecruitmentApplicants() {
+        return recruitmentApplicantRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(RecruitmentApplicantResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public RecruitmentApplicantResponse addRecruitmentApplicant(RecruitmentApplicantRequest request) {
+        RecruitmentApplicant applicant = new RecruitmentApplicant(
+                request.name(), request.contact(), request.note(), request.status(), request.appliedAt());
+        return RecruitmentApplicantResponse.from(recruitmentApplicantRepository.save(applicant));
+    }
+
+    @Transactional
+    public RecruitmentApplicantResponse updateRecruitmentApplicant(Long id, RecruitmentApplicantRequest request) {
+        RecruitmentApplicant applicant = recruitmentApplicantRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Recruitment applicant not found: " + id));
+        applicant.setName(request.name());
+        applicant.setContact(request.contact());
+        applicant.setNote(request.note());
+        if (request.status() != null) {
+            applicant.setStatus(request.status());
+        }
+        applicant.setAppliedAt(request.appliedAt());
+        return RecruitmentApplicantResponse.from(recruitmentApplicantRepository.save(applicant));
+    }
+
+    @Transactional
+    public void deleteRecruitmentApplicant(Long id) {
+        recruitmentApplicantRepository.deleteById(id);
     }
 
     @Transactional(readOnly = true)

@@ -63,3 +63,18 @@ CREATE TABLE IF NOT EXISTS score_adjustments (
     CONSTRAINT fk_score_adjustments_user FOREIGN KEY (user_id) REFERENCES users(id)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB;
+
+-- Internal-only recruitment log - deliberately has no relationship to `users`.
+CREATE TABLE IF NOT EXISTS recruitment_applicants (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    name VARCHAR(100) NOT NULL,
+    contact VARCHAR(200) NULL,
+    note VARCHAR(1000) NULL,
+
+    status ENUM('PENDING', 'ACCEPTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    applied_at DATE NULL,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE = InnoDB;

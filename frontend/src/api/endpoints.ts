@@ -5,6 +5,8 @@ import type {
   AdminMemberResponse,
   AdminMemberWeekResponse,
   AdminMvpResponse,
+  RecruitmentApplicantRequest,
+  RecruitmentApplicantResponse,
   CatalogGoal,
   DailySummaryResponse,
   LoginResponse,
@@ -101,3 +103,17 @@ export const getAdminAdjustments = (userId: number) =>
 
 export const deleteAdminAdjustment = (adjustmentId: number) =>
   api.del<void>(`/api/admin/adjustments/${adjustmentId}`);
+
+// ---- recruitment applicants (internal-only, separate from users) ----
+
+export const getRecruitmentApplicants = () =>
+  api.get<RecruitmentApplicantResponse[]>("/api/admin/recruitment-applicants");
+
+export const addRecruitmentApplicant = (payload: RecruitmentApplicantRequest) =>
+  api.post<RecruitmentApplicantResponse>("/api/admin/recruitment-applicants", payload);
+
+export const updateRecruitmentApplicant = (id: number, payload: RecruitmentApplicantRequest) =>
+  api.put<RecruitmentApplicantResponse>(`/api/admin/recruitment-applicants/${id}`, payload);
+
+export const deleteRecruitmentApplicant = (id: number) =>
+  api.del<void>(`/api/admin/recruitment-applicants/${id}`);

@@ -839,3 +839,34 @@ CREATE TABLE score_adjustments (
         ON DELETE CASCADE
         ON UPDATE CASCADE
 ) ENGINE = InnoDB;
+
+
+-- =========================================================
+-- 14. RECRUITMENT_APPLICANTS
+-- 내부 운영용 지원자 기록 - users 테이블과 의도적으로 무관하다.
+-- 앱 URL은 이미 선발된 사람에게만 전달되므로, 실제 회원가입=참가자이다.
+-- 여기는 그 이전 단계(모집/지원) 를 팀 내부에서 기록하기 위한 용도.
+-- =========================================================
+
+CREATE TABLE recruitment_applicants (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    name VARCHAR(100) NOT NULL,
+    contact VARCHAR(200) NULL,
+    note VARCHAR(1000) NULL,
+
+    status ENUM(
+        'PENDING',
+        'ACCEPTED',
+        'REJECTED'
+    ) NOT NULL DEFAULT 'PENDING',
+
+    applied_at DATE NULL,
+
+    created_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+) ENGINE = InnoDB;

@@ -8,6 +8,8 @@ import com.example.princessproject.admin.dto.AdminMemberWeekResponse;
 import com.example.princessproject.admin.dto.CohortRequest;
 import com.example.princessproject.admin.dto.MvpRequest;
 import com.example.princessproject.admin.dto.MvpResponse;
+import com.example.princessproject.admin.dto.RecruitmentApplicantRequest;
+import com.example.princessproject.admin.dto.RecruitmentApplicantResponse;
 import com.example.princessproject.admin.dto.RefundRequest;
 import com.example.princessproject.admin.service.AdminService;
 import java.time.DayOfWeek;
@@ -102,6 +104,31 @@ public class AdminController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteAdjustment(@PathVariable Long adjustmentId) {
         adminService.deleteAdjustment(adjustmentId);
+    }
+
+    // ---- recruitment applicants (internal-only, separate from users/participants) ----
+
+    @GetMapping("/recruitment-applicants")
+    public List<RecruitmentApplicantResponse> recruitmentApplicants() {
+        return adminService.listRecruitmentApplicants();
+    }
+
+    @PostMapping("/recruitment-applicants")
+    public RecruitmentApplicantResponse addRecruitmentApplicant(@RequestBody RecruitmentApplicantRequest request) {
+        return adminService.addRecruitmentApplicant(request);
+    }
+
+    @PutMapping("/recruitment-applicants/{id}")
+    public RecruitmentApplicantResponse updateRecruitmentApplicant(
+            @PathVariable Long id, @RequestBody RecruitmentApplicantRequest request
+    ) {
+        return adminService.updateRecruitmentApplicant(id, request);
+    }
+
+    @DeleteMapping("/recruitment-applicants/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteRecruitmentApplicant(@PathVariable Long id) {
+        adminService.deleteRecruitmentApplicant(id);
     }
 
     private LocalDate resolveWeekStart(LocalDate requested) {
