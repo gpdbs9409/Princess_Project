@@ -1,4 +1,5 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { getUser } from "../api/endpoints";
 import type { UserResponse } from "../api/types";
 
 interface AuthState {
@@ -24,6 +25,24 @@ function readStoredUser(): UserResponse | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(localStorage.getItem("princess_token"));
   const [user, setUser] = useState<UserResponse | null>(readStoredUser());
+
+  // The stored user is a snapshot taken at sign-in, so any server-side change made after that
+  // (role promotion via ADMIN_NICKNAMES, cohort assignment) stays invisible until the next
+  // login - which is how an admin could end up bounced off /admin by a cached role: "USER".
+  // Re-fetch once on mount so a returning session always reflects the current server state.
+  useEffect(() => {
+    const storedId = readStoredUser()?.id;
+    if (!localStorage.getItem("princess_token") || !storedId) return;
+    getUser(storedId)
+      .then((fresh) => {
+        localStorage.setItem("princess_user", JSON.stringify(fresh));
+        setUser(fresh);
+      })
+      .catch(() => {
+        // offline or expired token - the 401 handler in the API client already signs out,
+        // and any other failure just leaves the cached snapshot in place
+      });
+  }, []);
 
   const value = useMemo<AuthState>(
     () => ({
