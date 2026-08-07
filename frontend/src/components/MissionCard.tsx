@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import { analyzeVisionPhoto, saveRecord, uploadFile } from "../api/endpoints";
 import type { GoalTypeCode, TodayRecordEntry } from "../api/types";
+import { CameraCaptureModal } from "./CameraCapture";
 import { useToast } from "./ToastProvider";
 
 export interface FlatMission {
@@ -31,6 +32,7 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
   const [checkingVision, setCheckingVision] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
 
   // Object URLs aren't garbage-collected on their own - revoke the previous one whenever
   // the selected file changes or the card unmounts, so we don't leak blob URLs.
@@ -40,16 +42,18 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
     };
   }, [photoPreviewUrl]);
 
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
+  // There is no gallery/file picker for mission photos - only the live in-app camera. A
+  // canvas-captured frame can't be a re-uploaded old photo, so this is the anti-cheat
+  // measure itself, not just a UX choice (see CameraCapture.tsx).
+  const handlePhotoCaptured = async (file: File) => {
+    setShowCamera(false);
     setPhotoFile(file);
     setVisionNote(null);
     setError(null);
     setPhotoPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
-      return file ? URL.createObjectURL(file) : null;
+      return URL.createObjectURL(file);
     });
-    if (!file) return;
     setCheckingVision(true);
     try {
       const result = await analyzeVisionPhoto(file, mission.name);
@@ -172,22 +176,14 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
           onChange={(e) => setMemo(e.target.value)}
         />
         <div className="stack" style={{ gap: 8 }}>
-          <label>사진 인증 (필수)</label>
+          <label>사진 인증 (필수 · 지금 바로 카메라로 촬영)</label>
           {photoPreviewUrl && (
-            <img src={photoPreviewUrl} alt="첨부한 인증 사진 미리보기" className="photo-preview" />
+            <img src={photoPreviewUrl} alt="촬영한 인증 사진 미리보기" className="photo-preview" />
           )}
           <div className="row" style={{ gap: 10 }}>
-            <label htmlFor={`photo-${mission.userMissionId}`} className="file-picker-button">
-              {photoFile ? "사진 변경" : "사진 선택"}
-            </label>
-            <input
-              id={`photo-${mission.userMissionId}`}
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoChange}
-              className="visually-hidden-input"
-            />
-            {photoFile && <span className="muted">{photoFile.name}</span>}
+            <button type="button" className="file-picker-button" onClick={() => setShowCamera(true)}>
+              {photoFile ? "다시 촬영하기" : "카메라로 촬영하기"}
+            </button>
           </div>
           {checkingVision && <span className="muted">사진 확인 중...</span>}
           {!checkingVision && visionNote && (
@@ -196,6 +192,9 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
             </span>
           )}
         </div>
+        {showCamera && (
+          <CameraCaptureModal onCapture={handlePhotoCaptured} onClose={() => setShowCamera(false)} />
+        )}
         {error && <div className="error-banner">{error}</div>}
         <button className="primary" onClick={handleSave} disabled={saving || checkingVision}>
           {saving ? "저장 중..." : checkingVision ? "사진 확인 중..." : "저장"}

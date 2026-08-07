@@ -37,6 +37,7 @@ public class JwtService {
         return Jwts.builder()
                 .subject(String.valueOf(user.getId()))
                 .claim("nickname", user.getNickname())
+                .claim("role", user.getRole().name())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(Duration.ofMinutes(expirationMinutes))))
                 .signWith(signingKey)
@@ -55,6 +56,24 @@ public class JwtService {
                     .parseSignedClaims(token)
                     .getPayload();
             return Long.valueOf(claims.getSubject());
+        } catch (JwtException | IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Returns the "role" claim baked into the token at login time ("USER"/"ADMIN"), or null
+     * if the token is invalid. Note this is a snapshot from login - promoting a nickname to
+     * ADMIN after they've already logged in only takes effect once they log in again.
+     */
+    public String parseRole(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return claims.get("role", String.class);
         } catch (JwtException | IllegalArgumentException e) {
             return null;
         }

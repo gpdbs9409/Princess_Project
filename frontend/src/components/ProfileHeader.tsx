@@ -31,9 +31,14 @@ export function ProfileHeader() {
         </button>
         <span className="profile-header-title">Princess Project</span>
         <span className="row" style={{ gap: 12 }}>
-          <span className="profile-header-icon-btn" aria-hidden="true">
+          <button
+            type="button"
+            className="profile-header-icon-btn"
+            onClick={() => navigate("/my-page")}
+            aria-label="마이페이지로 이동"
+          >
             ⋯
-          </span>
+          </button>
         </span>
       </div>
 

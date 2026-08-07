@@ -36,6 +36,14 @@ CREATE TABLE users (
     -- 회원가입 시 선택적으로 등록하는 본인 사진 URL
     profile_image_url VARCHAR(500) NULL,
 
+    -- ADMIN_NICKNAMES 환경변수에 등록된 닉네임은 로그인 시 자동으로 ADMIN이 된다
+    -- (UserService.applyAdminAllowlist 참고)
+    role ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER',
+
+    -- NULL이면 아직 기수 배정 전(지원자). 값이 있으면 해당 기수의 실제 참가자.
+    -- "1기", "2기"처럼 자유 텍스트로 두어 운영진이 새 기수를 코드 배포 없이 바로 쓸 수 있게 한다.
+    cohort VARCHAR(20) NULL,
+
     CONSTRAINT uk_users_nickname
         UNIQUE (nickname)
 ) ENGINE = InnoDB;
@@ -717,6 +725,117 @@ CREATE TABLE ai_feedbacks (
     CONSTRAINT fk_ai_feedbacks_project
         FOREIGN KEY (project_id)
         REFERENCES user_projects(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+
+-- =========================================================
+-- 11. WEEKLY_REFUNDS
+-- 어드민 주간 환급 처리 현황 (환급 대상 여부 자체는 daily_records에서
+-- 매번 계산하고, 이 테이블은 "실제로 지급했는지"만 기록한다)
+-- =========================================================
+
+CREATE TABLE weekly_refunds (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    user_id BIGINT NOT NULL,
+
+    -- 해당 주의 월요일 날짜
+    week_start DATE NOT NULL,
+
+    paid BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- 환급액 (기본 25,000원 = 예치금 100,000원의 1/4)
+    amount DECIMAL(10, 2) NULL,
+
+    paid_at TIMESTAMP NULL,
+
+    created_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_weekly_refunds_user_week
+        UNIQUE (
+            user_id,
+            week_start
+        ),
+
+    CONSTRAINT fk_weekly_refunds_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+
+-- =========================================================
+-- 12. WEEKLY_MVP
+-- 기수/주별 MVP 기록 (기수+주 조합에 1명, 새로 지정하면 교체됨)
+-- =========================================================
+
+CREATE TABLE weekly_mvp (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    user_id BIGINT NOT NULL,
+    cohort VARCHAR(20) NOT NULL,
+    week_start DATE NOT NULL,
+
+    note VARCHAR(500) NULL,
+
+    created_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_weekly_mvp_cohort_week
+        UNIQUE (
+            cohort,
+            week_start
+        ),
+
+    CONSTRAINT fk_weekly_mvp_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+
+-- =========================================================
+-- 13. SCORE_ADJUSTMENTS
+-- 운영진 수기 점수 보정 (MVP 보너스, 컴플레인 대응 등)
+-- append-only: 롤백은 행을 삭제하는 방식으로 처리한다
+--
+-- 주의: 이 테이블의 값은 아직 대시보드/주간 리포트의 실제 점수 계산에
+-- 자동으로 합산되지 않는다 (1차 버전 - 후속 작업 필요)
+-- =========================================================
+
+CREATE TABLE score_adjustments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    user_id BIGINT NOT NULL,
+
+    -- NULL이면 특정 주가 아닌 전체/최종 보정
+    week_start DATE NULL,
+
+    -- NULL이면 특정 자본이 아닌 총점 보정 (예: 'KNOWLEDGE')
+    stat_type_code VARCHAR(20) NULL,
+
+    points DECIMAL(10, 2) NOT NULL,
+    reason VARCHAR(500) NULL,
+
+    created_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_score_adjustments_user (
+        user_id
+    ),
+
+    CONSTRAINT fk_score_adjustments_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
 ) ENGINE = InnoDB;

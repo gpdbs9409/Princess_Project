@@ -133,16 +133,36 @@ export function RecordPage() {
           <div className="row-between">
             <strong>오늘 완료</strong>
             <button className="ghost" onClick={handleGenerateFeedback} disabled={feedbackLoading}>
-              {feedbackLoading ? "생성 중..." : "AI 피드백 받기"}
+              {feedbackLoading ? "집사가 오늘 하루를 살펴보는 중..." : "집사의 한마디 듣기"}
             </button>
           </div>
           {summary?.aiFeedback && (
-            <div className="stack" style={{ marginTop: 12, gap: 8 }}>
-              <p>{summary.aiFeedback.summary}</p>
-              <p className="muted">{summary.aiFeedback.praise}</p>
-              <p className="muted">{summary.aiFeedback.improvement}</p>
-              <p className="muted">{summary.aiFeedback.tomorrow}</p>
-              <p className="muted">{summary.aiFeedback.cheer}</p>
+            <div className="butler-feedback">
+              <div className="butler-feedback-header">
+                <img src="/butler/butler.jpg" alt="" className="butler-avatar" />
+                <div className="butler-name-block">
+                  <span className="butler-name-eyebrow">AI 집사</span>
+                  <span className="butler-name">레오 집사</span>
+                </div>
+              </div>
+              <div className="butler-bubbles">
+                {[
+                  summary.aiFeedback.summary,
+                  summary.aiFeedback.praise,
+                  summary.aiFeedback.improvement,
+                  summary.aiFeedback.tomorrow,
+                  summary.aiFeedback.cheer,
+                ]
+                  .filter(Boolean)
+                  .map((text, i) => (
+                    <div className="butler-bubble-row" key={i} style={{ animationDelay: `${i * 0.08}s` }}>
+                      <div className="butler-bubble" style={{ animationDelay: `${i * 0.08}s` }}>
+                        {text}
+                      </div>
+                      <span className="butler-bubble-read">읽음</span>
+                    </div>
+                  ))}
+              </div>
             </div>
           )}
         </div>

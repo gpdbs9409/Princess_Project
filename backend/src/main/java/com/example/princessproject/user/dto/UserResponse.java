@@ -5,9 +5,10 @@ import com.example.princessproject.user.model.User;
 public record UserResponse(
         Long id,
         String nickname,
-        String profileImageUrl
+        String profileImageUrl,
+        String role
 ) {
     public static UserResponse from(User user) {
-        return new UserResponse(user.getId(), user.getNickname(), user.getProfileImageUrl());
+        return new UserResponse(user.getId(), user.getNickname(), user.getProfileImageUrl(), user.getRole().name());
     }
 }

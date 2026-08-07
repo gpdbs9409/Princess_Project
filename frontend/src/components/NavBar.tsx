@@ -24,6 +24,14 @@ export function NavBar() {
           <NavLink to="/stat-focus" className={({ isActive }) => (isActive ? "link active" : "link")}>
             나의 목표
           </NavLink>
+          <NavLink to="/my-page" className={({ isActive }) => (isActive ? "link active" : "link")}>
+            마이페이지
+          </NavLink>
+          {user.role === "ADMIN" && (
+            <NavLink to="/admin" className={({ isActive }) => (isActive ? "link active" : "link")}>
+              관리자
+            </NavLink>
+          )}
           <a href="#" className="link" onClick={(e) => { e.preventDefault(); signOut(); }}>
             로그아웃
           </a>

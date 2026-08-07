@@ -3,9 +3,14 @@ package com.example.princessproject.user.service;
 import com.example.princessproject.auth.service.AuthValidationException;
 import com.example.princessproject.record.repository.DailyRecordRepository;
 import com.example.princessproject.user.dto.ProfileStatsResponse;
+import com.example.princessproject.user.model.Role;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,15 +22,21 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final DailyRecordRepository dailyRecordRepository;
+    private final Set<String> adminNicknames;
 
     public UserService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            DailyRecordRepository dailyRecordRepository
+            DailyRecordRepository dailyRecordRepository,
+            @Value("${app.admin-nicknames:}") List<String> adminNicknames
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.dailyRecordRepository = dailyRecordRepository;
+        this.adminNicknames = adminNicknames.stream()
+                .map(String::trim)
+                .filter(n -> !n.isEmpty())
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -38,7 +49,9 @@ public class UserService {
         if (userRepository.findByNickname(nickname).isPresent()) {
             throw new AuthValidationException("NICKNAME_TAKEN", "Nickname already exists: " + nickname);
         }
-        return userRepository.save(new User(nickname, passwordEncoder.encode(rawPassword)));
+        User user = new User(nickname, passwordEncoder.encode(rawPassword));
+        applyAdminAllowlist(user);
+        return userRepository.save(user);
     }
 
     @Transactional
@@ -51,7 +64,19 @@ public class UserService {
         }
 
         user.setLastLoginAt(LocalDateTime.now());
+        applyAdminAllowlist(user);
         return userRepository.save(user);
+    }
+
+    // ADMIN_NICKNAMES env var (comma-separated) is the simplest possible way to grant admin
+    // access without an invite/promotion UI - whoever configures the deploy just lists the
+    // nicknames that should be treated as staff. Re-checked on every login so removing a name
+    // from the list demotes them back to USER next time they sign in.
+    private void applyAdminAllowlist(User user) {
+        Role targetRole = adminNicknames.contains(user.getNickname()) ? Role.ADMIN : Role.USER;
+        if (user.getRole() != targetRole) {
+            user.setRole(targetRole);
+        }
     }
 
     @Transactional(readOnly = true)

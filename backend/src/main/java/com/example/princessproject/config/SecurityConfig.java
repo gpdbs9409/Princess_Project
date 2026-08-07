@@ -38,6 +38,7 @@ public class SecurityConfig {
                         .requestMatchers("/", "/*.html", "/*.css", "/*.js", "/error", "/uploads/**").permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/signup").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/uploads/*").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 // Without this, Spring Security's default entry point returns 403 even when
                 // there's no token at all, which hides the "you're not logged in" case from

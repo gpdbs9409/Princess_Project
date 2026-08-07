@@ -84,6 +84,22 @@ function blankCustomMission(): CustomMissionState {
   return { key: nextCustomMissionKey(), name: "", targetValue: 1, unit: "회", assignedPoints: 10, missionType: "DAILY" };
 }
 
+// "독서" is already one of the 3 mandatory common tasks (공통 과제 - see the notice
+// rendered above the goal list), so it's excluded here to avoid asking people to pick it
+// again as if it were an optional 지식 mission.
+const COMMON_TASK_STAT_NAMES = ["독서"];
+
+// React's controlled <input type="number"> only re-writes the DOM's displayed text when
+// the *parsed* numeric value actually changes - typing a leading zero in front of an
+// existing value (e.g. "30" -> "030") still parses to the same number, so the stray zero
+// silently stays on screen until blur. Stripping it from the raw string and writing it
+// back onto the input immediately (before React ever gets involved) fixes that for good.
+function sanitizeNumberInput(e: React.ChangeEvent<HTMLInputElement>): string {
+  const cleaned = e.target.value.replace(/^0+(?=\d)/, "");
+  e.target.value = cleaned;
+  return cleaned;
+}
+
 function buildInitialState(catalog: CatalogGoal[], project?: ProjectResponse): GoalState[] {
   return catalog.map((goal) => {
     const existingGoal = project?.goals.find((g) => g.goalTypeCode === goal.code);
@@ -94,7 +110,7 @@ function buildInitialState(catalog: CatalogGoal[], project?: ProjectResponse): G
       name: goal.name,
       selected: !!existingGoal,
       weightPercent: existingGoal?.weightPercent ?? 0,
-      stats: goal.stats.map((stat) => {
+      stats: goal.stats.filter((stat) => !COMMON_TASK_STAT_NAMES.includes(stat.name)).map((stat) => {
         const existingStat = existingGoal?.stats.find((s) => s.statTypeId === stat.id);
         return {
           statTypeId: stat.id,
@@ -285,17 +301,30 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
       </a>
       <div className="card stack">
         <div className="stack" style={{ gap: 6 }}>
-          <label>이상적인 나의 모습 (선택)</label>
+          <label>이상적인 나의 모습</label>
           <input type="text" value={goalHuman} onChange={(e) => setGoalHuman(e.target.value)} placeholder="예: 꾸준히 성장하는 사람" />
         </div>
         <div className="stack" style={{ gap: 6 }}>
-          <label>목표로 하는 행동양식 (선택)</label>
+          <label>목표로 하는 행동양식</label>
           <input type="text" value={goalEnding} onChange={(e) => setGoalEnding(e.target.value)} placeholder="예: 매일 작은 습관을 쌓는 사람" />
         </div>
       </div>
 
+      <div className="card stack" style={{ gap: 8, background: "var(--surface-2)" }}>
+        <strong style={{ fontSize: 14 }}>공통 과제 3종 (전원 필수, 아래 습관자본 선택과 별도예요)</strong>
+        <p className="muted" style={{ margin: 0 }}>
+          독서 · 공부 · 주간 회고는 어떤 습관자본을 고르든 모든 참가자가 함께 수행해요. 그래서 아래
+          목록에는 포함되어 있지 않아요.
+        </p>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: "var(--text-muted)" }}>
+          <li>독서: 시작~종료 페이지를 기록해요. 일일 최소 권장 10p, 주간 달성률 = 독서한 일수 / 7</li>
+          <li>공부: 주간 총 범위를 미리 정해두고, 달성률 = 완료량 / 계획량 (측정이 어려우면 시간 기준도 가능해요)</li>
+          <li>주간 회고: PART1 일상 공유 / PART2 이번 주 회고 / PART3 다음 주 계획</li>
+        </ul>
+      </div>
+
       <p className="muted">
-        키우고 싶은 습관자본을 고르고 비중(%)을 입력한 뒤, 그 안에서 행동양식과 구체적인 미션(독서/운동 등)을 선택하세요.
+        키우고 싶은 습관자본을 고르고 비중(%)을 입력한 뒤, 그 안에서 행동양식과 구체적인 미션(운동 등)을 선택하세요.
         목록에 없는 행동양식은 "나만의 미션" 항목을 체크해서 직접 추가하세요.
       </p>
 
@@ -313,7 +342,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                   min={1}
                   max={100}
                   value={goal.weightPercent}
-                  onChange={(e) => updateGoalWeight(goal.goalTypeCode, Number(e.target.value) || 1)}
+                  onChange={(e) => updateGoalWeight(goal.goalTypeCode, Number(sanitizeNumberInput(e)) || 1)}
                   style={{ maxWidth: 70 }}
                 />
                 <span className="muted">%</span>
@@ -358,7 +387,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                             value={mission.targetValue}
                             onChange={(e) =>
                               updateMission(goal.goalTypeCode, stat.statTypeId, mission.missionDefinitionId, {
-                                targetValue: Number(e.target.value) || 0,
+                                targetValue: Number(sanitizeNumberInput(e)) || 0,
                               })
                             }
                             style={{ maxWidth: 60 }}
@@ -413,7 +442,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                             type="number"
                             value={mission.targetValue}
                             onChange={(e) =>
-                              updateCustomMission(goal.goalTypeCode, mission.key, { targetValue: Number(e.target.value) || 0 })
+                              updateCustomMission(goal.goalTypeCode, mission.key, { targetValue: Number(sanitizeNumberInput(e)) || 0 })
                             }
                             style={{ maxWidth: 60 }}
                           />

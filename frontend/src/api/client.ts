@@ -14,6 +14,21 @@ function getToken(): string | null {
   return localStorage.getItem("princess_token");
 }
 
+// A stale/expired JWT (jwt.expiration-minutes) previously left the app stuck showing the
+// user as "logged in" (AuthContext just reads the cached nickname from localStorage) while
+// every real data request silently 401'd underneath - nickname visible, nothing loads, no
+// way out except manually clearing storage. Any 401 from an authenticated endpoint now wipes
+// the stale session and sends the user back to /login so they can sign back in immediately
+// instead of staring at a broken screen. /api/auth/* is excluded - a 401 there just means
+// "wrong password" on the login form itself, not an expired session.
+function handleUnauthorized() {
+  localStorage.removeItem("princess_token");
+  localStorage.removeItem("princess_user");
+  if (!window.location.pathname.startsWith("/login")) {
+    window.location.href = "/login";
+  }
+}
+
 async function request<T>(
   path: string,
   options: { method?: string; body?: unknown; isMultipart?: boolean } = {}
@@ -34,6 +49,9 @@ async function request<T>(
   const res = await fetch(`${API_BASE_URL}${path}`, { method, headers, body: requestBody });
 
   if (!res.ok) {
+    if (res.status === 401 && !path.startsWith("/api/auth/")) {
+      handleUnauthorized();
+    }
     const text = await res.text().catch(() => "");
     let code: string | undefined;
     let message = text || `요청 실패 (${res.status})`;
@@ -56,6 +74,7 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
   put: <T>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),
+  del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
   postMultipart: <T>(path: string, formData: FormData) =>
     request<T>(path, { method: "POST", body: formData, isMultipart: true }),
   putMultipart: <T>(path: string, formData: FormData) =>

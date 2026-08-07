@@ -2,6 +2,8 @@ package com.example.princessproject.user.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,6 +34,15 @@ public class User {
 
     @Column(length = 500)
     private String profileImageUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    private Role role = Role.USER;
+
+    // NULL = 아직 기수 배정 전(지원자). 값이 있으면 해당 기수의 실제 참가자로 취급한다.
+    // 자유 텍스트("1기", "2기"...)로 두어 운영진이 새 기수를 코드 배포 없이 바로 쓸 수 있게 한다.
+    @Column(length = 20)
+    private String cohort;
 
     private LocalDateTime createdAt;
 

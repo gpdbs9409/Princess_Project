@@ -13,9 +13,15 @@ import org.springframework.stereotype.Component;
 /**
  * Rejects mission-verification photos that weren't taken today, read from the file's own
  * EXIF DateTimeOriginal tag - catches someone re-uploading an old photo to fake a mission.
- * A photo with no EXIF date at all (screenshots, or photos that passed through a messenger
- * app like KakaoTalk, which strips metadata on send) is also rejected - we can't prove it
- * was taken today, so it doesn't get the benefit of the doubt.
+ *
+ * The web client no longer offers a gallery file picker at all - the only way to produce a
+ * mission photo is the in-app live camera capture, which draws a fresh video frame to a
+ * <canvas> and encodes it on the spot. Canvas-encoded images never carry EXIF (there's no
+ * camera hardware/driver involved), so treating "no EXIF" as suspicious would reject every
+ * legitimate upload. Missing EXIF is therefore allowed through - freshness is enforced by
+ * the capture UI itself. If a DateTimeOriginal tag *is* present (e.g. a future upload path
+ * that accepts real camera files again) and it doesn't match today, we still reject as
+ * defense in depth.
  */
 @Component
 public class PhotoDateVerifier {
@@ -26,9 +32,9 @@ public class PhotoDateVerifier {
     public void verifyTakenToday(InputStream inputStream) {
         LocalDate takenDate = readTakenDate(inputStream);
         if (takenDate == null) {
-            throw new UploadValidationException(
-                    "PHOTO_DATE_UNKNOWN",
-                    "Photo has no readable EXIF capture date - cannot verify it was taken today");
+            // No EXIF - expected for canvas-captured photos from the live camera flow. Not
+            // proof of anything either way, so it gets the benefit of the doubt.
+            return;
         }
 
         LocalDate today = LocalDate.now(ZONE);

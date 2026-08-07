@@ -44,6 +44,53 @@ export interface UserResponse {
   id: number;
   nickname: string;
   profileImageUrl: string | null;
+  role: "USER" | "ADMIN";
+}
+
+// ---- admin ----
+
+export interface AdminApplicantResponse {
+  userId: number;
+  nickname: string;
+  appliedAt: string;
+}
+
+export interface AdminMemberWeekResponse {
+  userId: number;
+  nickname: string;
+  cohort: string | null;
+  weekStart: string;
+  weekEnd: string;
+  successDays: number;
+  eligible: boolean;
+  paid: boolean;
+  amount: number;
+  paidAt: string | null;
+  isMvp: boolean;
+}
+
+export interface AdminMemberResponse {
+  userId: number;
+  nickname: string;
+  cohort: string | null;
+}
+
+export interface AdminMvpResponse {
+  userId: number;
+  nickname: string;
+  cohort: string | null;
+  weekStart: string;
+  note: string | null;
+}
+
+export interface AdminAdjustmentResponse {
+  id: number;
+  userId: number;
+  weekStart: string | null;
+  statTypeCode: string | null;
+  points: number;
+  reason: string | null;
+  createdAt: string;
 }
 
 export interface ProfileStatsResponse {
