@@ -12,6 +12,9 @@ import com.example.princessproject.admin.dto.RecruitmentApplicantRequest;
 import com.example.princessproject.admin.dto.RecruitmentApplicantResponse;
 import com.example.princessproject.admin.dto.RefundRequest;
 import com.example.princessproject.admin.service.AdminService;
+import com.example.princessproject.user.dto.UserResponse;
+import com.example.princessproject.user.model.Role;
+import com.example.princessproject.user.service.UserService;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
@@ -30,16 +33,25 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Everything under here is gated to ROLE_ADMIN in SecurityConfig - same DB, same server as
- * the rest of the app (see UserService.applyAdminAllowlist for how a nickname becomes admin).
+ * the rest of the app. The users.role column decides who is staff; the first admin has to be
+ * promoted with a direct UPDATE, after which /users/{id}/role handles the rest.
  */
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
 
     private final AdminService adminService;
+    private final UserService userService;
 
-    public AdminController(AdminService adminService) {
+    public AdminController(AdminService adminService, UserService userService) {
         this.adminService = adminService;
+        this.userService = userService;
+    }
+
+    /** 운영진 승격/강등. users.role이 기준이라 로그인해도 덮어써지지 않는다. */
+    @PutMapping("/users/{userId}/role")
+    public UserResponse setRole(@PathVariable Long userId, @RequestParam Role role) {
+        return UserResponse.from(userService.setRole(userId, role));
     }
 
     @GetMapping("/cohorts")

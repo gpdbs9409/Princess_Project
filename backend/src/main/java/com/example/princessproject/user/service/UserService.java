@@ -7,10 +7,6 @@ import com.example.princessproject.user.model.Role;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,21 +18,15 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final DailyRecordRepository dailyRecordRepository;
-    private final Set<String> adminNicknames;
 
     public UserService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            DailyRecordRepository dailyRecordRepository,
-            @Value("${app.admin-nicknames:}") List<String> adminNicknames
+            DailyRecordRepository dailyRecordRepository
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.dailyRecordRepository = dailyRecordRepository;
-        this.adminNicknames = adminNicknames.stream()
-                .map(String::trim)
-                .filter(n -> !n.isEmpty())
-                .collect(Collectors.toSet());
     }
 
     /**
@@ -50,7 +40,6 @@ public class UserService {
             throw new AuthValidationException("NICKNAME_TAKEN", "Nickname already exists: " + nickname);
         }
         User user = new User(nickname, passwordEncoder.encode(rawPassword));
-        applyAdminAllowlist(user);
         return userRepository.save(user);
     }
 
@@ -64,25 +53,24 @@ public class UserService {
         }
 
         user.setLastLoginAt(LocalDateTime.now());
-        applyAdminAllowlist(user);
         return userRepository.save(user);
-    }
-
-    // ADMIN_NICKNAMES env var (comma-separated) is the simplest possible way to grant admin
-    // access without an invite/promotion UI - whoever configures the deploy just lists the
-    // nicknames that should be treated as staff. Re-checked on every login so removing a name
-    // from the list demotes them back to USER next time they sign in.
-    private void applyAdminAllowlist(User user) {
-        Role targetRole = adminNicknames.contains(user.getNickname()) ? Role.ADMIN : Role.USER;
-        if (user.getRole() != targetRole) {
-            user.setRole(targetRole);
-        }
     }
 
     @Transactional(readOnly = true)
     public User getById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+    }
+
+    /**
+     * The users table is the single source of truth for who is staff - login no longer
+     * recomputes the role from config, so a role set here (or by hand in the DB) sticks.
+     */
+    @Transactional
+    public User setRole(Long userId, Role role) {
+        User user = getById(userId);
+        user.setRole(role);
+        return userRepository.save(user);
     }
 
     @Transactional

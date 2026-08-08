@@ -36,8 +36,8 @@ CREATE TABLE users (
     -- 회원가입 시 선택적으로 등록하는 본인 사진 URL
     profile_image_url VARCHAR(500) NULL,
 
-    -- ADMIN_NICKNAMES 환경변수에 등록된 닉네임은 로그인 시 자동으로 ADMIN이 된다
-    -- (UserService.applyAdminAllowlist 참고)
+    -- 운영진 여부. 이 컬럼이 단일 진실 공급원(single source of truth)이라 로그인 시
+    -- 덮어쓰지 않는다. 승격/강등은 어드민 API(PUT /api/admin/users/{id}/role)나 직접 UPDATE로 한다.
     role ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER',
 
     -- NULL이면 아직 기수 배정 전(지원자). 값이 있으면 해당 기수의 실제 참가자.
