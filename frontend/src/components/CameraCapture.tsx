@@ -62,9 +62,14 @@ export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalPro
   const handleShutter = () => {
     const video = videoRef.current;
     if (!video || !video.videoWidth) return;
+    // Phone cameras hand us 1920x1080 or larger, and every one of those pixels gets billed
+    // twice: once as OpenAI vision input tokens and once as bucket storage. 1024px on the
+    // long edge is still comfortably enough for the model to tell what the photo shows.
+    const MAX_EDGE = 1024;
+    const scale = Math.min(1, MAX_EDGE / Math.max(video.videoWidth, video.videoHeight));
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -75,7 +80,7 @@ export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalPro
         setCapturedUrl(URL.createObjectURL(blob));
       },
       "image/jpeg",
-      0.92
+      0.85
     );
   };
 

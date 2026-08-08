@@ -36,7 +36,7 @@ public class OpenAiVisionClient implements VisionClient {
 
     public OpenAiVisionClient(
             @Value("${openai.api.key}") String apiKey,
-            @Value("${openai.model}") String model,
+            @Value("${openai.model.vision}") String model,
             ObjectMapper objectMapper
     ) {
         this.model = model;

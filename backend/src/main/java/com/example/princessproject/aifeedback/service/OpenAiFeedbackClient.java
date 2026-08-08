@@ -50,7 +50,7 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
 
     public OpenAiFeedbackClient(
             @Value("${openai.api.key}") String apiKey,
-            @Value("${openai.model}") String model,
+            @Value("${openai.model.feedback}") String model,
             ObjectMapper objectMapper
     ) {
         this.model = model;
