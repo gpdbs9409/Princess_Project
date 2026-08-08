@@ -52,6 +52,12 @@ public class UserProject {
     @Column(length = 500)
     private String goalHuman;
 
+    // "나의 외적 추구미" - the look/vibe the participant is aiming for, kept separate from
+    // goalHuman(이상적인 나의 모습) because one is who they want to be and this is how they
+    // want to come across.
+    @Column(length = 500)
+    private String goalAppearance;
+
     @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String goalEnding;
 

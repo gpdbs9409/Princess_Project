@@ -11,14 +11,14 @@ import {
 } from "../api/types";
 
 const SAVE_ERROR_MESSAGES: Record<string, string> = {
-  WEIGHT_SUM_INVALID: "습관자본 비중의 합계가 100%가 아니어서 저장할 수 없어요. 비중 합계를 100%로 맞춰주세요.",
-  DUPLICATE_GOAL_TYPE: "같은 습관자본이 중복 선택되어 있어서 저장할 수 없어요. 중복된 항목을 확인해주세요.",
-  UNKNOWN_GOAL_TYPE: "선택한 습관자본 정보를 찾을 수 없어서 저장할 수 없어요. 새로고침 후 다시 시도해주세요.",
+  WEIGHT_SUM_INVALID: "아비투스 비중의 합계가 100%가 아니어서 저장할 수 없어요. 비중 합계를 100%로 맞춰주세요.",
+  DUPLICATE_GOAL_TYPE: "같은 아비투스이 중복 선택되어 있어서 저장할 수 없어요. 중복된 항목을 확인해주세요.",
+  UNKNOWN_GOAL_TYPE: "선택한 아비투스 정보를 찾을 수 없어서 저장할 수 없어요. 새로고침 후 다시 시도해주세요.",
   STAT_TYPE_NOT_FOUND: "선택한 행동양식 정보를 찾을 수 없어서 저장할 수 없어요. 새로고침 후 다시 시도해주세요.",
   CUSTOM_STAT_NAME_REQUIRED: "나만의 미션에 이름이 비어 있어서 저장할 수 없어요. 미션 이름을 입력해주세요.",
   MISSION_DEFINITION_NOT_FOUND: "선택한 미션 정보를 찾을 수 없어서 저장할 수 없어요. 새로고침 후 다시 시도해주세요.",
   CONSTRAINT_VIOLATION: "입력한 값이 조건에 맞지 않아서 저장할 수 없어요. 비중(%)과 목표값을 확인해주세요.",
-  GOALS_ALREADY_SET: "습관자본과 미션은 이미 설정되어 있어서 다시 저장할 수 없어요. 최초 설정 후에는 수정할 수 없어요.",
+  GOALS_ALREADY_SET: "아비투스와 미션은 이미 설정되어 있어서 다시 저장할 수 없어요. 최초 설정 후에는 수정할 수 없어요.",
 };
 
 function saveErrorMessage(err: unknown): string {
@@ -153,6 +153,7 @@ interface SelectionWizardProps {
 export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit }: SelectionWizardProps) {
   const { showToast } = useToast();
   const [goalHuman, setGoalHuman] = useState(initialProject?.goalHuman ?? "");
+  const [goalAppearance, setGoalAppearance] = useState(initialProject?.goalAppearance ?? "");
   const [goalEnding, setGoalEnding] = useState(initialProject?.goalEnding ?? "");
   const [goals, setGoals] = useState<GoalState[]>(() => buildInitialState(catalog, initialProject));
   const [submitting, setSubmitting] = useState(false);
@@ -267,17 +268,17 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
       .filter((g) => g.stats.length > 0);
 
     if (selectedGoals.length === 0) {
-      setError("최소 하나의 습관자본에서, 행동양식과 미션을 하나 이상 선택해주세요.");
+      setError("최소 하나의 아비투스에서, 행동양식과 미션을 하나 이상 선택해주세요.");
       return;
     }
     if (selectedGoals.some((g) => g.weightPercent < 1)) {
-      setError("선택한 습관자본의 비중(%)은 1 이상이어야 합니다.");
+      setError("선택한 아비투스의 비중(%)은 1 이상이어야 합니다.");
       return;
     }
     const weightSum = selectedGoals.reduce((sum, g) => sum + g.weightPercent, 0);
     if (weightSum !== 100) {
       setError(
-        `습관자본 비중의 합계가 100%가 아니어서 저장할 수 없어요. 현재 합계는 ${weightSum}%예요. 100%가 되도록 비중을 조정해주세요.`
+        `아비투스 비중의 합계가 100%가 아니어서 저장할 수 없어요. 현재 합계는 ${weightSum}%예요. 100%가 되도록 비중을 조정해주세요.`
       );
       return;
     }
@@ -285,7 +286,12 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
     setError(null);
     setSubmitting(true);
     try {
-      await onSubmit({ goalHuman: goalHuman || undefined, goalEnding: goalEnding || undefined, goals: selectedGoals });
+      await onSubmit({
+        goalHuman: goalHuman || undefined,
+        goalAppearance: goalAppearance || undefined,
+        goalEnding: goalEnding || undefined,
+        goals: selectedGoals,
+      });
       showToast("저장되었어요");
     } catch (err) {
       setError(saveErrorMessage(err));
@@ -305,15 +311,24 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
           <input type="text" value={goalHuman} onChange={(e) => setGoalHuman(e.target.value)} placeholder="예: 꾸준히 성장하는 사람" />
         </div>
         <div className="stack" style={{ gap: 6 }}>
+          <label>나의 외적 추구미</label>
+          <input
+            type="text"
+            value={goalAppearance}
+            onChange={(e) => setGoalAppearance(e.target.value)}
+            placeholder="예: 단정하고 분위기 있는 사람"
+          />
+        </div>
+        <div className="stack" style={{ gap: 6 }}>
           <label>목표로 하는 행동양식</label>
           <input type="text" value={goalEnding} onChange={(e) => setGoalEnding(e.target.value)} placeholder="예: 매일 작은 습관을 쌓는 사람" />
         </div>
       </div>
 
       <div className="card stack" style={{ gap: 8, background: "var(--surface-2)" }}>
-        <strong style={{ fontSize: 14 }}>공통 과제 3종 (전원 필수, 아래 습관자본 선택과 별도예요)</strong>
+        <strong style={{ fontSize: 14 }}>공통 과제 3종 (전원 필수, 아래 아비투스 선택과 별도예요)</strong>
         <p className="muted" style={{ margin: 0 }}>
-          독서 · 공부 · 주간 회고는 어떤 습관자본을 고르든 모든 참가자가 함께 수행해요. 그래서 아래
+          독서 · 공부 · 주간 회고는 어떤 아비투스를 고르든 모든 참가자가 함께 수행해요. 그래서 아래
           목록에는 포함되어 있지 않아요.
         </p>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: "var(--text-muted)" }}>
@@ -324,7 +339,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
       </div>
 
       <p className="muted">
-        키우고 싶은 습관자본을 고르고 비중(%)을 입력한 뒤, 그 안에서 행동양식과 구체적인 미션(운동 등)을 선택하세요.
+        키우고 싶은 아비투스를 고르고 비중(%)을 입력한 뒤, 그 안에서 행동양식과 구체적인 미션(운동 등)을 선택하세요.
         목록에 없는 행동양식은 "나만의 미션" 항목을 체크해서 직접 추가하세요.
       </p>
 

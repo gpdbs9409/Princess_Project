@@ -59,7 +59,7 @@ export function RecordPage() {
       const feedback = await generateAiFeedback(date);
       setSummary((s) => (s ? { ...s, aiFeedback: feedback } : s));
     } catch {
-      setError("AI 피드백 생성에 실패했습니다.");
+      setError("집사의 한마디를 받아오지 못했어요. 잠시 후 다시 시도해주세요.");
     } finally {
       setFeedbackLoading(false);
     }
@@ -105,7 +105,7 @@ export function RecordPage() {
         <div className="card">
           <p className="muted">아직 선택한 미션이 없어요.</p>
           <Link to="/stat-focus" className="link">
-            습관자본·미션 설정하러 가기 →
+            아비투스·미션 설정하러 가기 →
           </Link>
         </div>
       )}

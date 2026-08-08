@@ -13,6 +13,7 @@ public record ProjectResponse(
         Long id,
         String title,
         String goalHuman,
+        String goalAppearance,
         String goalEnding,
         ProjectStatus status,
         java.util.List<GoalItem> goals
@@ -91,6 +92,7 @@ public record ProjectResponse(
                 project.getId(),
                 project.getTitle(),
                 project.getGoalHuman(),
+                project.getGoalAppearance(),
                 project.getGoalEnding(),
                 project.getStatus(),
                 project.getGoals().stream()

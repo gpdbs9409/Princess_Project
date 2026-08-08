@@ -306,7 +306,7 @@ a.link:hover {
   text-underline-offset: 4px;
 }
 
-/* Enough nav items (오늘 기록/대시보드/나의 목표/마이페이지/관리자/로그아웃) that the
+/* Enough nav items (오늘 기록/대시보드/나의 아비투스/마이페이지/관리자/로그아웃) that the
    18px desktop gap needs to shrink on narrow screens, or the row overflows/crowds. */
 @media (max-width: 640px) {
   .topnav-inner {

@@ -9,11 +9,16 @@ const MISSION_TYPE_LABELS: Record<string, string> = {
 export function ProjectReadOnlyView({ project }: { project: ProjectResponse }) {
   return (
     <div className="stack">
-      {(project.goalHuman || project.goalEnding) && (
+      {(project.goalHuman || project.goalAppearance || project.goalEnding) && (
         <div className="card stack" style={{ gap: 6 }}>
           {project.goalHuman && (
             <p>
               <strong>이상적인 나의 모습</strong>: {project.goalHuman}
+            </p>
+          )}
+          {project.goalAppearance && (
+            <p>
+              <strong>나의 외적 추구미</strong>: {project.goalAppearance}
             </p>
           )}
           {project.goalEnding && (

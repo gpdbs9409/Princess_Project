@@ -30,7 +30,7 @@ export function StatFocusPage() {
         <div className="modal-overlay">
           <div className="modal-card">
             <h2 style={{ fontSize: 22 }}>환영합니다!</h2>
-            <p className="muted">습관자본과 미션을 설정하고 오늘부터 성장을 시작해봐요.</p>
+            <p className="muted">자본스탯(나만의 아비투스)과 미션을 설정하고 오늘부터 프린세스가 되어보세요.</p>
             <button className="primary" onClick={() => setShowWelcome(false)}>
               시작하기
             </button>
@@ -39,12 +39,12 @@ export function StatFocusPage() {
       )}
 
       <div className="stack" style={{ marginBottom: 20 }}>
-        <span className="eyebrow">{alreadySet ? "나의 목표" : "설정"}</span>
-        <h1 style={{ fontSize: 26 }}>{alreadySet ? "나의 목표" : "습관자본 · 미션 설정"}</h1>
+        <span className="eyebrow">{alreadySet ? "나의 아비투스" : "설정"}</span>
+        <h1 style={{ fontSize: 26 }}>{alreadySet ? "나의 아비투스" : "아비투스 · 미션 설정"}</h1>
         <p className="muted">
           {alreadySet
-            ? "습관자본과 미션은 최초 설정 후에는 수정할 수 없어요. 환급 심사가 처음 정한 미션을 기준으로 이뤄지기 때문이에요."
-            : "습관자본과 미션은 처음 한 번만 설정할 수 있어요. 신중하게 선택해주세요."}
+            ? "나의 아비투스와 미션은 최초 설정 후에는 수정할 수 없어요. 수정이 필요한 경우에는 운영진에 문의해주세요."
+            : "아비투스와 미션은 처음 한 번만 설정할 수 있어요. 신중하게 선택해주세요."}
         </p>
       </div>
 

@@ -89,6 +89,7 @@ public class UserProjectService {
             throw new ProjectValidationException("GOALS_ALREADY_SET", "Goals and missions can only be set once");
         }
         project.setGoalHuman(request.goalHuman());
+        project.setGoalAppearance(request.goalAppearance());
         project.setGoalEnding(request.goalEnding());
         project.getGoals().clear();
         userProjectRepository.saveAndFlush(project);

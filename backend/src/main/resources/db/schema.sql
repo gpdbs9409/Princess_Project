@@ -61,8 +61,11 @@ CREATE TABLE user_projects (
 
     title VARCHAR(255) NOT NULL,
 
-    -- 사용자가 원하는 최종 인간상
+    -- 사용자가 원하는 최종 인간상 ("이상적인 나의 모습")
     goal_human VARCHAR(500),
+
+    -- 겉으로 보이고 싶은 모습 ("나의 외적 추구미")
+    goal_appearance VARCHAR(500),
 
     -- 최종적으로 도달하고 싶은 엔딩 또는 행동양식 설명
     goal_ending TEXT,

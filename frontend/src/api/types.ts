@@ -187,6 +187,7 @@ export interface ProjectResponse {
   id: number;
   title: string;
   goalHuman: string | null;
+  goalAppearance: string | null;
   goalEnding: string | null;
   status: ProjectStatus;
   goals: ProjectGoal[];
@@ -217,6 +218,7 @@ export interface GoalSelectionInput {
 
 export interface ProjectSelectionsRequest {
   goalHuman?: string;
+  goalAppearance?: string;
   goalEnding?: string;
   goals: GoalSelectionInput[];
 }

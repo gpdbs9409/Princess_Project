@@ -29,7 +29,7 @@ export function ProfileHeader() {
         <button type="button" className="profile-header-icon-btn" onClick={() => navigate(-1)} aria-label="뒤로가기">
           ‹
         </button>
-        <span className="profile-header-title">Princess Project</span>
+        <span className="profile-header-title">My Diary</span>
         <span className="row" style={{ gap: 12 }}>
           <button
             type="button"

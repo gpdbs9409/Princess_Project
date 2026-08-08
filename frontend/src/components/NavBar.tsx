@@ -10,7 +10,7 @@ export function NavBar() {
       <div className="topnav-inner">
         <div className="row">
           <Link to="/dashboard" className="topnav-brand">
-            <strong>Princess Project</strong>
+            <strong>Princess Diary</strong>
           </Link>
           <span className="muted">{user.nickname}</span>
         </div>
@@ -22,7 +22,7 @@ export function NavBar() {
             대시보드
           </NavLink>
           <NavLink to="/stat-focus" className={({ isActive }) => (isActive ? "link active" : "link")}>
-            나의 목표
+            나의 아비투스
           </NavLink>
           <NavLink to="/my-page" className={({ isActive }) => (isActive ? "link active" : "link")}>
             마이페이지

@@ -15,6 +15,7 @@ import java.util.List;
  */
 public record ProjectSelectionsRequest(
         String goalHuman,
+        String goalAppearance,
         String goalEnding,
         @NotEmpty List<@Valid GoalSelection> goals
 ) {

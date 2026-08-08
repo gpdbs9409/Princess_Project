@@ -75,8 +75,8 @@ export function LoginPage() {
   return (
     <div className="container" style={{ maxWidth: 420, paddingTop: 96 }}>
       <div className="stack" style={{ marginBottom: 28, textAlign: "center" }}>
-        <span className="eyebrow">Princess Project</span>
-        <h1 style={{ fontSize: 30 }}>오늘의 나를 기록해요</h1>
+        <span className="eyebrow">Princess Diary</span>
+        <h1 style={{ fontSize: 30 }}>프린세스 다이어리</h1>
       </div>
 
       <div className="row" style={{ gap: 8, marginBottom: 16, justifyContent: "center" }}>

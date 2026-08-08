@@ -31,7 +31,7 @@ const GREETINGS = [
   "매일이 쌓여 인생이 됩니다",
   "오늘도 리스트업! 체크체크",
   "작은 노력들이 모여 반짝이는 중이에요",
-  "오늘의 습관자본을 쌓아볼까요",
+  "오늘의 아비투스를 쌓아볼까요",
   "성장하는 오늘의 당신, 멋져요",
   "오늘도 나만의 속도로 천천히",
   "습관 하나가 하루를 바꿔요",
@@ -136,7 +136,7 @@ export function DashboardPage() {
       {loading && <p className="muted">불러오는 중...</p>}
 
       <div className="section">
-        <div className="section-band">습관자본 바로가기</div>
+        <div className="section-band">나의 아비투스</div>
         <div className="capital-grid">
           {GOAL_TYPE_CODES.filter((code) => project?.goals.some((g) => g.goalTypeCode === code)).map((code) => {
             const goal = project?.goals.find((g) => g.goalTypeCode === code);

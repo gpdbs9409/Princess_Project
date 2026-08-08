@@ -77,7 +77,7 @@ export function SideWidget({ project }: SideWidgetProps) {
           </ol>
         ) : (
           <p className="muted" style={{ fontSize: 12.5 }}>
-            습관자본을 설정해보세요
+            아비투스를 설정해보세요
           </p>
         )}
       </div>
