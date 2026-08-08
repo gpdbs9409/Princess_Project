@@ -259,11 +259,6 @@ export function AdminPage() {
       <div className="stack" style={{ marginBottom: 20 }}>
         <span className="eyebrow">Admin</span>
         <h1 style={{ fontSize: 26 }}>회원 관리</h1>
-        <p className="muted">
-          회원가입 = 참가자예요 (앱 URL은 이미 선발된 분들에게만 전달되니까요). 여기서는
-          기수 배정과 기수별 주간 인증·환급 현황을 관리하고, 별도로 모집 단계의 지원서를
-          내부 기록용으로 남겨요.
-        </p>
       </div>
 
       <div className="row" style={{ gap: 10, marginBottom: 16 }}>
