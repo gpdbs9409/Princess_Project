@@ -20,6 +20,7 @@ import type {
   AdminAdjustmentResponse,
   AdminApplicantResponse,
   AdminMemberWeekResponse,
+  RecruitmentApplicantRequest,
   RecruitmentApplicantResponse,
   RecruitmentStatus,
 } from "../api/types";
@@ -96,6 +97,11 @@ export function AdminPage() {
   const [recruitmentForm, setRecruitmentForm] = useState(blankRecruitmentForm());
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvMessage, setCsvMessage] = useState<string | null>(null);
+  const [pendingCsv, setPendingCsv] = useState<{
+    rows: RecruitmentApplicantRequest[];
+    skipped: number;
+    fileName: string;
+  } | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   const weekStartIso = useMemo(() => isoDate(weekStart), [weekStart]);
@@ -184,27 +190,51 @@ export function AdminPage() {
     URL.revokeObjectURL(url);
   };
 
+  const resetCsvInput = () => {
+    if (csvInputRef.current) csvInputRef.current.value = "";
+  };
+
+  // Parsing and uploading are deliberately split: picking a file only previews what was
+  // read, so an operator can back out before writing rows they didn't mean to import.
   const handleCsvFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setCsvUploading(true);
     setCsvMessage(null);
     try {
       const { rows, skipped } = parseRecruitmentCsv(await file.text());
       if (rows.length === 0) {
         setCsvMessage("등록할 행을 찾지 못했어요. 첫 번째 열에 이름이 있는지 확인해주세요.");
+        resetCsvInput();
         return;
       }
-      const created = await addRecruitmentApplicantsBulk(rows);
-      setRecruitmentApplicants((prev) => [...created.slice().reverse(), ...prev]);
-      setCsvMessage(
-        `${created.length}건을 등록했어요.` + (skipped > 0 ? ` 이름이 비어 있는 ${skipped}행은 건너뛰었어요.` : "")
-      );
+      setPendingCsv({ rows, skipped, fileName: file.name });
     } catch {
       setCsvMessage("파일을 읽지 못했어요. CSV UTF-8로 저장했는지 확인해주세요.");
+      resetCsvInput();
+    }
+  };
+
+  const handleCancelCsvUpload = () => {
+    setPendingCsv(null);
+    resetCsvInput();
+  };
+
+  const handleConfirmCsvUpload = async () => {
+    if (!pendingCsv) return;
+    setCsvUploading(true);
+    try {
+      const created = await addRecruitmentApplicantsBulk(pendingCsv.rows);
+      setRecruitmentApplicants((prev) => [...created.slice().reverse(), ...prev]);
+      setCsvMessage(
+        `${created.length}건을 등록했어요.` +
+          (pendingCsv.skipped > 0 ? ` 이름이 비어 있는 ${pendingCsv.skipped}행은 건너뛰었어요.` : "")
+      );
+      setPendingCsv(null);
+    } catch {
+      setCsvMessage("등록에 실패했어요. 잠시 후 다시 시도해주세요.");
     } finally {
       setCsvUploading(false);
-      if (csvInputRef.current) csvInputRef.current.value = "";
+      resetCsvInput();
     }
   };
 
@@ -446,8 +476,37 @@ export function AdminPage() {
                 onChange={handleCsvFileChange}
                 disabled={csvUploading}
               />
-              {csvUploading && <span className="muted">등록 중...</span>}
             </div>
+
+            {pendingCsv && (
+              <div className="modal-overlay">
+                <div className="modal-card stack" style={{ gap: 12, textAlign: "left" }}>
+                  <h2 style={{ fontSize: 18, margin: 0 }}>지원서를 등록할까요?</h2>
+                  <p className="muted" style={{ margin: 0 }}>
+                    <strong>{pendingCsv.fileName}</strong>에서 <strong>{pendingCsv.rows.length}건</strong>을
+                    읽었어요.
+                    {pendingCsv.skipped > 0 && ` 이름이 비어 있는 ${pendingCsv.skipped}행은 제외돼요.`}
+                  </p>
+                  <ul className="muted" style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+                    {pendingCsv.rows.slice(0, 5).map((r, i) => (
+                      <li key={i}>
+                        {r.name}
+                        {r.contact ? ` · ${r.contact}` : ""}
+                      </li>
+                    ))}
+                    {pendingCsv.rows.length > 5 && <li>외 {pendingCsv.rows.length - 5}건</li>}
+                  </ul>
+                  <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
+                    <button type="button" className="ghost" onClick={handleCancelCsvUpload} disabled={csvUploading}>
+                      아니오
+                    </button>
+                    <button type="button" className="primary" onClick={handleConfirmCsvUpload} disabled={csvUploading}>
+                      {csvUploading ? "등록 중..." : "예, 등록할게요"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             {csvMessage && (
               <p className="muted" style={{ marginBottom: 0 }}>
                 {csvMessage}
