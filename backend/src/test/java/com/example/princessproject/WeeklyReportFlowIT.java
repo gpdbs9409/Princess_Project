@@ -66,7 +66,7 @@ class WeeklyReportFlowIT {
         MissionDefinitionResponse exerciseMission = exerciseStat.missions().get(0);
 
         ProjectSelectionsRequest selections = new ProjectSelectionsRequest(
-                null, null,
+                null, null, null,
                 List.of(new ProjectSelectionsRequest.GoalSelection(GoalTypeCode.PHYSICAL, 100, null, List.of(
                         new ProjectSelectionsRequest.StatSelection(exerciseStat.id(), 100, null, List.of(
                                 new ProjectSelectionsRequest.MissionSelection(

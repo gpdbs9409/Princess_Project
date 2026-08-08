@@ -81,7 +81,7 @@ class DailyMissionFlowIT {
         MissionDefinitionResponse journalMission = psychologyStat.missions().get(0);
 
         ProjectSelectionsRequest selections = new ProjectSelectionsRequest(
-                "건강한 사람", "매일 운동하는 사람",
+                "건강한 사람", "단정한 사람", "매일 운동하는 사람",
                 List.of(
                         new ProjectSelectionsRequest.GoalSelection(GoalTypeCode.PHYSICAL, 70, null, List.of(
                                 new ProjectSelectionsRequest.StatSelection(exerciseStat.id(), 100, null, List.of(
@@ -183,7 +183,7 @@ class DailyMissionFlowIT {
         MissionDefinitionResponse exerciseMission = exerciseStat.missions().get(0);
 
         ProjectSelectionsRequest selections = new ProjectSelectionsRequest(
-                null, null,
+                null, null, null,
                 List.of(new ProjectSelectionsRequest.GoalSelection(GoalTypeCode.PHYSICAL, 100, null, List.of(
                         new ProjectSelectionsRequest.StatSelection(exerciseStat.id(), 100, null, List.of(
                                 new ProjectSelectionsRequest.MissionSelection(
