@@ -130,6 +130,14 @@ public class AdminController {
         return adminService.addRecruitmentApplicant(request);
     }
 
+    /** 엑셀(CSV) 일괄 등록 - 프론트에서 파싱한 행들을 한 번에 받는다. */
+    @PostMapping("/recruitment-applicants/bulk")
+    public List<RecruitmentApplicantResponse> addRecruitmentApplicants(
+            @RequestBody List<RecruitmentApplicantRequest> requests
+    ) {
+        return adminService.addRecruitmentApplicants(requests);
+    }
+
     @PutMapping("/recruitment-applicants/{id}")
     public RecruitmentApplicantResponse updateRecruitmentApplicant(
             @PathVariable Long id, @RequestBody RecruitmentApplicantRequest request

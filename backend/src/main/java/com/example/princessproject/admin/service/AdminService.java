@@ -74,6 +74,23 @@ public class AdminService {
         return RecruitmentApplicantResponse.from(recruitmentApplicantRepository.save(applicant));
     }
 
+    /**
+     * Bulk import from a spreadsheet. Goes through saveAll so the whole file is one batched
+     * flush instead of one INSERT round-trip per row, and one transaction so a malformed
+     * sheet can't leave half the applicants imported.
+     */
+    @Transactional
+    public List<RecruitmentApplicantResponse> addRecruitmentApplicants(List<RecruitmentApplicantRequest> requests) {
+        List<RecruitmentApplicant> applicants = requests.stream()
+                .filter(r -> r.name() != null && !r.name().isBlank())
+                .map(r -> new RecruitmentApplicant(
+                        r.name(), r.contact(), r.note(), r.status(), r.appliedAt()))
+                .toList();
+        return recruitmentApplicantRepository.saveAll(applicants).stream()
+                .map(RecruitmentApplicantResponse::from)
+                .toList();
+    }
+
     @Transactional
     public RecruitmentApplicantResponse updateRecruitmentApplicant(Long id, RecruitmentApplicantRequest request) {
         RecruitmentApplicant applicant = recruitmentApplicantRepository.findById(id)
@@ -226,7 +243,8 @@ public class AdminService {
                 paid,
                 paid ? refund.getAmount() : WEEKLY_REFUND_AMOUNT,
                 paid ? refund.getPaidAt() : null,
-                user.getId().equals(mvpUserId)
+                user.getId().equals(mvpUserId),
+                user.getRole().name()
         );
     }
 

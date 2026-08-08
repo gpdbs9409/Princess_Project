@@ -26,6 +26,7 @@ public record AdminMemberWeekResponse(
         boolean paid,
         BigDecimal amount,
         LocalDateTime paidAt,
-        boolean isMvp
+        boolean isMvp,
+        String role
 ) {
 }

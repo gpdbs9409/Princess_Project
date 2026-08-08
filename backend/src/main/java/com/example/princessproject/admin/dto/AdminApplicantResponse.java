@@ -6,9 +6,11 @@ import java.time.LocalDateTime;
 public record AdminApplicantResponse(
         Long userId,
         String nickname,
-        LocalDateTime appliedAt
+        LocalDateTime appliedAt,
+        String role
 ) {
     public static AdminApplicantResponse from(User user) {
-        return new AdminApplicantResponse(user.getId(), user.getNickname(), user.getCreatedAt());
+        return new AdminApplicantResponse(
+                user.getId(), user.getNickname(), user.getCreatedAt(), user.getRole().name());
     }
 }

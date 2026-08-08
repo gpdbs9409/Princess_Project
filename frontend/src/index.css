@@ -702,6 +702,18 @@ a.link:hover {
   font-weight: 700;
   font-size: 16px;
 }
+.role-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+}
+
 .profile-header-topbar-spacer {
   width: 26px;
 }

@@ -40,11 +40,13 @@ export const GOAL_TYPE_IMAGE: Record<GoalTypeCode, string> = {
 
 export type MissionType = "DAILY" | "WEEKLY" | "TOTAL";
 
+export type Role = "USER" | "ADMIN";
+
 export interface UserResponse {
   id: number;
   nickname: string;
   profileImageUrl: string | null;
-  role: "USER" | "ADMIN";
+  role: Role;
 }
 
 // ---- admin ----
@@ -53,6 +55,7 @@ export interface AdminApplicantResponse {
   userId: number;
   nickname: string;
   appliedAt: string;
+  role: Role;
 }
 
 export interface AdminMemberWeekResponse {
@@ -67,6 +70,7 @@ export interface AdminMemberWeekResponse {
   amount: number;
   paidAt: string | null;
   isMvp: boolean;
+  role: Role;
 }
 
 export interface AdminMemberResponse {

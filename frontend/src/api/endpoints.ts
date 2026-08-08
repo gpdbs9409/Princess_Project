@@ -112,6 +112,9 @@ export const getRecruitmentApplicants = () =>
 export const addRecruitmentApplicant = (payload: RecruitmentApplicantRequest) =>
   api.post<RecruitmentApplicantResponse>("/api/admin/recruitment-applicants", payload);
 
+export const addRecruitmentApplicantsBulk = (payload: RecruitmentApplicantRequest[]) =>
+  api.post<RecruitmentApplicantResponse[]>("/api/admin/recruitment-applicants/bulk", payload);
+
 export const updateRecruitmentApplicant = (id: number, payload: RecruitmentApplicantRequest) =>
   api.put<RecruitmentApplicantResponse>(`/api/admin/recruitment-applicants/${id}`, payload);
 

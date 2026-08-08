@@ -1,7 +1,8 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addAdminAdjustment,
   addRecruitmentApplicant,
+  addRecruitmentApplicantsBulk,
   assignAdminCohort,
   clearAdminMvp,
   deleteAdminAdjustment,
@@ -23,6 +24,7 @@ import type {
   RecruitmentStatus,
 } from "../api/types";
 import { GOAL_TYPE_CODES, GOAL_TYPE_LABELS } from "../api/types";
+import { parseRecruitmentCsv } from "../lib/parseRecruitmentCsv";
 
 type Tab = "participants" | "unassigned" | "recruitment";
 
@@ -92,6 +94,9 @@ export function AdminPage() {
   });
   const [recruitmentApplicants, setRecruitmentApplicants] = useState<RecruitmentApplicantResponse[]>([]);
   const [recruitmentForm, setRecruitmentForm] = useState(blankRecruitmentForm());
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvMessage, setCsvMessage] = useState<string | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   const weekStartIso = useMemo(() => isoDate(weekStart), [weekStart]);
 
@@ -166,6 +171,41 @@ export function AdminPage() {
     });
     setRecruitmentApplicants((prev) => [created, ...prev]);
     setRecruitmentForm(blankRecruitmentForm());
+  };
+
+  const handleDownloadCsvTemplate = () => {
+    // BOM first, otherwise Excel opens the Korean headers as mojibake.
+    const csv = "﻿이름,연락처,메모,상태,신청일\n김프린,010-0000-0000,인스타 DM 문의,검토중,2026-08-01\n";
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "지원서_양식.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCsvFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvUploading(true);
+    setCsvMessage(null);
+    try {
+      const { rows, skipped } = parseRecruitmentCsv(await file.text());
+      if (rows.length === 0) {
+        setCsvMessage("등록할 행을 찾지 못했어요. 첫 번째 열에 이름이 있는지 확인해주세요.");
+        return;
+      }
+      const created = await addRecruitmentApplicantsBulk(rows);
+      setRecruitmentApplicants((prev) => [...created.slice().reverse(), ...prev]);
+      setCsvMessage(
+        `${created.length}건을 등록했어요.` + (skipped > 0 ? ` 이름이 비어 있는 ${skipped}행은 건너뛰었어요.` : "")
+      );
+    } catch {
+      setCsvMessage("파일을 읽지 못했어요. CSV UTF-8로 저장했는지 확인해주세요.");
+    } finally {
+      setCsvUploading(false);
+      if (csvInputRef.current) csvInputRef.current.value = "";
+    }
   };
 
   const handleRecruitmentStatusChange = async (applicant: RecruitmentApplicantResponse, status: RecruitmentStatus) => {
@@ -302,6 +342,7 @@ export function AdminPage() {
                   <th>닉네임</th>
                   <th>신청일</th>
                   <th>기수 배정</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -329,6 +370,7 @@ export function AdminPage() {
                         </button>
                       </div>
                     </td>
+                    <td>{a.role === "ADMIN" && <span className="role-tag">관리자</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -341,8 +383,7 @@ export function AdminPage() {
         <div className="stack" style={{ gap: 12 }}>
           <div className="card">
             <p className="muted" style={{ marginTop: 0 }}>
-              앱 회원(users)과 무관한, 팀 내부 모집 기록용 리스트예요. 지금은 수기 입력만
-              가능해요 (엑셀 업로드는 나중에 결정).
+              앱 회원(users)과 무관한, 팀 내부 모집 기록용 리스트예요.
             </p>
             <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
               <input
@@ -383,6 +424,35 @@ export function AdminPage() {
                 추가
               </button>
             </div>
+          </div>
+
+          <div className="card">
+            <div className="row-between" style={{ flexWrap: "wrap", gap: 8 }}>
+              <strong style={{ fontSize: 14 }}>엑셀(CSV) 일괄 등록</strong>
+              <button type="button" className="ghost" onClick={handleDownloadCsvTemplate}>
+                양식 내려받기
+              </button>
+            </div>
+            <p className="muted" style={{ fontSize: 13 }}>
+              열 순서: <strong>이름 · 연락처 · 메모 · 상태 · 신청일</strong> · 이름만 필수예요.
+              엑셀에서 <strong>다른 이름으로 저장 → CSV UTF-8</strong>로 저장한 뒤 올려주세요.
+              상태는 검토중/합격/불합격으로 쓰면 되고, 비워두면 검토중으로 들어가요.
+            </p>
+            <div className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <input
+                ref={csvInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleCsvFileChange}
+                disabled={csvUploading}
+              />
+              {csvUploading && <span className="muted">등록 중...</span>}
+            </div>
+            {csvMessage && (
+              <p className="muted" style={{ marginBottom: 0 }}>
+                {csvMessage}
+              </p>
+            )}
           </div>
 
           <div className="card">
@@ -482,6 +552,7 @@ export function AdminPage() {
                     <th>지급 여부</th>
                     <th>MVP</th>
                     <th>점수 보정</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -523,10 +594,11 @@ export function AdminPage() {
                             {expandedUserId === p.userId ? "닫기" : "보정 내역"}
                           </button>
                         </td>
+                        <td>{p.role === "ADMIN" && <span className="role-tag">관리자</span>}</td>
                       </tr>
                       {expandedUserId === p.userId && (
                         <tr>
-                          <td colSpan={8}>
+                          <td colSpan={9}>
                             <div className="stack" style={{ gap: 10, padding: "8px 0" }}>
                               <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
                                 <select
