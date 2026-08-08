@@ -702,6 +702,9 @@ a.link:hover {
   font-weight: 700;
   font-size: 16px;
 }
+.profile-header-topbar-spacer {
+  width: 26px;
+}
 .profile-header-icon-btn {
   background: none;
   border: none;

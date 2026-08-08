@@ -30,16 +30,9 @@ export function ProfileHeader() {
           ‹
         </button>
         <span className="profile-header-title">My Diary</span>
-        <span className="row" style={{ gap: 12 }}>
-          <button
-            type="button"
-            className="profile-header-icon-btn"
-            onClick={() => navigate("/my-page")}
-            aria-label="마이페이지로 이동"
-          >
-            ⋯
-          </button>
-        </span>
+        {/* Spacer balancing the back button so the title stays optically centred - the old
+            "⋯" menu used to sit here and was removed. */}
+        <span className="profile-header-topbar-spacer" aria-hidden="true" />
       </div>
 
       <div className="profile-header-main">
