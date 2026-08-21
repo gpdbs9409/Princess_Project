@@ -12,6 +12,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { RecordPage } from "./pages/RecordPage";
+import { WeeklyRetrospectivePage } from "./pages/WeeklyRetrospectivePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { StatFocusPage } from "./pages/StatFocusPage";
 import { MyPage } from "./pages/MyPage";
@@ -50,6 +51,14 @@ function App() {
           element={
             <RequireAuth>
               <RecordPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/weekly-retrospective"
+          element={
+            <RequireAuth>
+              <WeeklyRetrospectivePage />
             </RequireAuth>
           }
         />

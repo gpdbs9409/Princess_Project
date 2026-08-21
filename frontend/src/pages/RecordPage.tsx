@@ -79,11 +79,25 @@ export function RecordPage() {
 
       {error && <div className="error-banner" style={{ marginBottom: 16 }}>{error}</div>}
 
-      {/* 독서/공부/주간회고 - every participant does these regardless of which 아비투스를
-          picked (or even whether they've finished setup yet), so this always renders here
-          rather than being gated behind hasNoMissions below. */}
-      <div style={{ marginBottom: 16 }}>
+      {/* 독서/공부 - every participant does these regardless of which 아비투스를 picked (or
+          even whether they've finished setup yet), so this always renders here rather than
+          being gated behind hasNoMissions below. Styled to match the regular habit card list
+          below (같은 "배지 + .stack gap 12" 조합) instead of being boxed into one combined
+          card (2026-08-21: 다른 습관 카드랑 똑같은 UI/UX로 분리 요청).
+          주간 회고는 여기 없다 - 주 1회만 쓰면 되는 과제라 상단 메뉴의 "주간 회고"
+          (/weekly-retrospective)로 분리했다 (2026-08-21 요청). */}
+      <div className="stack" style={{ marginBottom: 16, gap: 12 }}>
+        <span className="badge good" style={{ alignSelf: "flex-start" }}>
+          공통 과제
+        </span>
         <CommonTasksCard />
+        <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
+          주간 회고는 상단 메뉴의{" "}
+          <Link to="/weekly-retrospective" className="link">
+            주간 회고
+          </Link>
+          에서 주 1회 작성해요.
+        </p>
       </div>
 
       {summary && (

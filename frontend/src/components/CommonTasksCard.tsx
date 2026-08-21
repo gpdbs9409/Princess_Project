@@ -10,6 +10,12 @@ import { useToast } from "./ToastProvider";
 // list, but intentionally isn't a UserMission: these apply no matter which 아비투스/capitals
 // someone picked, so they can't live inside the weighted goal/stat tree without either
 // force-attaching a goal nobody chose or being invisible to anyone who skipped 지식.
+//
+// Each of the 3 tasks renders as its own top-level .card, matching MissionCard's layout
+// (title + muted subtitle in a row-between header, "완료" badge on the right once there's
+// something saved, form/recorded body below) rather than being nested inside one shared
+// wrapper card - so visually these sit in the habit list exactly like any other habit card
+// (2026-08-21 요청: 다른 습관 카드랑 똑같은 UI/UX로 분리).
 
 const MAX_PAGE_NUMBER = 100000;
 const MAX_PAGES_PER_DAY = 2000;
@@ -95,46 +101,61 @@ function ReadingSection() {
 
   if (existing) {
     return (
-      <div className="stack" style={{ gap: 6 }}>
-        <strong style={{ fontSize: 13.5 }}>독서</strong>
-        <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          오늘 {existing.startPage}p ~ {existing.endPage}p ({(existing.endPage ?? 0) - (existing.startPage ?? 0)}p) 기록 완료
-        </p>
+      <div className="card recorded-mission-card">
+        <div className="row-between">
+          <div>
+            <strong>독서</strong>
+            <div className="muted">공통 과제 · 일일 최소 권장 10p</div>
+          </div>
+          <span className="badge good">완료</span>
+        </div>
+        <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+          <div className="recorded-field">
+            <span className="muted">오늘 읽은 범위</span>
+            <strong>
+              {existing.startPage}p ~ {existing.endPage}p ({(existing.endPage ?? 0) - (existing.startPage ?? 0)}p)
+            </strong>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="stack" style={{ gap: 6 }}>
-      <strong style={{ fontSize: 13.5 }}>독서</strong>
-      <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
-        오늘 읽은 시작~종료 페이지를 기록해요. 일일 최소 권장 10p
-      </p>
-      <div className="row" style={{ gap: 6 }}>
-        <input
-          type="number"
-          min={0}
-          max={MAX_PAGE_NUMBER}
-          placeholder="시작 페이지"
-          value={startPage}
-          onChange={(e) => setStartPage(e.target.value)}
-          style={{ maxWidth: 110 }}
-        />
-        <span className="muted">~</span>
-        <input
-          type="number"
-          min={0}
-          max={MAX_PAGE_NUMBER}
-          placeholder="종료 페이지"
-          value={endPage}
-          onChange={(e) => setEndPage(e.target.value)}
-          style={{ maxWidth: 110 }}
-        />
-        <button type="button" className="primary" onClick={handleSave} disabled={saving} style={{ padding: "6px 12px" }}>
+    <div className="card">
+      <div className="row-between">
+        <div>
+          <strong>독서</strong>
+          <div className="muted">공통 과제 · 일일 최소 권장 10p</div>
+        </div>
+      </div>
+      <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+        <div className="row" style={{ gap: 6 }}>
+          <input
+            type="number"
+            min={0}
+            max={MAX_PAGE_NUMBER}
+            placeholder="시작 페이지"
+            value={startPage}
+            onChange={(e) => setStartPage(e.target.value)}
+            style={{ maxWidth: 110 }}
+          />
+          <span className="muted">~</span>
+          <input
+            type="number"
+            min={0}
+            max={MAX_PAGE_NUMBER}
+            placeholder="종료 페이지"
+            value={endPage}
+            onChange={(e) => setEndPage(e.target.value)}
+            style={{ maxWidth: 110 }}
+          />
+        </div>
+        {error && <div className="error-banner">{error}</div>}
+        <button className="primary" onClick={handleSave} disabled={saving}>
           {saving ? "저장 중..." : "저장"}
         </button>
       </div>
-      {error && <div className="error-banner">{error}</div>}
     </div>
   );
 }
@@ -197,51 +218,70 @@ function StudySection() {
 
   if (existing) {
     return (
-      <div className="stack" style={{ gap: 6 }}>
-        <strong style={{ fontSize: 13.5 }}>공부</strong>
-        <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          오늘 완료량 {existing.studyCompletedAmount}
-          {existing.studyPlannedAmount != null && ` / 계획량 ${existing.studyPlannedAmount}`} 기록 완료
-        </p>
+      <div className="card recorded-mission-card">
+        <div className="row-between">
+          <div>
+            <strong>공부</strong>
+            <div className="muted">공통 과제 · 주간 계획량 대비 오늘 완료량</div>
+          </div>
+          <span className="badge good">완료</span>
+        </div>
+        <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+          <div className="recorded-field">
+            <span className="muted">오늘 완료량</span>
+            <strong>
+              {existing.studyCompletedAmount}
+              {existing.studyPlannedAmount != null && ` / 계획량 ${existing.studyPlannedAmount}`}
+            </strong>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="stack" style={{ gap: 6 }}>
-      <strong style={{ fontSize: 13.5 }}>공부</strong>
-      <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
-        주간 계획량을 미리 정해두고, 오늘 완료량을 기록해요 (측정이 어려우면 시간 기준도 가능해요)
-      </p>
-      <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-        <input
-          type="number"
-          min={0}
-          max={MAX_STUDY_AMOUNT}
-          placeholder="이번 주 계획량 (선택)"
-          value={planned}
-          onChange={(e) => setPlanned(e.target.value)}
-          style={{ maxWidth: 150 }}
-        />
-        <input
-          type="number"
-          min={0}
-          max={MAX_STUDY_AMOUNT}
-          placeholder="오늘 완료량"
-          value={completed}
-          onChange={(e) => setCompleted(e.target.value)}
-          style={{ maxWidth: 120 }}
-        />
-        <button type="button" className="primary" onClick={handleSave} disabled={saving} style={{ padding: "6px 12px" }}>
+    <div className="card">
+      <div className="row-between">
+        <div>
+          <strong>공부</strong>
+          <div className="muted">공통 과제 · 측정이 어려우면 시간 기준도 가능해요</div>
+        </div>
+      </div>
+      <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+        <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+          <input
+            type="number"
+            min={0}
+            max={MAX_STUDY_AMOUNT}
+            placeholder="이번 주 계획량 (선택)"
+            value={planned}
+            onChange={(e) => setPlanned(e.target.value)}
+            style={{ maxWidth: 150 }}
+          />
+          <input
+            type="number"
+            min={0}
+            max={MAX_STUDY_AMOUNT}
+            placeholder="오늘 완료량"
+            value={completed}
+            onChange={(e) => setCompleted(e.target.value)}
+            style={{ maxWidth: 120 }}
+          />
+        </div>
+        {error && <div className="error-banner">{error}</div>}
+        <button className="primary" onClick={handleSave} disabled={saving}>
           {saving ? "저장 중..." : "저장"}
         </button>
       </div>
-      {error && <div className="error-banner">{error}</div>}
     </div>
   );
 }
 
-function WeeklyRetrospectiveSection() {
+// Exported on its own (rather than only through the bundled CommonTasksCard below) so
+// WeeklyRetrospectivePage can render it standalone on its own nav-level route - 주간 회고는
+// 주 1회만 작성하면 되는 과제라 매일 도는 /record 목록이 아니라 상단 메뉴의 별도 화면에서 보는 게
+// 맞다는 2026-08-21 요청에 따른 분리.
+export function WeeklyRetrospectiveSection() {
   const { showToast } = useToast();
   const [dailyLife, setDailyLife] = useState("");
   const [weekReview, setWeekReview] = useState("");
@@ -302,9 +342,15 @@ function WeeklyRetrospectiveSection() {
   if (loading) return null;
 
   return (
-    <div className="stack" style={{ gap: 6 }}>
-      <strong style={{ fontSize: 13.5 }}>주간 회고{lastSavedAt && " (이번 주 작성됨 · 수정 가능)"}</strong>
-      <div className="stack" style={{ gap: 8 }}>
+    <div className="card">
+      <div className="row-between">
+        <div>
+          <strong>주간 회고</strong>
+          <div className="muted">공통 과제 · {lastSavedAt ? "이번 주 작성됨 · 수정 가능" : "PART1~3 중 최소 하나는 입력해주세요"}</div>
+        </div>
+        {lastSavedAt && <span className="badge good">완료</span>}
+      </div>
+      <div className="stack" style={{ gap: 10, marginTop: 12 }}>
         <div className="stack" style={{ gap: 4 }}>
           <label className="muted" style={{ fontSize: 12.5 }}>
             PART1. 일상 공유
@@ -323,33 +369,28 @@ function WeeklyRetrospectiveSection() {
           </label>
           <textarea value={nextWeekPlan} onChange={(e) => setNextWeekPlan(e.target.value)} rows={2} maxLength={MAX_RETRO_TEXT_LENGTH} />
         </div>
-        <button
-          type="button"
-          className="primary"
-          onClick={handleSave}
-          disabled={saving}
-          style={{ alignSelf: "flex-start", padding: "6px 14px" }}
-        >
+        {error && <div className="error-banner">{error}</div>}
+        <button type="button" className="primary" onClick={handleSave} disabled={saving} style={{ alignSelf: "flex-start" }}>
           {saving ? "저장 중..." : lastSavedAt ? "수정 저장" : "저장"}
         </button>
       </div>
-      {error && <div className="error-banner">{error}</div>}
     </div>
   );
 }
 
+// 습관 카드(MissionCard) 리스트와 똑같은 UI/UX로 보이도록, 매일 쓰는 공통 과제(독서·공부)를
+// 하나의 래핑 카드 안에 몰아넣지 않고 각자 독립된 .card로 분리해서 반환한다. RecordPage가 이
+// 카드들을 습관 카드들과 같은 스타일(같은 "Habit Tracker" 류 배지 + .stack gap 12)의 리스트
+// 위쪽에 얹는다.
+//
+// 주간 회고는 여기 포함하지 않는다 - 주 1회만 쓰면 되는 과제라 매일 도는 이 목록에 있으면 매번
+// 스쳐 지나가기 쉬워서, /weekly-retrospective 전용 화면(WeeklyRetrospectivePage)으로 분리했다
+// (WeeklyRetrospectiveSection을 이 파일에서 직접 export해서 그 페이지가 가져다 쓴다).
 export function CommonTasksCard() {
   return (
-    <div className="card stack" style={{ gap: 16 }}>
-      <div>
-        <span className="badge good">공통 과제 3종</span>
-        <p className="muted" style={{ margin: "6px 0 0", fontSize: 12.5 }}>
-          어떤 아비투스를 골랐든 모든 참가자가 함께 하는 과제예요.
-        </p>
-      </div>
+    <>
       <ReadingSection />
       <StudySection />
-      <WeeklyRetrospectiveSection />
-    </div>
+    </>
   );
 }
