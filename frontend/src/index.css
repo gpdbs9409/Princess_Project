@@ -459,6 +459,94 @@ a.link:hover {
   border: 1px solid var(--border);
 }
 
+/* 회원가입 약관 동의 체크박스 (2026-08-21: 약관 원문 확정 전이라 자리표시 문구 사용) */
+.terms-block {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.terms-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.terms-row-all {
+  justify-content: flex-start;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 2px 0 8px;
+}
+
+.terms-row-all span {
+  color: var(--text);
+}
+
+.terms-divider {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 6px;
+}
+
+.terms-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.terms-block input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.terms-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.terms-tag.required {
+  color: var(--accent-strong);
+}
+
+.terms-tag.optional {
+  color: var(--text-muted);
+}
+
+.terms-view-toggle {
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.terms-view-toggle:hover {
+  color: var(--accent);
+}
+
+.terms-content {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+
 /* footer */
 .site-footer {
   border-top: 1px solid var(--border);
@@ -1099,11 +1187,19 @@ a.link:hover {
   color: var(--text-muted);
   font-size: 12px;
 }
+.onboarding-gallery-image-wrap {
+  position: relative;
+  width: 100%;
+}
 .onboarding-gallery-badge {
-  align-self: flex-start;
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
   background: var(--accent-soft);
   color: var(--accent-strong);
   border: none;
+  box-shadow: var(--shadow);
 }
 .onboarding-gallery-image {
   width: 100%;

@@ -6,6 +6,22 @@ import { useAuth } from "../auth/AuthContext";
 
 type Mode = "login" | "signup";
 
+// 약관 원문은 아직 확정 전 (2026-08-21: 쥐콩이가 문구 전달 예정, 받으면 TERMS_PLACEHOLDER_TEXT
+// 자리에 실제 약관 내용으로 교체). 지금은 자리표시 문구만 넣어 체크박스 UI/검증 로직을 먼저 붙인다.
+type TermItem = {
+  id: string;
+  label: string;
+  required: boolean;
+};
+
+const TERMS: TermItem[] = [
+  { id: "service", label: "이용약관 동의", required: true },
+  { id: "privacy", label: "개인정보 수집 및 이용 동의", required: true },
+  { id: "marketing", label: "마케팅 정보 수신 동의 (선택)", required: false },
+];
+
+const TERMS_PLACEHOLDER_TEXT = "약관 추후 변경 예정입니다.";
+
 export function LoginPage() {
   const { signIn, updateUser } = useAuth();
   const navigate = useNavigate();
@@ -15,8 +31,17 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [agreements, setAgreements] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(TERMS.map((term) => [term.id, false]))
+  );
+  const [expandedTermId, setExpandedTermId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const allTermsAgreed = TERMS.every((term) => agreements[term.id]);
+  const requiredTermsAgreed = TERMS.filter((term) => term.required).every(
+    (term) => agreements[term.id]
+  );
 
   useEffect(() => {
     return () => {
@@ -38,9 +63,25 @@ export function LoginPage() {
     });
   };
 
+  const toggleAllTerms = (checked: boolean) => {
+    setAgreements(Object.fromEntries(TERMS.map((term) => [term.id, checked])));
+  };
+
+  const toggleTerm = (id: string, checked: boolean) => {
+    setAgreements((prev) => ({ ...prev, [id]: checked }));
+  };
+
+  const toggleTermPreview = (id: string) => {
+    setExpandedTermId((prev) => (prev === id ? null : id));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nickname.trim() || !password) return;
+    if (mode === "signup" && !requiredTermsAgreed) {
+      setError("필수 약관에 모두 동의해주세요.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -149,8 +190,49 @@ export function LoginPage() {
             </div>
           </div>
         )}
+        {mode === "signup" && (
+          <div className="terms-block">
+            <label className="terms-row terms-row-all">
+              <input
+                type="checkbox"
+                checked={allTermsAgreed}
+                onChange={(e) => toggleAllTerms(e.target.checked)}
+              />
+              <span>약관 전체 동의</span>
+            </label>
+            <div className="terms-divider" />
+            <div className="stack" style={{ gap: 2 }}>
+              {TERMS.map((term) => (
+                <div key={term.id} className="terms-row">
+                  <label className="terms-checkbox-label" htmlFor={`term-${term.id}`}>
+                    <input
+                      id={`term-${term.id}`}
+                      type="checkbox"
+                      checked={agreements[term.id]}
+                      onChange={(e) => toggleTerm(term.id, e.target.checked)}
+                    />
+                    <span>
+                      <span className={term.required ? "terms-tag required" : "terms-tag optional"}>
+                        {term.required ? "필수" : "선택"}
+                      </span>{" "}
+                      {term.label}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    className="terms-view-toggle"
+                    onClick={() => toggleTermPreview(term.id)}
+                  >
+                    {expandedTermId === term.id ? "닫기" : "보기"}
+                  </button>
+                </div>
+              ))}
+            </div>
+            {expandedTermId && <p className="muted terms-content">{TERMS_PLACEHOLDER_TEXT}</p>}
+          </div>
+        )}
         {error && <div className="error-banner">{error}</div>}
-        <button type="submit" className="primary" disabled={loading}>
+        <button type="submit" className="primary" disabled={loading || (mode === "signup" && !requiredTermsAgreed)}>
           {loading ? "처리 중..." : mode === "signup" ? "회원가입" : "로그인"}
         </button>
         {mode === "login" && (

@@ -15,7 +15,8 @@ import { ONBOARDING_ENDINGS } from "../data/onboardingEndings";
 //  - /onboarding/bridge-video.mp4, /onboarding/video-poster.png
 //    → "지하철에서 다이어리를 발견 ~ 라이벌의 도발까지" 영상 (쥐콩이 제작 예정, 수동 재생)
 //  - /onboarding/climax-freeze.png → 클라이맥스 프리즈 프레임 이미지
-//  - 엔딩 공주 최종 카피/일러스트 → data/onboardingEndings.ts 의 TODO 참고
+//  - 엔딩 공주 일러스트 → 카피는 확정 (data/onboardingEndings.ts), 사진 파일만 오면
+//    frontend/public/endings/{capitalKey}.png 로 넣고 아래 img src를 /capitals/ → /endings/ 로 바꾸면 됨
 //
 // 노출 조건 및 재접속 시 이어보기 로직은 lib/onboarding.ts 참고.
 export function OnboardingBridge() {
@@ -128,13 +129,17 @@ export function OnboardingBridge() {
             <div className="onboarding-gallery-counter">
               {galleryIndex + 1}/{ONBOARDING_ENDINGS.length}
             </div>
-            <span className="badge onboarding-gallery-badge">{currentEnding.capitalLabel}</span>
-            <img
-              className="onboarding-gallery-image"
-              src={`/capitals/${currentEnding.capitalKey}.png`}
-              alt={currentEnding.capitalLabel}
-            />
             <h3 className="onboarding-gallery-title">{currentEnding.title}</h3>
+            {/* 자본별 구분자(예: "심리")는 이미지 좌측 상단에 오버레이되는 배지로 배치
+                (2026-08-21 시안: "엔딩 공주 리스트 화면" 요청 반영). */}
+            <div className="onboarding-gallery-image-wrap">
+              <span className="badge onboarding-gallery-badge">{currentEnding.capitalLabel}</span>
+              <img
+                className="onboarding-gallery-image"
+                src={`/capitals/${currentEnding.capitalKey}.png`}
+                alt={currentEnding.capitalLabel}
+              />
+            </div>
             <p className="onboarding-gallery-desc">{currentEnding.description}</p>
 
             {!isLastCard ? (
