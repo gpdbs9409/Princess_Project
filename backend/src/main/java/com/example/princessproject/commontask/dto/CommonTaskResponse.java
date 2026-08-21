@@ -16,6 +16,7 @@ public record CommonTaskResponse(
         String retroDailyLife,
         String retroWeekReview,
         String retroNextWeekPlan,
+        String photoUrl,
         String memo
 ) {
     public static CommonTaskResponse from(CommonTaskRecord record) {
@@ -30,6 +31,7 @@ public record CommonTaskResponse(
                 record.getRetroDailyLife(),
                 record.getRetroWeekReview(),
                 record.getRetroNextWeekPlan(),
+                record.getPhotoUrl(),
                 record.getMemo()
         );
     }

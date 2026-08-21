@@ -69,6 +69,7 @@ public class CommonTaskService {
         record.setRetroDailyLife(request.retroDailyLife());
         record.setRetroWeekReview(request.retroWeekReview());
         record.setRetroNextWeekPlan(request.retroNextWeekPlan());
+        record.setPhotoUrl(request.photoUrl());
         record.setMemo(request.memo());
         return commonTaskRecordRepository.save(record);
     }
@@ -121,6 +122,7 @@ public class CommonTaskService {
             throw new CommonTaskValidationException(
                     "READING_RANGE_TOO_LARGE", "A single day's reading range can't exceed " + MAX_PAGES_PER_DAY + " pages");
         }
+        requirePhoto(request, "READING_PHOTO_REQUIRED");
     }
 
     private void validateStudy(CommonTaskRequest request) {
@@ -132,11 +134,20 @@ public class CommonTaskService {
         if (request.studyPlannedAmount() != null) {
             requireInRange(request.studyPlannedAmount(), "STUDY_PLANNED_OUT_OF_RANGE");
         }
+        requirePhoto(request, "STUDY_PHOTO_REQUIRED");
     }
 
     private void requireInRange(BigDecimal value, String errorCode) {
         if (value.signum() < 0 || value.compareTo(MAX_STUDY_AMOUNT) > 0) {
             throw new CommonTaskValidationException(errorCode, "Value must be between 0 and " + MAX_STUDY_AMOUNT);
+        }
+    }
+
+    // 타 습관 카드(MissionCard/DailyRecordService)와 동일하게, 독서/공부도 사진 인증이 필수다
+    // (2026-08-21 정책). 주간회고는 대상이 아니라 validateRetrospective에서는 호출하지 않는다.
+    private void requirePhoto(CommonTaskRequest request, String errorCode) {
+        if (request.photoUrl() == null || request.photoUrl().isBlank()) {
+            throw new CommonTaskValidationException(errorCode, "A photo is required to save this record");
         }
     }
 

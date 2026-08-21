@@ -7,10 +7,12 @@ interface CameraCaptureModalProps {
 
 /**
  * Opens the device's live camera in-page via getUserMedia and lets the user shoot a frame
- * to a <canvas>, which becomes the mission-verification photo. There is intentionally no
- * file picker anywhere in this flow - a canvas-encoded frame never carries EXIF, and the
- * only way to produce one is to point a live camera at something right now, so old gallery
- * photos can't be reused to fake a mission.
+ * to a <canvas>, which becomes the verification photo.
+ *
+ * 2026-08-21 정책 변경: 갤러리 업로드도 다시 허용됐다 - 다만 그건 이 모달이 아니라
+ * PhotoCaptureField의 "갤러리에서 선택" 버튼(별도 <input type="file">)을 통해서다. 이 모달
+ * 자체는 여전히 실시간 촬영 전용이고, 백엔드 PhotoDateVerifier가 EXIF 촬영일로 오늘 것만
+ * 통과시켜서 예전 사진 재사용을 막는다.
  */
 export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -117,7 +119,8 @@ export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalPro
         {capturedUrl && <img src={capturedUrl} alt="촬영한 사진 미리보기" className="camera-video" />}
 
         <p className="muted" style={{ marginTop: 8, fontSize: 13 }}>
-          갤러리에서 불러온 사진은 사용할 수 없어요. 지금 바로 카메라로 찍어주세요.
+          이 화면에서는 지금 바로 촬영한 사진만 쓸 수 있어요. 저장된 사진을 쓰려면 닫고
+          "갤러리에서 선택"을 이용해주세요.
         </p>
 
         <div className="row" style={{ gap: 10, marginTop: 12, justifyContent: "center" }}>

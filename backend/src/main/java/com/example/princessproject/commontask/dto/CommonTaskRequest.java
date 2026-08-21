@@ -20,6 +20,8 @@ public record CommonTaskRequest(
         String retroDailyLife,
         String retroWeekReview,
         String retroNextWeekPlan,
+        // READING/STUDY 전용, 둘 다 필수 (CommonTaskService#validateReading/validateStudy).
+        String photoUrl,
         String memo
 ) {
 }

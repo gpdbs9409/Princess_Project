@@ -81,6 +81,12 @@ public class CommonTaskRecord {
     @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String retroNextWeekPlan;
 
+    // READING/STUDY 전용 사진 인증 (2026-08-21: 타 습관 카드와 동일하게 사진인증 추가).
+    // WEEKLY_RETROSPECTIVE에는 쓰이지 않는다 - MissionCard와 마찬가지로 업로드 URL만 들고
+    // 있고, 실제 파일은 /api/uploads가 관리한다.
+    @Column(name = "photo_url", length = 500)
+    private String photoUrl;
+
     @Column(length = 1000)
     private String memo;
 

@@ -300,6 +300,8 @@ export interface CommonTaskRequest {
   retroDailyLife?: string;
   retroWeekReview?: string;
   retroNextWeekPlan?: string;
+  // READING/STUDY만 필수 (2026-08-21: 타 습관 카드와 동일하게 사진인증 추가). WEEKLY_RETROSPECTIVE는 없음.
+  photoUrl?: string;
   memo?: string;
 }
 
@@ -314,5 +316,6 @@ export interface CommonTaskResponse {
   retroDailyLife: string | null;
   retroWeekReview: string | null;
   retroNextWeekPlan: string | null;
+  photoUrl: string | null;
   memo: string | null;
 }

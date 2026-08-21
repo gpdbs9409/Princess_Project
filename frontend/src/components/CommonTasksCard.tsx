@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
-import { getDailyCommonTasks, getWeeklyCommonTask, saveCommonTask } from "../api/endpoints";
+import { getDailyCommonTasks, getWeeklyCommonTask, saveCommonTask, uploadFile } from "../api/endpoints";
 import type { CommonTaskResponse } from "../api/types";
+import { PhotoCaptureField } from "./PhotoCaptureField";
 import { useToast } from "./ToastProvider";
 
 // A "field to write these in" was missing from the whole app even though the setup wizard's
@@ -40,6 +41,8 @@ function commonTaskErrorMessage(err: unknown, fallback: string): string {
     STUDY_COMPLETED_REQUIRED: "오늘 완료량을 입력해주세요.",
     STUDY_COMPLETED_OUT_OF_RANGE: `완료량은 0~${MAX_STUDY_AMOUNT.toLocaleString()} 사이여야 해요.`,
     STUDY_PLANNED_OUT_OF_RANGE: `계획량은 0~${MAX_STUDY_AMOUNT.toLocaleString()} 사이여야 해요.`,
+    READING_PHOTO_REQUIRED: "사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.",
+    STUDY_PHOTO_REQUIRED: "사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.",
     RETROSPECTIVE_EMPTY: "PART1~3 중 최소 하나는 내용을 입력해주세요.",
     RETROSPECTIVE_TOO_LONG: `각 항목은 ${MAX_RETRO_TEXT_LENGTH.toLocaleString()}자 이하로 입력해주세요.`,
   };
@@ -51,6 +54,8 @@ function ReadingSection() {
   const [existing, setExisting] = useState<CommonTaskResponse | null>(null);
   const [startPage, setStartPage] = useState("");
   const [endPage, setEndPage] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +69,23 @@ function ReadingSection() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Object URLs aren't garbage-collected on their own - revoke the previous one whenever
+  // the selected file changes or the card unmounts, so we don't leak blob URLs.
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    };
+  }, [photoPreviewUrl]);
+
+  const handlePhotoSelected = (file: File) => {
+    setPhotoFile(file);
+    setError(null);
+    setPhotoPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
 
   const handleSave = async () => {
     const start = Number(startPage);
@@ -84,10 +106,21 @@ function ReadingSection() {
       setError(`하루 독서량이 너무 커요. ${MAX_PAGES_PER_DAY.toLocaleString()}p 이하로 입력해주세요.`);
       return;
     }
+    if (!photoFile) {
+      setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      const saved = await saveCommonTask({ taskType: "READING", date: todayIso(), startPage: start, endPage: end });
+      const uploaded = await uploadFile(photoFile);
+      const saved = await saveCommonTask({
+        taskType: "READING",
+        date: todayIso(),
+        startPage: start,
+        endPage: end,
+        photoUrl: uploaded.url,
+      });
       setExisting(saved);
       showToast("독서 기록이 저장되었어요");
     } catch (err) {
@@ -116,6 +149,9 @@ function ReadingSection() {
               {existing.startPage}p ~ {existing.endPage}p ({(existing.endPage ?? 0) - (existing.startPage ?? 0)}p)
             </strong>
           </div>
+          {existing.photoUrl && (
+            <img src={existing.photoUrl} alt="독서 인증 사진" className="photo-preview" />
+          )}
         </div>
       </div>
     );
@@ -151,6 +187,12 @@ function ReadingSection() {
             style={{ maxWidth: 110 }}
           />
         </div>
+        <PhotoCaptureField
+          photoFile={photoFile}
+          photoPreviewUrl={photoPreviewUrl}
+          onSelect={handlePhotoSelected}
+          label="사진 인증 (필수 · 카메라 촬영 또는 갤러리에서 선택)"
+        />
         {error && <div className="error-banner">{error}</div>}
         <button className="primary" onClick={handleSave} disabled={saving}>
           {saving ? "저장 중..." : "저장"}
@@ -165,6 +207,8 @@ function StudySection() {
   const [existing, setExisting] = useState<CommonTaskResponse | null>(null);
   const [planned, setPlanned] = useState("");
   const [completed, setCompleted] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -177,6 +221,23 @@ function StudySection() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Object URLs aren't garbage-collected on their own - revoke the previous one whenever
+  // the selected file changes or the card unmounts, so we don't leak blob URLs.
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    };
+  }, [photoPreviewUrl]);
+
+  const handlePhotoSelected = (file: File) => {
+    setPhotoFile(file);
+    setError(null);
+    setPhotoPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
 
   const handleSave = async () => {
     const completedValue = Number(completed);
@@ -196,14 +257,20 @@ function StudySection() {
         return;
       }
     }
+    if (!photoFile) {
+      setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
+      const uploaded = await uploadFile(photoFile);
       const saved = await saveCommonTask({
         taskType: "STUDY",
         date: todayIso(),
         studyCompletedAmount: completedValue,
         studyPlannedAmount: plannedValue,
+        photoUrl: uploaded.url,
       });
       setExisting(saved);
       showToast("공부 기록이 저장되었어요");
@@ -234,6 +301,9 @@ function StudySection() {
               {existing.studyPlannedAmount != null && ` / 계획량 ${existing.studyPlannedAmount}`}
             </strong>
           </div>
+          {existing.photoUrl && (
+            <img src={existing.photoUrl} alt="공부 인증 사진" className="photo-preview" />
+          )}
         </div>
       </div>
     );
@@ -268,6 +338,12 @@ function StudySection() {
             style={{ maxWidth: 120 }}
           />
         </div>
+        <PhotoCaptureField
+          photoFile={photoFile}
+          photoPreviewUrl={photoPreviewUrl}
+          onSelect={handlePhotoSelected}
+          label="사진 인증 (필수 · 카메라 촬영 또는 갤러리에서 선택)"
+        />
         {error && <div className="error-banner">{error}</div>}
         <button className="primary" onClick={handleSave} disabled={saving}>
           {saving ? "저장 중..." : "저장"}

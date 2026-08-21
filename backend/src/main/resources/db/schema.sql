@@ -885,6 +885,9 @@ CREATE TABLE common_task_records (
     retro_week_review TEXT NULL,
     retro_next_week_plan TEXT NULL,
 
+    -- READING/STUDY 전용 사진 인증 (2026-08-21)
+    photo_url VARCHAR(500) NULL,
+
     memo VARCHAR(1000) NULL,
 
     created_at TIMESTAMP NOT NULL

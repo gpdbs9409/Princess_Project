@@ -79,29 +79,11 @@ export function RecordPage() {
 
       {error && <div className="error-banner" style={{ marginBottom: 16 }}>{error}</div>}
 
-      {/* 독서/공부 - every participant does these regardless of which 아비투스를 picked (or
-          even whether they've finished setup yet), so this always renders here rather than
-          being gated behind hasNoMissions below. Styled to match the regular habit card list
-          below (같은 "배지 + .stack gap 12" 조합) instead of being boxed into one combined
-          card (2026-08-21: 다른 습관 카드랑 똑같은 UI/UX로 분리 요청).
-          주간 회고는 여기 없다 - 주 1회만 쓰면 되는 과제라 상단 메뉴의 "주간 회고"
-          (/weekly-retrospective)로 분리했다 (2026-08-21 요청). */}
-      <div className="stack" style={{ marginBottom: 16, gap: 12 }}>
-        <span className="badge good" style={{ alignSelf: "flex-start" }}>
-          공통 과제
-        </span>
-        <CommonTasksCard />
-        <p className="muted" style={{ margin: 0, fontSize: 12.5 }}>
-          주간 회고는 상단 메뉴의{" "}
-          <Link to="/weekly-retrospective" className="link">
-            주간 회고
-          </Link>
-          에서 주 1회 작성해요.
-        </p>
-      </div>
-
+      {/* 오늘 총점 - 페이지에서 가장 먼저 눈에 들어와야 하는 요약이라 맨 위로 옮겼다
+          (2026-08-21 요청: 오늘총점은 가장상단에 와야하고 그 아래 공통과제 2종 및 타
+          습관기록도 같이). */}
       {summary && (
-        <div className="card">
+        <div className="card" style={{ marginBottom: 16 }}>
           <div className="row-between">
             <strong>오늘 총점</strong>
             <span className="tabular" style={{ fontSize: 20, fontWeight: 700 }}>
@@ -123,30 +105,42 @@ export function RecordPage() {
 
       {loading && <p className="muted">불러오는 중...</p>}
 
+      {/* 오늘 총점 아래로, 독서/공부 공통 과제와 다른 습관 기록을 한 목록에 이어서 보여준다
+          (2026-08-21 요청). 독서/공부는 어떤 아비투스를 골랐든 전원 필수라 hasNoMissions와
+          무관하게 항상 먼저 렌더링되고, 그 아래로 선택한 습관 미션 카드가 이어진다.
+          주간 회고는 여기 없다 - 주 1회만 쓰면 되는 과제라 상단 메뉴의 "주간 회고"
+          (/weekly-retrospective)로 분리했다 (2026-08-21 요청). */}
+      <div className="stack" style={{ marginBottom: 16, gap: 12 }}>
+        <span className="badge good" style={{ alignSelf: "flex-start" }}>
+          오늘의 기록
+        </span>
+        <CommonTasksCard />
+        {missions.map((mission) => (
+          <MissionCard
+            key={mission.userMissionId}
+            mission={mission}
+            date={date}
+            completed={summary?.completedMissions.includes(mission.name) ?? false}
+            record={summary?.todayRecords[mission.userMissionId]}
+            onSaved={load}
+          />
+        ))}
+      </div>
+
+      <p className="muted" style={{ marginTop: -4, marginBottom: 16, fontSize: 12.5 }}>
+        주간 회고는 상단 메뉴의{" "}
+        <Link to="/weekly-retrospective" className="link">
+          주간 회고
+        </Link>
+        에서 주 1회 작성해요.
+      </p>
+
       {!loading && hasNoMissions && (
         <div className="card">
           <p className="muted">아직 선택한 미션이 없어요.</p>
           <Link to="/stat-focus" className="link">
             아비투스·미션 설정하러 가기 →
           </Link>
-        </div>
-      )}
-
-      {missions.length > 0 && (
-        <div className="stack" style={{ marginTop: 16, gap: 12 }}>
-          <span className="badge good" style={{ alignSelf: "flex-start" }}>
-            Habit Tracker
-          </span>
-          {missions.map((mission) => (
-            <MissionCard
-              key={mission.userMissionId}
-              mission={mission}
-              date={date}
-              completed={summary?.completedMissions.includes(mission.name) ?? false}
-              record={summary?.todayRecords[mission.userMissionId]}
-              onSaved={load}
-            />
-          ))}
         </div>
       )}
 
