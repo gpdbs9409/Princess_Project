@@ -1,6 +1,8 @@
 package com.example.princessproject.common;
 
 import com.example.princessproject.auth.service.AuthValidationException;
+import com.example.princessproject.admin.service.AdminValidationException;
+import com.example.princessproject.commontask.service.CommonTaskValidationException;
 import com.example.princessproject.project.service.ProjectValidationException;
 import com.example.princessproject.record.service.RecordValidationException;
 import com.example.princessproject.upload.service.UploadValidationException;
@@ -19,6 +21,12 @@ public class GlobalExceptionHandler {
         return new ApiErrorResponse(ex.getCode(), ex.getMessage());
     }
 
+    @ExceptionHandler(AdminValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiErrorResponse onAdminValidation(AdminValidationException ex) {
+        return new ApiErrorResponse(ex.getCode(), ex.getMessage());
+    }
+
     @ExceptionHandler(ProjectValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiErrorResponse onProjectValidation(ProjectValidationException ex) {
@@ -28,6 +36,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RecordValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiErrorResponse onRecordValidation(RecordValidationException ex) {
+        return new ApiErrorResponse(ex.getCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(CommonTaskValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiErrorResponse onCommonTaskValidation(CommonTaskValidationException ex) {
         return new ApiErrorResponse(ex.getCode(), ex.getMessage());
     }
 

@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -155,7 +156,18 @@ public class AdminService {
         return result;
     }
 
-    /** Setting a new MVP for a (cohort, week) replaces whoever held it before - not additive. */
+    /**
+     * Setting a new MVP for a (cohort, week) replaces whoever held it before - not additive.
+     *
+     * 1인 1회 제한 (주간 MVP 정책 v1.0, 2026-08-20, 시하): 같은 기수 안에서 이미 다른 주차에
+     * MVP로 선정된 적이 있는 사람은 다시 후보가 될 수 없다. 같은 주차를 정정하는 경우(운영진이
+     * 발표 전에 선택을 바꾸는 경우)는 예외로 허용한다 - 그 주차의 기존 기록을 덮어쓰는 것뿐이라
+     * "또 받는" 상황이 아니기 때문.
+     *
+     * 정책 문서의 "엔딩 등급 +1레벨" 보상 자체는 아직 여기서 자동 적용되지 않는다 - Score 산정식이
+     * 확정되기 전이라 등급 시스템도 아직 없다 (정책 문서 7번 항목 참고). 이 메서드는 여전히
+     * "누가 그 주 MVP인지"만 기록하고, 실제 보상 지급은 운영진이 수동으로 처리한다.
+     */
     @Transactional
     public MvpResponse setMvp(Long userId, LocalDate weekStart, String note) {
         User user = userRepository.findById(userId)
@@ -164,7 +176,21 @@ public class AdminService {
             throw new IllegalArgumentException("User has no cohort assigned: " + userId);
         }
 
-        WeeklyMvp mvp = weeklyMvpRepository.findByCohortAndWeekStart(user.getCohort(), weekStart)
+        Optional<WeeklyMvp> existingForThisWeek =
+                weeklyMvpRepository.findByCohortAndWeekStart(user.getCohort(), weekStart);
+
+        boolean alreadyWonAnotherWeek = weeklyMvpRepository
+                .findByCohortAndUserId(user.getCohort(), user.getId())
+                .stream()
+                .anyMatch(mvp -> !mvp.getWeekStart().equals(weekStart));
+        if (alreadyWonAnotherWeek) {
+            throw new AdminValidationException(
+                    "MVP_ALREADY_AWARDED",
+                    user.getNickname() + "님은 이미 다른 주차에 MVP로 선정된 적이 있어요. "
+                            + "1인 1회 제한 규칙에 따라 다시 선정할 수 없습니다.");
+        }
+
+        WeeklyMvp mvp = existingForThisWeek
                 .orElseGet(() -> new WeeklyMvp(user.getId(), user.getCohort(), weekStart, note));
         mvp.setUserId(user.getId());
         mvp.setNote(note);

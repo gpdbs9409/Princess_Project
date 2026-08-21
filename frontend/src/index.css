@@ -175,7 +175,8 @@ label {
 input[type="text"],
 input[type="password"],
 input[type="number"],
-select {
+select,
+textarea {
   font: inherit;
   color: var(--text);
   background: var(--surface-2);
@@ -183,6 +184,10 @@ select {
   border-radius: 8px;
   padding: 9px 11px;
   width: 100%;
+}
+
+textarea {
+  resize: vertical;
 }
 
 input:focus-visible {
@@ -969,4 +974,169 @@ a.link:hover {
   color: var(--text-muted);
   font-weight: 700;
   font-size: 12px;
+}
+
+/* 온보딩 브릿지 팝업 (카톡/인스타 초대 링크 진입 시 로그인 화면 위에 뜨는 스토리텔링 팝업) */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 15, 18, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+.onboarding-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: 100%;
+  max-width: 380px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.onboarding-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0, 0, 0, 0.35);
+  color: white;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  padding: 0;
+}
+
+.onboarding-video-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  padding-top: 24px;
+}
+.onboarding-video {
+  width: 100%;
+  border-radius: 8px;
+  background: black;
+  max-height: 60vh;
+}
+.onboarding-video-fallback {
+  width: 100%;
+  aspect-ratio: 9 / 14;
+  border-radius: 8px;
+  background: linear-gradient(160deg, var(--accent-soft), var(--surface-2));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 24px;
+}
+.onboarding-skip {
+  align-self: flex-end;
+}
+
+.onboarding-climax {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding-top: 24px;
+  text-align: center;
+}
+.onboarding-climax-image {
+  width: 100%;
+  aspect-ratio: 9 / 12;
+  border-radius: 8px;
+  background: radial-gradient(circle at 50% 30%, #3a2530, #14100f 80%);
+}
+.onboarding-climax-countdown {
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--danger);
+  letter-spacing: 0.02em;
+}
+.onboarding-climax-copy {
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+.onboarding-climax-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.onboarding-climax-actions button {
+  flex: 1;
+}
+
+.onboarding-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  padding-top: 24px;
+  text-align: center;
+  touch-action: pan-y;
+}
+.onboarding-gallery-counter {
+  align-self: flex-start;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.onboarding-gallery-badge {
+  align-self: flex-start;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border: none;
+}
+.onboarding-gallery-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 24px;
+}
+.onboarding-gallery-title {
+  font-size: 17px;
+  margin: 0;
+}
+.onboarding-gallery-desc {
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+.onboarding-gallery-nav {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+.onboarding-gallery-nav button {
+  flex: 1;
+}
+.onboarding-gallery-final {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+.onboarding-gallery-final-copy {
+  font-weight: 600;
 }

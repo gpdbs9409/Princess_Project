@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ApiError } from "../api/client";
 import {
   addAdminAdjustment,
   addRecruitmentApplicant,
@@ -261,12 +262,17 @@ export function AdminPage() {
 
   const handleToggleMvp = async (member: AdminMemberWeekResponse) => {
     if (!member.cohort) return;
-    if (member.isMvp) {
-      await clearAdminMvp(member.cohort, weekStartIso);
-    } else {
-      await setAdminMvp(member.userId, weekStartIso);
+    try {
+      if (member.isMvp) {
+        await clearAdminMvp(member.cohort, weekStartIso);
+      } else {
+        await setAdminMvp(member.userId, weekStartIso);
+      }
+      await loadParticipants();
+    } catch (err) {
+      // 1인 1회 제한 위반 등 - 서버가 이유를 메시지로 내려줌 (주간 MVP 정책 v1.0, 2026-08-20)
+      alert(err instanceof ApiError ? err.message : "MVP 지정에 실패했습니다.");
     }
-    await loadParticipants();
   };
 
   const toggleAdjustmentPanel = async (userId: number) => {
