@@ -44,8 +44,14 @@ CREATE TABLE users (
     -- "1기", "2기"처럼 자유 텍스트로 두어 운영진이 새 기수를 코드 배포 없이 바로 쓸 수 있게 한다.
     cohort VARCHAR(20) NULL,
 
+    -- 선택 항목. 없으면 "비밀번호 찾기"를 쓸 수 없다 (회원가입 때 입력하거나 마이페이지에서 나중에 등록).
+    email VARCHAR(255) NULL,
+
     CONSTRAINT uk_users_nickname
-        UNIQUE (nickname)
+        UNIQUE (nickname),
+
+    CONSTRAINT uk_users_email
+        UNIQUE (email)
 ) ENGINE = InnoDB;
 
 
@@ -845,7 +851,100 @@ CREATE TABLE score_adjustments (
 
 
 -- =========================================================
--- 14. RECRUITMENT_APPLICANTS
+-- 14. COMMON_TASK_RECORDS
+-- 독서/공부/주간회고 "공통 과제 3종" 기록 - 모든 참가자가 선택한 아비투스와 무관하게
+-- 공통으로 수행하므로, 가중치 합계 100% 규칙이 있는 user_goals/user_stats/user_missions
+-- 트리와는 별도로 둔다.
+-- =========================================================
+
+CREATE TABLE common_task_records (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    user_id BIGINT NOT NULL,
+    project_id BIGINT NOT NULL,
+
+    task_type ENUM(
+        'READING',
+        'STUDY',
+        'WEEKLY_RETROSPECTIVE'
+    ) NOT NULL,
+
+    -- READING/STUDY: 그 날짜. WEEKLY_RETROSPECTIVE: 그 주의 월요일.
+    record_date DATE NOT NULL,
+
+    -- READING
+    start_page INT NULL,
+    end_page INT NULL,
+
+    -- STUDY
+    study_planned_amount DECIMAL(10, 2) NULL,
+    study_completed_amount DECIMAL(10, 2) NULL,
+
+    -- WEEKLY_RETROSPECTIVE (PART1/2/3)
+    retro_daily_life TEXT NULL,
+    retro_week_review TEXT NULL,
+    retro_next_week_plan TEXT NULL,
+
+    memo VARCHAR(1000) NULL,
+
+    created_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_common_task_records_user_type_date
+        UNIQUE (
+            user_id,
+            task_type,
+            record_date
+        ),
+
+    INDEX idx_common_task_records_project (
+        project_id
+    ),
+
+    CONSTRAINT fk_common_task_records_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_common_task_records_project
+        FOREIGN KEY (project_id)
+        REFERENCES user_projects(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT chk_common_task_records_start_page
+        CHECK (
+            start_page IS NULL
+            OR start_page >= 0
+        ),
+
+    CONSTRAINT chk_common_task_records_end_page
+        CHECK (
+            end_page IS NULL
+            OR end_page >= 0
+        ),
+
+    CONSTRAINT chk_common_task_records_study_planned
+        CHECK (
+            study_planned_amount IS NULL
+            OR study_planned_amount >= 0
+        ),
+
+    CONSTRAINT chk_common_task_records_study_completed
+        CHECK (
+            study_completed_amount IS NULL
+            OR study_completed_amount >= 0
+        )
+) ENGINE = InnoDB;
+
+
+-- =========================================================
+-- 15. RECRUITMENT_APPLICANTS
 -- 내부 운영용 지원자 기록 - users 테이블과 의도적으로 무관하다.
 -- 앱 URL은 이미 선발된 사람에게만 전달되므로, 실제 회원가입=참가자이다.
 -- 여기는 그 이전 단계(모집/지원) 를 팀 내부에서 기록하기 위한 용도.
@@ -872,4 +971,34 @@ CREATE TABLE recruitment_applicants (
     updated_at TIMESTAMP NOT NULL
         DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP
+) ENGINE = InnoDB;
+
+
+-- =========================================================
+-- 16. PASSWORD_RESET_TOKENS
+-- "비밀번호 찾기" 1회용 토큰. 유효기간 30분, 사용 즉시 used=TRUE.
+-- 새 재설정 요청이 오면 해당 유저의 미사용 토큰은 삭제하므로 항상 유저당 최대 1개만 유효하다.
+-- =========================================================
+
+CREATE TABLE password_reset_tokens (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    user_id BIGINT NOT NULL,
+
+    token VARCHAR(128) NOT NULL,
+
+    expires_at TIMESTAMP NOT NULL,
+
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+
+    created_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_password_reset_tokens_token
+        UNIQUE (token),
+
+    CONSTRAINT fk_password_reset_tokens_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 ) ENGINE = InnoDB;

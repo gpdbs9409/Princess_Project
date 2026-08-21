@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getProfileStats, updateProfileImage } from "../api/endpoints";
+import { ApiError } from "../api/client";
+import { getProfileStats, updateEmail, updateProfileImage } from "../api/endpoints";
 import type { ProfileStatsResponse } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 
@@ -8,6 +9,11 @@ export function MyPage() {
   const [stats, setStats] = useState<ProfileStatsResponse | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -30,6 +36,34 @@ export function MyPage() {
       setError("사진 변경에 실패했어요.");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const startEditingEmail = () => {
+    setEmailInput(user.email ?? "");
+    setEmailError(null);
+    setEditingEmail(true);
+  };
+
+  const handleEmailSave = async () => {
+    if (!emailInput.trim()) {
+      setEmailError("이메일을 입력해주세요.");
+      return;
+    }
+    setEmailSaving(true);
+    setEmailError(null);
+    try {
+      const updated = await updateEmail(user.id, emailInput.trim());
+      updateUser(updated);
+      setEditingEmail(false);
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "EMAIL_TAKEN") {
+        setEmailError("이미 사용 중인 이메일이에요.");
+      } else {
+        setEmailError("이메일 저장에 실패했어요. 잠시 후 다시 시도해주세요.");
+      }
+    } finally {
+      setEmailSaving(false);
     }
   };
 
@@ -84,6 +118,42 @@ export function MyPage() {
           <p className="muted">
             지금까지 기록 {stats.recordCount}개를 남겼어요 · 함께하는 멤버 {stats.totalUsers}명
           </p>
+        )}
+      </div>
+
+      <div className="card stack" style={{ gap: 10, marginTop: 16 }}>
+        <div className="row-between">
+          <strong>이메일</strong>
+          {!editingEmail && (
+            <button type="button" className="ghost" onClick={startEditingEmail}>
+              {user.email ? "수정" : "등록"}
+            </button>
+          )}
+        </div>
+        <p className="muted" style={{ margin: 0 }}>
+          비밀번호를 잊었을 때 재설정 메일을 받는 용도예요.
+        </p>
+
+        {!editingEmail && <p style={{ margin: 0 }}>{user.email ?? "등록된 이메일이 없어요."}</p>}
+
+        {editingEmail && (
+          <div className="stack" style={{ gap: 8 }}>
+            <input
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="example@email.com"
+            />
+            {emailError && <div className="error-banner">{emailError}</div>}
+            <div className="row" style={{ gap: 8 }}>
+              <button type="button" className="primary" onClick={handleEmailSave} disabled={emailSaving}>
+                {emailSaving ? "저장 중..." : "저장"}
+              </button>
+              <button type="button" className="ghost" onClick={() => setEditingEmail(false)} disabled={emailSaving}>
+                취소
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

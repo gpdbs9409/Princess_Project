@@ -33,13 +33,22 @@ public class UserService {
      * Signup and login used to be one combined "first use creates the account" flow, but that
      * silently created a brand-new empty account on any nickname typo instead of telling the
      * user their nickname was wrong - now separate, each with its own clear failure mode.
+     *
+     * email is optional (null/blank both treated as "not provided") since it only exists to
+     * power "비밀번호 찾기" - accounts created before this feature, or anyone who skips it,
+     * simply can't use password reset until they add one from 마이페이지.
      */
     @Transactional
-    public User signup(String nickname, String rawPassword) {
+    public User signup(String nickname, String rawPassword, String email) {
         if (userRepository.findByNickname(nickname).isPresent()) {
             throw new AuthValidationException("NICKNAME_TAKEN", "Nickname already exists: " + nickname);
         }
+        String normalizedEmail = normalizeEmail(email);
+        if (normalizedEmail != null && userRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new AuthValidationException("EMAIL_TAKEN", "Email already registered: " + normalizedEmail);
+        }
         User user = new User(nickname, passwordEncoder.encode(rawPassword));
+        user.setEmail(normalizedEmail);
         return userRepository.save(user);
     }
 
@@ -80,10 +89,28 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    @Transactional
+    public User updateEmail(Long userId, String email) {
+        User user = getById(userId);
+        String normalizedEmail = normalizeEmail(email);
+        userRepository.findByEmail(normalizedEmail)
+                .filter(existing -> !existing.getId().equals(userId))
+                .ifPresent(existing -> {
+                    throw new AuthValidationException("EMAIL_TAKEN", "Email already registered: " + normalizedEmail);
+                });
+        user.setEmail(normalizedEmail);
+        return userRepository.save(user);
+    }
+
     @Transactional(readOnly = true)
     public ProfileStatsResponse getProfileStats(Long userId) {
         long recordCount = dailyRecordRepository.countByUserId(userId);
         long totalUsers = userRepository.count();
         return new ProfileStatsResponse(recordCount, totalUsers);
+    }
+
+    private String normalizeEmail(String email) {
+        if (email == null || email.isBlank()) return null;
+        return email.trim().toLowerCase();
     }
 }

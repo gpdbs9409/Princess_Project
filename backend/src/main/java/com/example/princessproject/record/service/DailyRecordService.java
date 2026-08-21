@@ -28,6 +28,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class DailyRecordService {
 
+    // A record's input is compared against its mission's own target so this scales naturally
+    // (a "10000걸음" mission and a "30분" mission both get the same generous headroom above
+    // their own target) instead of one fixed number that would be way too tight for some
+    // missions and useless for others. This exists purely to catch fat-finger/garbage input
+    // (e.g. "999999" typed into a 30-minute mission) - genuine overachievement stays well
+    // inside it, and the score itself is already capped at 100% by ScoringService regardless.
+    private static final BigDecimal MAX_INPUT_MULTIPLE_OF_TARGET = BigDecimal.valueOf(50);
+
     private final DailyRecordRepository dailyRecordRepository;
     private final UserMissionRepository userMissionRepository;
     private final UserRepository userRepository;
@@ -68,6 +76,23 @@ public class DailyRecordService {
 
         BigDecimal targetValue = userMission.getTargetValue();
         BigDecimal assignedPoints = userMission.getAssignedPoints();
+
+        // Belt-and-suspenders alongside RecordRequest's @DecimalMin(0) - this is the layer that
+        // also catches obviously-bogus overachievement (e.g. "999999" against a 30분 target),
+        // which no static DTO annotation can express since it depends on this mission's own
+        // target value.
+        if (inputValue.signum() < 0) {
+            throw new RecordValidationException("INPUT_NEGATIVE", "Input value cannot be negative");
+        }
+        if (targetValue != null && targetValue.signum() > 0) {
+            BigDecimal maxReasonableInput = targetValue.multiply(MAX_INPUT_MULTIPLE_OF_TARGET);
+            if (inputValue.compareTo(maxReasonableInput) > 0) {
+                throw new RecordValidationException(
+                        "INPUT_TOO_LARGE",
+                        "Input value " + inputValue + " is unreasonably larger than the mission's target " + targetValue);
+            }
+        }
+
         // Each record still snapshots its own day's achievement, independent of how WEEKLY
         // missions get rolled up for display (see getMissionProgress) - this is just this
         // record's own contribution, kept for history/auditing.

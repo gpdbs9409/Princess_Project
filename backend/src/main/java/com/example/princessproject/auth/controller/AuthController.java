@@ -3,8 +3,12 @@ package com.example.princessproject.auth.controller;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.service.UserService;
 import com.example.princessproject.auth.service.JwtService;
+import com.example.princessproject.auth.service.PasswordResetService;
+import com.example.princessproject.auth.dto.ForgotPasswordRequest;
 import com.example.princessproject.auth.dto.LoginRequest;
 import com.example.princessproject.auth.dto.LoginResponse;
+import com.example.princessproject.auth.dto.ResetPasswordRequest;
+import com.example.princessproject.auth.dto.SignupRequest;
 import com.example.princessproject.user.dto.UserResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -22,15 +26,17 @@ public class AuthController {
 
     private final UserService userService;
     private final JwtService jwtService;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(UserService userService, JwtService jwtService) {
+    public AuthController(UserService userService, JwtService jwtService, PasswordResetService passwordResetService) {
         this.userService = userService;
         this.jwtService = jwtService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/signup")
-    public LoginResponse signup(@Valid @RequestBody LoginRequest request) {
-        User user = userService.signup(request.nickname(), request.password());
+    public LoginResponse signup(@Valid @RequestBody SignupRequest request) {
+        User user = userService.signup(request.nickname(), request.password(), request.email());
         String token = jwtService.generateToken(user);
         return new LoginResponse(token, UserResponse.from(user));
     }
@@ -44,6 +50,21 @@ public class AuthController {
         User user = userService.authenticate(request.nickname(), request.password());
         String token = jwtService.generateToken(user);
         return new LoginResponse(token, UserResponse.from(user));
+    }
+
+    // 존재 여부와 관계없이 항상 204 - 응답 코드로 "가입된 닉네임인지"가 새어나가지 않게 하려 했으나,
+    // 그러면 프론트에서 실패 사유를 안내할 수 없어서 지금은 코드로 구분해서 보여준다
+    // (NICKNAME_NOT_FOUND / EMAIL_NOT_SET). 필요하면 나중에 더 무난한 문구로 통일 가능.
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestReset(request.nickname());
+    }
+
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.token(), request.newPassword());
     }
 
     @ExceptionHandler(BadCredentialsException.class)

@@ -16,6 +16,7 @@ import com.example.princessproject.project.model.UserStat;
 import com.example.princessproject.project.repository.UserProjectRepository;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserProjectService {
+
+    // Mirrors chk_user_goals_weight (1-100) - checked here too so a bad value gets a specific,
+    // actionable error code instead of surfacing as a generic 500 from the DB constraint.
+    private static final int MIN_GOAL_WEIGHT_PERCENT = 1;
+    private static final int MAX_GOAL_WEIGHT_PERCENT = 100;
+
+    // A mission's target has to be a small positive number in practice (e.g. "30분", "10000걸음") -
+    // this just guards against obviously-bogus setup input (0, negative, or something like
+    // 999999) slipping through and producing a target nobody could ever complete or a
+    // constraint violation at save time. Generous on purpose: not trying to guess a "correct"
+    // value per mission, just rejecting values nobody could have meant to type.
+    private static final BigDecimal MIN_MISSION_TARGET = new BigDecimal("0.01");
+    private static final BigDecimal MAX_MISSION_TARGET = new BigDecimal("100000");
+    private static final BigDecimal MAX_ASSIGNED_POINTS = new BigDecimal("100000");
 
     private final UserProjectRepository userProjectRepository;
     private final UserRepository userRepository;
@@ -112,7 +127,8 @@ public class UserProjectService {
     /**
      * Catches the input mistakes that would otherwise surface as an opaque 500 from a DB
      * constraint (duplicate goal type -> uk_user_goals_project_goal_type, weight range ->
-     * chk_user_goals_weight) so the frontend can show a specific, actionable message.
+     * chk_user_goals_weight, target range -> chk_user_missions_target) so the frontend can show
+     * a specific, actionable message instead of a silent/generic failure.
      */
     private void validateSelections(ProjectSelectionsRequest request) {
         List<ProjectSelectionsRequest.GoalSelection> selectedGoals = request.goals();
@@ -125,9 +141,42 @@ public class UserProjectService {
             throw new ProjectValidationException("DUPLICATE_GOAL_TYPE", "Duplicate goal type in selection");
         }
 
+        for (ProjectSelectionsRequest.GoalSelection goalSelection : selectedGoals) {
+            Integer weightPercent = goalSelection.weightPercent();
+            if (weightPercent == null || weightPercent < MIN_GOAL_WEIGHT_PERCENT || weightPercent > MAX_GOAL_WEIGHT_PERCENT) {
+                throw new ProjectValidationException(
+                        "GOAL_WEIGHT_OUT_OF_RANGE",
+                        "Goal weight must be between " + MIN_GOAL_WEIGHT_PERCENT + " and " + MAX_GOAL_WEIGHT_PERCENT
+                                + ", got " + weightPercent);
+            }
+            for (ProjectSelectionsRequest.StatSelection statSelection : goalSelection.stats()) {
+                for (ProjectSelectionsRequest.MissionSelection missionSelection : statSelection.missions()) {
+                    validateMissionSelection(missionSelection);
+                }
+            }
+        }
+
         int weightSum = selectedGoals.stream().mapToInt(ProjectSelectionsRequest.GoalSelection::weightPercent).sum();
         if (weightSum != 100) {
             throw new ProjectValidationException("WEIGHT_SUM_INVALID", "Goal weights must sum to 100, got " + weightSum);
+        }
+    }
+
+    private void validateMissionSelection(ProjectSelectionsRequest.MissionSelection missionSelection) {
+        BigDecimal targetValue = missionSelection.targetValue();
+        if (targetValue == null
+                || targetValue.compareTo(MIN_MISSION_TARGET) < 0
+                || targetValue.compareTo(MAX_MISSION_TARGET) > 0) {
+            throw new ProjectValidationException(
+                    "MISSION_TARGET_OUT_OF_RANGE",
+                    "Mission target must be between " + MIN_MISSION_TARGET + " and " + MAX_MISSION_TARGET
+                            + ", got " + targetValue);
+        }
+        BigDecimal assignedPoints = missionSelection.assignedPoints();
+        if (assignedPoints == null || assignedPoints.signum() < 0 || assignedPoints.compareTo(MAX_ASSIGNED_POINTS) > 0) {
+            throw new ProjectValidationException(
+                    "MISSION_POINTS_OUT_OF_RANGE",
+                    "Mission points must be between 0 and " + MAX_ASSIGNED_POINTS + ", got " + assignedPoints);
         }
     }
 

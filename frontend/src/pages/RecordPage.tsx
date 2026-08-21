@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { generateAiFeedback, getActiveProject, getDailySummary } from "../api/endpoints";
 import { GOAL_TYPE_LABELS, type DailySummaryResponse, type ProjectResponse } from "../api/types";
+import { CommonTasksCard } from "../components/CommonTasksCard";
 import { MissionCard, type FlatMission } from "../components/MissionCard";
 import { SideWidget } from "../components/SideWidget";
 
@@ -77,6 +78,13 @@ export function RecordPage() {
       </div>
 
       {error && <div className="error-banner" style={{ marginBottom: 16 }}>{error}</div>}
+
+      {/* 독서/공부/주간회고 - every participant does these regardless of which 아비투스를
+          picked (or even whether they've finished setup yet), so this always renders here
+          rather than being gated behind hasNoMissions below. */}
+      <div style={{ marginBottom: 16 }}>
+        <CommonTasksCard />
+      </div>
 
       {summary && (
         <div className="card">

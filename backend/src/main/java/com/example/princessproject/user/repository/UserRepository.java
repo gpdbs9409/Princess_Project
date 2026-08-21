@@ -10,6 +10,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByNickname(String nickname);
 
+    Optional<User> findByEmail(String email);
+
     // cohort == null -> 아직 기수 배정 전(지원자)
     List<User> findByCohortIsNullOrderByCreatedAtDesc();
 

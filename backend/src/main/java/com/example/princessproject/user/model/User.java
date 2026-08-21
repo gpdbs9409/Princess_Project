@@ -32,6 +32,10 @@ public class User {
     @Column(length = 255)
     private String passwordHash;
 
+    // 선택 항목 - 없으면 "비밀번호 찾기"를 쓸 수 없다. 회원가입 시 입력하거나 마이페이지에서 나중에 등록.
+    @Column(length = 255, unique = true)
+    private String email;
+
     @Column(length = 500)
     private String profileImageUrl;
 

@@ -54,10 +54,11 @@ export function SideWidget({ project }: SideWidgetProps) {
       <div className="side-widget-clock">
         <span className="side-widget-meridiem">{dDayLabel}</span>
         <div className="side-widget-clock-segs">
-          <div className="side-widget-clock-seg">
-            {isBeforeStart ? "-" : ""}
-            {pad(days)}
-          </div>
+          {/* The "D-DAY"/"D+DAY" eyebrow above already conveys before/after - prepending a
+              "-" here on top of that made the countdown read as a negative day count (e.g.
+              "-20") instead of "19 days left", so the segment itself is just the plain
+              day count. */}
+          <div className="side-widget-clock-seg">{pad(days)}</div>
           <span>:</span>
           <div className="side-widget-clock-seg">{pad(hours)}</div>
           <span>:</span>

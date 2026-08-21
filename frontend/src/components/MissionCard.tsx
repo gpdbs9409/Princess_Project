@@ -22,6 +22,12 @@ interface MissionCardProps {
   onSaved: () => void;
 }
 
+// Mirrors the backend's DailyRecordService.MAX_INPUT_MULTIPLE_OF_TARGET - generous headroom
+// above the mission's own target so genuine overachievement (walking 15,000 steps against a
+// 10,000 target) always fits, while still catching fat-finger/garbage input like "999999"
+// typed into a "30분" mission.
+const MAX_INPUT_MULTIPLE_OF_TARGET = 50;
+
 export function MissionCard({ mission, date, completed, record, onSaved }: MissionCardProps) {
   const { showToast } = useToast();
   const [inputValue, setInputValue] = useState("");
@@ -73,6 +79,17 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
       setError("입력값을 확인해주세요.");
       return;
     }
+    if (value <= 0) {
+      setError("0보다 큰 값을 입력해주세요.");
+      return;
+    }
+    const maxReasonableValue = mission.targetValue * MAX_INPUT_MULTIPLE_OF_TARGET;
+    if (value > maxReasonableValue) {
+      setError(
+        `입력값이 너무 커요. 목표(${mission.targetValue}${mission.unit})의 ${MAX_INPUT_MULTIPLE_OF_TARGET}배 이하로 입력해주세요.`
+      );
+      return;
+    }
     if (!photoFile) {
       setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
       return;
@@ -102,6 +119,10 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
         setError("오늘 찍은 사진이 아니에요. 오늘 찍은 사진으로 바꿔주세요.");
       } else if (err instanceof ApiError && err.code === "PHOTO_DATE_UNKNOWN") {
         setError("사진 촬영 날짜를 확인할 수 없어요. 오늘 찍은 사진으로 바꿔주세요.");
+      } else if (err instanceof ApiError && err.code === "INPUT_NEGATIVE") {
+        setError("입력값은 0보다 커야 해요.");
+      } else if (err instanceof ApiError && err.code === "INPUT_TOO_LARGE") {
+        setError(`입력값이 너무 커요. 목표(${mission.targetValue}${mission.unit})에 비해 지나치게 큰 값이에요.`);
       } else {
         // Not one of our known validation codes - log the real cause so it's debuggable
         // instead of only ever showing the generic message below.
@@ -162,6 +183,8 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
         <div className="row" style={{ gap: 8 }}>
           <input
             type="number"
+            min={0}
+            max={mission.targetValue * MAX_INPUT_MULTIPLE_OF_TARGET}
             placeholder={`${mission.unit} 단위로 입력`}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}

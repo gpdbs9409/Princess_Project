@@ -10,13 +10,29 @@ import {
   type ProjectSelectionsRequest,
 } from "../api/types";
 
+// Mirrors the backend's UserProjectService bounds (MIN/MAX_MISSION_TARGET) - kept here too so
+// out-of-range numbers (e.g. "-50" or "999999" typed into a "30분" mission) get clamped as the
+// user types instead of only failing once they hit save.
+const MIN_GOAL_WEIGHT = 1;
+const MAX_GOAL_WEIGHT = 100;
+const MIN_MISSION_TARGET = 0.1;
+const MAX_MISSION_TARGET = 100000;
+
+function clamp(value: number, min: number, max: number): number {
+  if (Number.isNaN(value)) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
 const SAVE_ERROR_MESSAGES: Record<string, string> = {
   WEIGHT_SUM_INVALID: "아비투스 비중의 합계가 100%가 아니어서 저장할 수 없어요. 비중 합계를 100%로 맞춰주세요.",
+  GOAL_WEIGHT_OUT_OF_RANGE: "아비투스 비중(%)은 1~100 사이여야 해요. 값을 확인해주세요.",
   DUPLICATE_GOAL_TYPE: "같은 아비투스이 중복 선택되어 있어서 저장할 수 없어요. 중복된 항목을 확인해주세요.",
   UNKNOWN_GOAL_TYPE: "선택한 아비투스 정보를 찾을 수 없어서 저장할 수 없어요. 새로고침 후 다시 시도해주세요.",
   STAT_TYPE_NOT_FOUND: "선택한 행동양식 정보를 찾을 수 없어서 저장할 수 없어요. 새로고침 후 다시 시도해주세요.",
   CUSTOM_STAT_NAME_REQUIRED: "나만의 미션에 이름이 비어 있어서 저장할 수 없어요. 미션 이름을 입력해주세요.",
   MISSION_DEFINITION_NOT_FOUND: "선택한 미션 정보를 찾을 수 없어서 저장할 수 없어요. 새로고침 후 다시 시도해주세요.",
+  MISSION_TARGET_OUT_OF_RANGE: `미션 목표값이 올바르지 않아요. 0보다 크고 ${MAX_MISSION_TARGET.toLocaleString()} 이하로 입력해주세요.`,
+  MISSION_POINTS_OUT_OF_RANGE: "미션 배점이 올바르지 않아요. 값을 확인해주세요.",
   CONSTRAINT_VIOLATION: "입력한 값이 조건에 맞지 않아서 저장할 수 없어요. 비중(%)과 목표값을 확인해주세요.",
   GOALS_ALREADY_SET: "아비투스와 미션은 이미 설정되어 있어서 다시 저장할 수 없어요. 최초 설정 후에는 수정할 수 없어요.",
 };
@@ -178,7 +194,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
   };
 
   const updateGoalWeight = (goalTypeCode: GoalTypeCode, weightPercent: number) => {
-    updateGoal(goalTypeCode, (g) => ({ ...g, weightPercent }));
+    updateGoal(goalTypeCode, (g) => ({ ...g, weightPercent: clamp(weightPercent, MIN_GOAL_WEIGHT, MAX_GOAL_WEIGHT) }));
   };
 
   const toggleMission = (goalTypeCode: GoalTypeCode, statTypeId: number, missionDefinitionId: number) => {
@@ -300,8 +316,19 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
     }
   };
 
+  const selectedGoalsForSum = goals.filter((g) => g.selected);
+  const weightSumLive = selectedGoalsForSum.reduce((sum, g) => sum + g.weightPercent, 0);
+  const weightSumOk = weightSumLive === 100;
+
   return (
-    <form className="stack" onSubmit={handleSubmit}>
+    // noValidate: this form uses number inputs with min/max (weight 1-100, mission target
+    // range) purely as numeric-keyboard hints. Without it, some mobile browsers/in-app
+    // webviews (e.g. KakaoTalk's) silently block the submit event on an out-of-range value
+    // instead of reliably showing their native validation bubble - from the user's side that
+    // looks exactly like "save does nothing, no error, my input is gone". All of the actual
+    // validation below already happens in JS with a visible error banner, so native
+    // constraint validation would only ever get in the way here.
+    <form className="stack" onSubmit={handleSubmit} noValidate>
       <a href="/guide.html" target="_blank" rel="noopener noreferrer" className="link">
         가이드라인 보기 →
       </a>
@@ -354,10 +381,10 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
               <div className="row" style={{ gap: 6 }}>
                 <input
                   type="number"
-                  min={1}
-                  max={100}
+                  min={MIN_GOAL_WEIGHT}
+                  max={MAX_GOAL_WEIGHT}
                   value={goal.weightPercent}
-                  onChange={(e) => updateGoalWeight(goal.goalTypeCode, Number(sanitizeNumberInput(e)) || 1)}
+                  onChange={(e) => updateGoalWeight(goal.goalTypeCode, Number(sanitizeNumberInput(e)) || 0)}
                   style={{ maxWidth: 70 }}
                 />
                 <span className="muted">%</span>
@@ -399,10 +426,12 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                           </select>
                           <input
                             type="number"
+                            min={MIN_MISSION_TARGET}
+                            max={MAX_MISSION_TARGET}
                             value={mission.targetValue}
                             onChange={(e) =>
                               updateMission(goal.goalTypeCode, stat.statTypeId, mission.missionDefinitionId, {
-                                targetValue: Number(sanitizeNumberInput(e)) || 0,
+                                targetValue: clamp(Number(sanitizeNumberInput(e)) || 0, MIN_MISSION_TARGET, MAX_MISSION_TARGET),
                               })
                             }
                             style={{ maxWidth: 60 }}
@@ -455,9 +484,13 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                           </select>
                           <input
                             type="number"
+                            min={MIN_MISSION_TARGET}
+                            max={MAX_MISSION_TARGET}
                             value={mission.targetValue}
                             onChange={(e) =>
-                              updateCustomMission(goal.goalTypeCode, mission.key, { targetValue: Number(sanitizeNumberInput(e)) || 0 })
+                              updateCustomMission(goal.goalTypeCode, mission.key, {
+                                targetValue: clamp(Number(sanitizeNumberInput(e)) || 0, MIN_MISSION_TARGET, MAX_MISSION_TARGET),
+                              })
                             }
                             style={{ maxWidth: 60 }}
                           />
@@ -486,6 +519,29 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
           )}
         </div>
       ))}
+
+      {/* Live running total, shown as soon as anything is selected - checking a 2nd/3rd
+          capital defaults each one to 100% (see toggleGoal), so most people hit a sum != 100%
+          through completely normal use, not typos. Surfacing it here means they see and fix
+          it before ever hitting "저장하기", instead of only finding out after a failed submit. */}
+      {selectedGoalsForSum.length > 0 && (
+        <div
+          className="row-between"
+          style={{
+            padding: "10px 14px",
+            borderRadius: 10,
+            fontSize: 13.5,
+            fontWeight: 600,
+            background: weightSumOk ? "var(--good-soft)" : "var(--warn-soft)",
+            color: weightSumOk ? "var(--good)" : "var(--warn)",
+          }}
+        >
+          <span>선택한 아비투스 비중 합계</span>
+          <span>
+            {weightSumLive}% {weightSumOk ? "✓" : "· 100%가 되도록 맞춰주세요"}
+          </span>
+        </div>
+      )}
 
       {error && <div className="error-banner">{error}</div>}
       <button type="submit" className="primary" disabled={submitting}>

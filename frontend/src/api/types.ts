@@ -45,6 +45,7 @@ export type Role = "USER" | "ADMIN";
 export interface UserResponse {
   id: number;
   nickname: string;
+  email: string | null;
   profileImageUrl: string | null;
   role: Role;
 }
@@ -282,4 +283,36 @@ export interface VisionAnalysisResponse {
   likelyValid: boolean;
   reason: string;
   confidence: string;
+}
+
+// ---- common tasks (독서/공부/주간회고 - mandatory for everyone, tracked separately from the
+// weighted 아비투스/미션 tree so picking capitals never hides or excludes them) ----
+
+export type CommonTaskType = "READING" | "STUDY" | "WEEKLY_RETROSPECTIVE";
+
+export interface CommonTaskRequest {
+  taskType: CommonTaskType;
+  date: string;
+  startPage?: number;
+  endPage?: number;
+  studyPlannedAmount?: number;
+  studyCompletedAmount?: number;
+  retroDailyLife?: string;
+  retroWeekReview?: string;
+  retroNextWeekPlan?: string;
+  memo?: string;
+}
+
+export interface CommonTaskResponse {
+  id: number;
+  taskType: CommonTaskType;
+  recordDate: string;
+  startPage: number | null;
+  endPage: number | null;
+  studyPlannedAmount: number | null;
+  studyCompletedAmount: number | null;
+  retroDailyLife: string | null;
+  retroWeekReview: string | null;
+  retroNextWeekPlan: string | null;
+  memo: string | null;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { getActiveProject, login, signup, updateProfileImage } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
@@ -12,6 +12,7 @@ export function LoginPage() {
   const [mode, setMode] = useState<Mode>("login");
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,7 +44,10 @@ export function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = mode === "signup" ? await signup(nickname.trim(), password) : await login(nickname.trim(), password);
+      const res =
+        mode === "signup"
+          ? await signup(nickname.trim(), password, email.trim())
+          : await login(nickname.trim(), password);
       signIn(res.token, res.user);
 
       if (mode === "signup" && photo) {
@@ -64,6 +68,8 @@ export function LoginPage() {
         setError("비밀번호가 올바르지 않아요.");
       } else if (err instanceof ApiError && mode === "signup" && err.code === "NICKNAME_TAKEN") {
         setError("이미 사용 중인 닉네임이에요. 다른 닉네임을 입력하거나 로그인해주세요.");
+      } else if (err instanceof ApiError && mode === "signup" && err.code === "EMAIL_TAKEN") {
+        setError("이미 사용 중인 이메일이에요. 다른 이메일을 입력해주세요.");
       } else {
         setError(mode === "signup" ? "회원가입에 실패했습니다. 잠시 후 다시 시도해주세요." : "로그인에 실패했습니다. 잠시 후 다시 시도해주세요.");
       }
@@ -119,6 +125,18 @@ export function LoginPage() {
           />
         </div>
         {mode === "signup" && (
+          <div className="stack" style={{ gap: 6 }}>
+            <label htmlFor="email">이메일 (선택)</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="비밀번호를 잊었을 때 필요해요"
+            />
+          </div>
+        )}
+        {mode === "signup" && (
           <div className="stack" style={{ gap: 8 }}>
             <label htmlFor="photo">본인 사진 (선택)</label>
             {photoPreviewUrl && <img src={photoPreviewUrl} alt="선택한 사진 미리보기" className="photo-preview" />}
@@ -135,6 +153,11 @@ export function LoginPage() {
         <button type="submit" className="primary" disabled={loading}>
           {loading ? "처리 중..." : mode === "signup" ? "회원가입" : "로그인"}
         </button>
+        {mode === "login" && (
+          <Link to="/forgot-password" className="link" style={{ textAlign: "center" }}>
+            비밀번호를 잊으셨나요?
+          </Link>
+        )}
       </form>
     </div>
   );

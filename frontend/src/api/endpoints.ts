@@ -8,6 +8,8 @@ import type {
   RecruitmentApplicantRequest,
   RecruitmentApplicantResponse,
   CatalogGoal,
+  CommonTaskRequest,
+  CommonTaskResponse,
   DailySummaryResponse,
   LoginResponse,
   AiFeedbackResponse,
@@ -24,10 +26,19 @@ import type {
 export const login = (nickname: string, password: string) =>
   api.post<LoginResponse>("/api/auth/login", { nickname, password });
 
-export const signup = (nickname: string, password: string) =>
-  api.post<LoginResponse>("/api/auth/signup", { nickname, password });
+export const signup = (nickname: string, password: string, email?: string) =>
+  api.post<LoginResponse>("/api/auth/signup", { nickname, password, email: email || undefined });
+
+export const forgotPassword = (nickname: string) =>
+  api.post<void>("/api/auth/forgot-password", { nickname });
+
+export const resetPassword = (token: string, newPassword: string) =>
+  api.post<void>("/api/auth/reset-password", { token, newPassword });
 
 export const getUser = (userId: number) => api.get<UserResponse>(`/api/users/${userId}`);
+
+export const updateEmail = (userId: number, email: string) =>
+  api.put<UserResponse>(`/api/users/${userId}/email`, { email });
 
 export const getProfileStats = (userId: number) =>
   api.get<ProfileStatsResponse>(`/api/users/${userId}/profile-stats`);
@@ -55,6 +66,17 @@ export const generateAiFeedback = (date: string) =>
 
 export const getWeeklyReport = (weekStart: string) =>
   api.get<WeeklyReportResponse>(`/api/projects/active/weekly-report?weekStart=${weekStart}`);
+
+// ---- common tasks (독서/공부/주간회고) ----
+
+export const saveCommonTask = (request: CommonTaskRequest) =>
+  api.post<CommonTaskResponse>("/api/common-tasks", request);
+
+export const getDailyCommonTasks = (date: string) =>
+  api.get<CommonTaskResponse[]>(`/api/common-tasks/daily?date=${date}`);
+
+export const getWeeklyCommonTask = (weekStart: string) =>
+  api.get<CommonTaskResponse | null>(`/api/common-tasks/weekly?weekStart=${weekStart}`);
 
 export const uploadFile = (file: File) => {
   const formData = new FormData();
