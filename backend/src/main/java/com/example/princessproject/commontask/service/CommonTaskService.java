@@ -89,6 +89,16 @@ public class CommonTaskService {
                 .orElse(null);
     }
 
+    // 지난 주간회고 목록 (2026-08-27 요청: 작성화면 위에 입력란, 그 아래 지난 회고를 최신순으로 쌓기).
+    // anyDayInWeek이 속한 주(이번 주)는 getWeekly가 이미 따로 보여주므로 여기서는 제외하고, 그보다
+    // 이전 주들만 최신순으로 내려준다.
+    @Transactional
+    public List<CommonTaskRecord> getWeeklyHistory(Long userId, LocalDate anyDayInWeek) {
+        LocalDate weekStart = normalizeDate(CommonTaskType.WEEKLY_RETROSPECTIVE, anyDayInWeek);
+        return commonTaskRecordRepository.findByUserIdAndTaskTypeAndRecordDateLessThanOrderByRecordDateDesc(
+                userId, CommonTaskType.WEEKLY_RETROSPECTIVE, weekStart);
+    }
+
     /** WEEKLY_RETROSPECTIVE is always keyed by that week's Monday, no matter which day is passed in. */
     private LocalDate normalizeDate(CommonTaskType taskType, LocalDate date) {
         if (taskType == CommonTaskType.WEEKLY_RETROSPECTIVE) {

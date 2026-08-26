@@ -545,6 +545,15 @@ a.link:hover {
   border: 1px dashed var(--border);
   border-radius: 8px;
   font-size: 12.5px;
+  max-height: 220px;
+  overflow-y: auto;
+  line-height: 1.55;
+}
+.terms-content p {
+  margin: 0 0 8px;
+}
+.terms-content p:last-child {
+  margin-bottom: 0;
 }
 
 /* footer */
@@ -831,7 +840,7 @@ a.link:hover {
 }
 .participant-list-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   padding: 8px 4px;
   border-bottom: 1px solid var(--border);
@@ -854,9 +863,33 @@ a.link:hover {
   color: var(--accent-strong);
   font-weight: 700;
 }
+.participant-list-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 2px;
+}
 .participant-list-nickname {
   font-size: 14px;
   font-weight: 600;
+}
+.participant-list-goal {
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.retro-readonly-text {
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--card-muted-bg, rgba(0, 0, 0, 0.03));
+  border-radius: 8px;
+  padding: 10px 12px;
 }
 
 /* Instagram-style profile header */

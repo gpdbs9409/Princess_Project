@@ -2,6 +2,9 @@ package com.example.princessproject.user.service;
 
 import com.example.princessproject.auth.service.AuthValidationException;
 import com.example.princessproject.auth.service.EmailVerificationService;
+import com.example.princessproject.project.model.ProjectStatus;
+import com.example.princessproject.project.model.UserProject;
+import com.example.princessproject.project.repository.UserProjectRepository;
 import com.example.princessproject.record.repository.DailyRecordRepository;
 import com.example.princessproject.user.dto.ParticipantResponse;
 import com.example.princessproject.user.dto.ProfileStatsResponse;
@@ -10,6 +13,9 @@ import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,17 +28,20 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final DailyRecordRepository dailyRecordRepository;
     private final EmailVerificationService emailVerificationService;
+    private final UserProjectRepository userProjectRepository;
 
     public UserService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             DailyRecordRepository dailyRecordRepository,
-            EmailVerificationService emailVerificationService
+            EmailVerificationService emailVerificationService,
+            UserProjectRepository userProjectRepository
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.dailyRecordRepository = dailyRecordRepository;
         this.emailVerificationService = emailVerificationService;
+        this.userProjectRepository = userProjectRepository;
     }
 
     /**
@@ -128,6 +137,11 @@ public class UserService {
      * 대시보드 팔로워/팔로잉 클릭 시 보여줄 "다른 참가자" 목록 (2026-08 요청). 실제 팔로우
      * 관계는 없으므로, 요청한 사람과 같은 기수(cohort) 참가자를 본인 제외하고 닉네임순으로
      * 보여준다. 기수 배정 전(cohort == null)이면 아직 같이 묶일 사람이 없으니 빈 목록을 준다.
+     *
+     * 추구미/이상향(goalAppearance/goalHuman)도 같이 보여주기 위해 참가자들의 UserProject를
+     * 한 번에 배치 조회한다(2026-08-27 요청) - 참가자 수만큼 쿼리를 따로 날리는 N+1을 피한다.
+     * 아직 온보딩(SelectionWizard)을 안 마친 참가자는 UserProject가 없거나 필드가 비어있을
+     * 수 있는데, 그 경우 둘 다 null로 내려준다.
      */
     @Transactional(readOnly = true)
     public List<ParticipantResponse> getParticipants(Long userId) {
@@ -135,9 +149,25 @@ public class UserService {
         if (requester.getCohort() == null) {
             return List.of();
         }
-        return userRepository.findByCohortOrderByNicknameAsc(requester.getCohort()).stream()
+        List<User> cohortUsers = userRepository.findByCohortOrderByNicknameAsc(requester.getCohort()).stream()
                 .filter(user -> !user.getId().equals(userId))
-                .map(ParticipantResponse::from)
+                .toList();
+        if (cohortUsers.isEmpty()) {
+            return List.of();
+        }
+        List<Long> cohortUserIds = cohortUsers.stream().map(User::getId).toList();
+        Map<Long, UserProject> projectByUserId = userProjectRepository
+                .findByUserIdInAndStatus(cohortUserIds, ProjectStatus.ACTIVE).stream()
+                .collect(Collectors.toMap(
+                        project -> project.getUser().getId(), Function.identity(), (a, b) -> a));
+        return cohortUsers.stream()
+                .map(user -> {
+                    UserProject project = projectByUserId.get(user.getId());
+                    return ParticipantResponse.from(
+                            user,
+                            project == null ? null : project.getGoalHuman(),
+                            project == null ? null : project.getGoalAppearance());
+                })
                 .toList();
     }
 

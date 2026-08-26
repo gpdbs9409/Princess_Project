@@ -97,6 +97,11 @@ export const getDailyCommonTasks = (date: string) =>
 export const getWeeklyCommonTask = (weekStart: string) =>
   api.get<CommonTaskResponse | null>(`/api/common-tasks/weekly?weekStart=${weekStart}`);
 
+// 지난 주간회고 히스토리 (2026-08-27 요청) - 이번 주는 getWeeklyCommonTask로 따로 받고, 그 이전
+// 주들만 최신순으로 받아서 입력란 아래에 스택으로 쌓는다.
+export const getWeeklyRetrospectiveHistory = (weekStart: string) =>
+  api.get<CommonTaskResponse[]>(`/api/common-tasks/weekly/history?weekStart=${weekStart}`);
+
 export const uploadFile = (file: File) => {
   const formData = new FormData();
   formData.append("file", file);

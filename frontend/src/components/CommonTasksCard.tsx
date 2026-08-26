@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
-import { getDailyCommonTasks, getWeeklyCommonTask, saveCommonTask, uploadFile } from "../api/endpoints";
+import {
+  getDailyCommonTasks,
+  getWeeklyCommonTask,
+  getWeeklyRetrospectiveHistory,
+  saveCommonTask,
+  uploadFile,
+} from "../api/endpoints";
 import type { CommonTaskResponse } from "../api/types";
 import { PhotoCaptureField } from "./PhotoCaptureField";
 import { useToast } from "./ToastProvider";
@@ -368,45 +374,117 @@ function StudySection() {
   );
 }
 
+type RetroDraft = {
+  dailyLife: string;
+  weekReview: string;
+  nextWeekPlan: string;
+};
+
+const EMPTY_RETRO_DRAFT: RetroDraft = { dailyLife: "", weekReview: "", nextWeekPlan: "" };
+
+function draftFromRecord(record: CommonTaskResponse | null): RetroDraft {
+  if (!record) return EMPTY_RETRO_DRAFT;
+  return {
+    dailyLife: record.retroDailyLife ?? "",
+    weekReview: record.retroWeekReview ?? "",
+    nextWeekPlan: record.retroNextWeekPlan ?? "",
+  };
+}
+
+// "2026-08-25" (그 주의 월요일 - CommonTaskService.normalizeDate가 항상 월요일로 맞춰서 저장한다) ->
+// "8/25(월) ~ 8/31(일)" 형태의 주차 라벨. 지난 회고 카드마다 어느 주인지 보여주기 위한 것.
+function formatWeekLabel(weekStartIso: string): string {
+  const start = new Date(`${weekStartIso}T00:00:00`);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+  const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}(${WEEKDAYS[d.getDay()]})`;
+  return `${fmt(start)} ~ ${fmt(end)}`;
+}
+
+// 저장된 회고를 읽기 전용으로 보여주는 블록 - 내용이 있는 PART만 표시한다 (RETROSPECTIVE_EMPTY 검증이
+// "최소 하나"만 요구하므로 나머지 둘은 비어있을 수 있다).
+function RetroReadOnlyBlock({ record }: { record: CommonTaskResponse }) {
+  const parts = [
+    { label: "PART1. 일상 공유", value: record.retroDailyLife },
+    { label: "PART2. 이번 주 회고", value: record.retroWeekReview },
+    { label: "PART3. 다음 주 계획", value: record.retroNextWeekPlan },
+  ].filter((part) => part.value && part.value.trim().length > 0);
+
+  return (
+    <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+      {parts.map((part) => (
+        <div key={part.label} className="stack" style={{ gap: 4 }}>
+          <label className="muted" style={{ fontSize: 12.5 }}>
+            {part.label}
+          </label>
+          <div className="retro-readonly-text">{part.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Exported on its own (rather than only through the bundled CommonTasksCard below) so
 // WeeklyRetrospectivePage can render it standalone on its own nav-level route - 주간 회고는
 // 주 1회만 작성하면 되는 과제라 매일 도는 /record 목록이 아니라 상단 메뉴의 별도 화면에서 보는 게
 // 맞다는 2026-08-21 요청에 따른 분리.
+//
+// 2026-08-27 요청: 회고가 이미 작성된 주는 입력 필드가 아니라 읽기 전용 + "수정하기"로 보여주고,
+// 그 위(스택 최상단)에는 항상 입력란(또는 이번 주 읽기전용 블록)을 두고, 그 아래에 지난 주 회고들을
+// 시간 내림차순으로 쌓아서 보여준다. 지난 주들은 오늘 기준으로만 저장/수정이 일어나는 현재 저장
+// 로직(saveCommonTask가 항상 todayIso() 기준으로 그 주에 upsert) 특성상 열람 전용으로만 둔다.
 export function WeeklyRetrospectiveSection() {
   const { showToast } = useToast();
-  const [dailyLife, setDailyLife] = useState("");
-  const [weekReview, setWeekReview] = useState("");
-  const [nextWeekPlan, setNextWeekPlan] = useState("");
+  const [current, setCurrent] = useState<CommonTaskResponse | null>(null);
+  const [history, setHistory] = useState<CommonTaskResponse[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<RetroDraft>(EMPTY_RETRO_DRAFT);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
     getWeeklyCommonTask(todayIso())
       .then((existing) => {
-        if (existing) {
-          setDailyLife(existing.retroDailyLife ?? "");
-          setWeekReview(existing.retroWeekReview ?? "");
-          setNextWeekPlan(existing.retroNextWeekPlan ?? "");
-          setLastSavedAt(existing.recordDate);
-        }
+        setCurrent(existing ?? null);
+        setDraft(draftFromRecord(existing ?? null));
+        setEditing(!existing);
       })
       .catch(() => {
         // No existing entry (or a failed load) just leaves the 3 fields blank/editable.
+        setEditing(true);
       })
       .finally(() => setLoading(false));
+
+    getWeeklyRetrospectiveHistory(todayIso())
+      .then(setHistory)
+      .catch(() => {
+        // 지난 회고를 못 불러와도 이번 주 작성/열람에는 영향 없음 - 조용히 빈 목록으로 둔다.
+      });
   }, []);
 
+  const startEditing = () => {
+    setDraft(draftFromRecord(current));
+    setError(null);
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setDraft(draftFromRecord(current));
+    setError(null);
+    setEditing(false);
+  };
+
   const handleSave = async () => {
-    if (!dailyLife.trim() && !weekReview.trim() && !nextWeekPlan.trim()) {
+    if (!draft.dailyLife.trim() && !draft.weekReview.trim() && !draft.nextWeekPlan.trim()) {
       setError("PART1~3 중 최소 하나는 내용을 입력해주세요.");
       return;
     }
     if (
-      dailyLife.length > MAX_RETRO_TEXT_LENGTH ||
-      weekReview.length > MAX_RETRO_TEXT_LENGTH ||
-      nextWeekPlan.length > MAX_RETRO_TEXT_LENGTH
+      draft.dailyLife.length > MAX_RETRO_TEXT_LENGTH ||
+      draft.weekReview.length > MAX_RETRO_TEXT_LENGTH ||
+      draft.nextWeekPlan.length > MAX_RETRO_TEXT_LENGTH
     ) {
       setError(`각 항목은 ${MAX_RETRO_TEXT_LENGTH.toLocaleString()}자 이하로 입력해주세요.`);
       return;
@@ -417,11 +495,13 @@ export function WeeklyRetrospectiveSection() {
       const saved = await saveCommonTask({
         taskType: "WEEKLY_RETROSPECTIVE",
         date: todayIso(),
-        retroDailyLife: dailyLife.trim() || undefined,
-        retroWeekReview: weekReview.trim() || undefined,
-        retroNextWeekPlan: nextWeekPlan.trim() || undefined,
+        retroDailyLife: draft.dailyLife.trim() || undefined,
+        retroWeekReview: draft.weekReview.trim() || undefined,
+        retroNextWeekPlan: draft.nextWeekPlan.trim() || undefined,
       });
-      setLastSavedAt(saved.recordDate);
+      setCurrent(saved);
+      setDraft(draftFromRecord(saved));
+      setEditing(false);
       showToast("주간 회고가 저장되었어요");
     } catch (err) {
       setError(commonTaskErrorMessage(err, "저장에 실패했습니다. 다시 시도해주세요."));
@@ -433,38 +513,93 @@ export function WeeklyRetrospectiveSection() {
   if (loading) return null;
 
   return (
-    <div className="card">
-      <div className="row-between">
-        <div>
-          <strong>주간 회고</strong>
-          <div className="muted">공통 과제 · {lastSavedAt ? "이번 주 작성됨 · 수정 가능" : "PART1~3 중 최소 하나는 입력해주세요"}</div>
+    <div className="stack" style={{ gap: 12 }}>
+      <div className="card">
+        <div className="row-between">
+          <div>
+            <strong>주간 회고</strong>
+            <div className="muted">
+              공통 과제 · {current && !editing ? "이번 주 작성 완료" : "PART1~3 중 최소 하나는 입력해주세요"}
+            </div>
+          </div>
+          {current && !editing && <span className="badge good">완료</span>}
         </div>
-        {lastSavedAt && <span className="badge good">완료</span>}
+
+        {current && !editing ? (
+          <>
+            <RetroReadOnlyBlock record={current} />
+            <button type="button" className="ghost" onClick={startEditing} style={{ marginTop: 12 }}>
+              수정하기
+            </button>
+          </>
+        ) : (
+          <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+            <div className="stack" style={{ gap: 4 }}>
+              <label className="muted" style={{ fontSize: 12.5 }}>
+                PART1. 일상 공유
+              </label>
+              <textarea
+                value={draft.dailyLife}
+                onChange={(e) => setDraft((d) => ({ ...d, dailyLife: e.target.value }))}
+                rows={2}
+                maxLength={MAX_RETRO_TEXT_LENGTH}
+              />
+            </div>
+            <div className="stack" style={{ gap: 4 }}>
+              <label className="muted" style={{ fontSize: 12.5 }}>
+                PART2. 이번 주 회고
+              </label>
+              <textarea
+                value={draft.weekReview}
+                onChange={(e) => setDraft((d) => ({ ...d, weekReview: e.target.value }))}
+                rows={2}
+                maxLength={MAX_RETRO_TEXT_LENGTH}
+              />
+            </div>
+            <div className="stack" style={{ gap: 4 }}>
+              <label className="muted" style={{ fontSize: 12.5 }}>
+                PART3. 다음 주 계획
+              </label>
+              <textarea
+                value={draft.nextWeekPlan}
+                onChange={(e) => setDraft((d) => ({ ...d, nextWeekPlan: e.target.value }))}
+                rows={2}
+                maxLength={MAX_RETRO_TEXT_LENGTH}
+              />
+            </div>
+            {error && <div className="error-banner">{error}</div>}
+            <div className="row" style={{ gap: 8 }}>
+              <button
+                type="button"
+                className="primary"
+                onClick={handleSave}
+                disabled={saving}
+                style={{ alignSelf: "flex-start" }}
+              >
+                {saving ? "저장 중..." : current ? "수정 저장" : "저장"}
+              </button>
+              {current && (
+                <button type="button" className="ghost" onClick={cancelEditing} disabled={saving}>
+                  취소
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-      <div className="stack" style={{ gap: 10, marginTop: 12 }}>
-        <div className="stack" style={{ gap: 4 }}>
-          <label className="muted" style={{ fontSize: 12.5 }}>
-            PART1. 일상 공유
-          </label>
-          <textarea value={dailyLife} onChange={(e) => setDailyLife(e.target.value)} rows={2} maxLength={MAX_RETRO_TEXT_LENGTH} />
+
+      {history.map((record) => (
+        <div key={record.id} className="card recorded-mission-card">
+          <div className="row-between">
+            <div>
+              <strong>주간 회고</strong>
+              <div className="muted">{formatWeekLabel(record.recordDate)}</div>
+            </div>
+            <span className="badge good">완료</span>
+          </div>
+          <RetroReadOnlyBlock record={record} />
         </div>
-        <div className="stack" style={{ gap: 4 }}>
-          <label className="muted" style={{ fontSize: 12.5 }}>
-            PART2. 이번 주 회고
-          </label>
-          <textarea value={weekReview} onChange={(e) => setWeekReview(e.target.value)} rows={2} maxLength={MAX_RETRO_TEXT_LENGTH} />
-        </div>
-        <div className="stack" style={{ gap: 4 }}>
-          <label className="muted" style={{ fontSize: 12.5 }}>
-            PART3. 다음 주 계획
-          </label>
-          <textarea value={nextWeekPlan} onChange={(e) => setNextWeekPlan(e.target.value)} rows={2} maxLength={MAX_RETRO_TEXT_LENGTH} />
-        </div>
-        {error && <div className="error-banner">{error}</div>}
-        <button type="button" className="primary" onClick={handleSave} disabled={saving} style={{ alignSelf: "flex-start" }}>
-          {saving ? "저장 중..." : lastSavedAt ? "수정 저장" : "저장"}
-        </button>
-      </div>
+      ))}
     </div>
   );
 }

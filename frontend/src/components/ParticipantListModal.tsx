@@ -37,18 +37,29 @@ export function ParticipantListModal({ onClose }: { onClose: () => void }) {
 
         {!error && participants !== null && participants.length > 0 && (
           <ul className="participant-list">
-            {participants.map((p) => (
-              <li key={p.id} className="participant-list-item">
-                {p.profileImageUrl ? (
-                  <img src={p.profileImageUrl} alt="" className="participant-list-avatar" />
-                ) : (
-                  <span className="participant-list-avatar participant-list-avatar-fallback">
-                    {p.nickname.slice(0, 1)}
-                  </span>
-                )}
-                <span className="participant-list-nickname">{p.nickname}</span>
-              </li>
-            ))}
+            {participants.map((p) => {
+              const goalLine = [
+                p.goalAppearance && `추구미 · ${p.goalAppearance}`,
+                p.goalHuman && `이상향 · ${p.goalHuman}`,
+              ]
+                .filter(Boolean)
+                .join("  /  ");
+              return (
+                <li key={p.id} className="participant-list-item">
+                  {p.profileImageUrl ? (
+                    <img src={p.profileImageUrl} alt="" className="participant-list-avatar" />
+                  ) : (
+                    <span className="participant-list-avatar participant-list-avatar-fallback">
+                      {p.nickname.slice(0, 1)}
+                    </span>
+                  )}
+                  <div className="participant-list-info">
+                    <span className="participant-list-nickname">{p.nickname}</span>
+                    {goalLine && <span className="participant-list-goal muted">{goalLine}</span>}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

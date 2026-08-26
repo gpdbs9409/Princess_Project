@@ -57,4 +57,14 @@ public class CommonTaskController {
         }
         return ResponseEntity.ok(CommonTaskResponse.from(record));
     }
+
+    // 지난 주간회고 목록 (2026-08-27 요청) - 작성 화면 입력란 아래에 최신순으로 쌓아 보여주기 위한 것.
+    @GetMapping("/api/common-tasks/weekly/history")
+    public List<CommonTaskResponse> getWeeklyHistory(
+            Authentication authentication,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart
+    ) {
+        Long userId = (Long) authentication.getPrincipal();
+        return commonTaskService.getWeeklyHistory(userId, weekStart).stream().map(CommonTaskResponse::from).toList();
+    }
 }

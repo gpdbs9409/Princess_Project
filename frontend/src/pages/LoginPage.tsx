@@ -10,6 +10,7 @@ import {
   updateProfileImage,
 } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
+import { allRequiredAgreed, EMPTY_TERMS_VALUES, TermsAgreement, type TermsValues } from "../components/TermsAgreement";
 
 type Mode = "login" | "signup";
 type VerifyStep = "none" | "sent" | "verified";
@@ -37,6 +38,10 @@ export function LoginPage() {
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
 
+  // 이용약관/개인정보처리방침 등 5개 동의 항목 (2026-08-27 요청: "약관반영") - 필수 3개를 모두
+  // 체크해야 회원가입 버튼이 풀린다. TermsAgreement가 각 항목의 실제 조항 전문을 갖고 있다.
+  const [termsValues, setTermsValues] = useState<TermsValues>(EMPTY_TERMS_VALUES);
+
   useEffect(() => {
     return () => {
       if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
@@ -55,6 +60,7 @@ export function LoginPage() {
     setMode(next);
     setError(null);
     resetVerification();
+    setTermsValues(EMPTY_TERMS_VALUES);
   };
 
   const handleEmailChange = (value: string) => {
@@ -115,6 +121,10 @@ export function LoginPage() {
     e.preventDefault();
     if (!nickname.trim() || !password) return;
     if (mode === "signup" && (verifyStep !== "verified" || !verifiedToken)) return;
+    if (mode === "signup" && !allRequiredAgreed(termsValues)) {
+      setError("필수 약관에 모두 동의해야 회원가입할 수 있어요.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -155,7 +165,10 @@ export function LoginPage() {
     }
   };
 
-  const signupDisabled = loading || (mode === "signup" && verifyStep !== "verified");
+  const signupDisabled =
+    loading ||
+    (mode === "signup" && verifyStep !== "verified") ||
+    (mode === "signup" && !allRequiredAgreed(termsValues));
 
   return (
     <div className="container" style={{ maxWidth: 420, paddingTop: 96 }}>
@@ -276,6 +289,7 @@ export function LoginPage() {
             </div>
           </div>
         )}
+        {mode === "signup" && <TermsAgreement values={termsValues} onChange={setTermsValues} />}
         {error && <div className="error-banner">{error}</div>}
         <button type="submit" className="primary" disabled={signupDisabled}>
           {loading ? "처리 중..." : mode === "signup" ? "회원가입" : "로그인"}

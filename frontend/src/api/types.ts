@@ -124,10 +124,13 @@ export interface ProfileStatsResponse {
 }
 
 // 팔로워/팔로잉 클릭 시 보여주는 같은 기수 참가자 목록 (실제 팔로우 관계는 없음).
+// goalHuman(이상향)/goalAppearance(추구미)는 아직 온보딩을 안 마친 참가자면 null일 수 있다.
 export interface ParticipantResponse {
   id: number;
   nickname: string;
   profileImageUrl: string | null;
+  goalHuman: string | null;
+  goalAppearance: string | null;
 }
 
 export interface LoginResponse {
