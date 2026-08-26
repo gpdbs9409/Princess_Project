@@ -872,7 +872,8 @@ CREATE TABLE common_task_records (
     -- READING/STUDY: 그 날짜. WEEKLY_RETROSPECTIVE: 그 주의 월요일.
     record_date DATE NOT NULL,
 
-    -- READING
+    -- READING (책 제목은 2026-08-26 추가, 선택 입력)
+    book_title VARCHAR(200) NULL,
     start_page INT NULL,
     end_page INT NULL,
 

@@ -69,6 +69,15 @@ interface CustomMissionState {
   unit: string;
   assignedPoints: number;
   missionType: MissionType;
+  // null이면 customSectionName으로 묶인 "나만의 세부 항목"에 들어간다. 값이 있으면 그
+  // statTypeId를 가진 기존 세부 항목(운동/식단/수면 등) 밑에 바로 얹혀서, 그 항목의 카탈로그
+  // 미션들과 나란히 표시된다 (2026-08-26 QA: 세부 항목마다 미션을 추가할 수 있으면 좋겠다는
+  // 요청 반영 - 백엔드는 이미 statTypeId + customName 조합을 지원해서 이 필드 하나로 충분하다).
+  targetStatTypeId: number | null;
+  // targetStatTypeId가 null일 때만 쓰인다. 같은 이름을 적은 미션끼리 하나의 커스텀 세부
+  // 항목으로 묶여 저장된다 - 기본값 "나만의 미션"을 그대로 두면 예전과 동일하게 동작하고,
+  // 이름을 직접 바꾸면 그게 곧 새로운 세부 항목 이름이 된다 (세부 항목 직접 추가 요청 반영).
+  customSectionName: string;
 }
 
 interface StatState {
@@ -97,7 +106,16 @@ function nextCustomMissionKey(): string {
 }
 
 function blankCustomMission(): CustomMissionState {
-  return { key: nextCustomMissionKey(), name: "", targetValue: 1, unit: "회", assignedPoints: 10, missionType: "DAILY" };
+  return {
+    key: nextCustomMissionKey(),
+    name: "",
+    targetValue: 1,
+    unit: "회",
+    assignedPoints: 10,
+    missionType: "DAILY",
+    targetStatTypeId: null,
+    customSectionName: CUSTOM_STAT_NAME,
+  };
 }
 
 // "독서" is already one of the 3 mandatory common tasks (공통 과제 - see the notice
@@ -153,6 +171,8 @@ function buildInitialState(catalog: CatalogGoal[], project?: ProjectResponse): G
           unit: m.unit,
           assignedPoints: m.assignedPoints,
           missionType: m.missionType,
+          targetStatTypeId: null,
+          customSectionName: CUSTOM_STAT_NAME,
         })),
       },
     };
@@ -249,35 +269,60 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
     const selectedGoals = goals
       .filter((g) => g.selected)
       .map((g) => {
+        // 나만의 미션 중 "기존 세부 항목 밑에 추가"를 고른 것들은 statTypeId별로 묶어서,
+        // 아래에서 그 항목의 카탈로그 미션들과 합쳐 하나의 StatSelection으로 보낸다 (백엔드는
+        // 이미 같은 stat 안에 missionDefinitionId 미션과 customName 미션이 섞이는 걸 지원한다).
+        const customByStatTypeId = new Map<number, { customName: string; targetValue: number; unit: string; assignedPoints: number; missionType: MissionType }[]>();
+        // "새 세부 항목 만들기"를 고른 것들은 적어둔 이름으로 묶는다 - 같은 이름을 적으면 같은
+        // 세부 항목 하나로 합쳐지고, 이름을 바꾸면 그게 곧 새 세부 항목이 된다.
+        const customByNewSectionName = new Map<string, { customName: string; targetValue: number; unit: string; assignedPoints: number; missionType: MissionType }[]>();
+
+        g.customStat.missions
+          .filter((m) => m.name.trim().length > 0)
+          .forEach((m) => {
+            const entry = {
+              customName: m.name.trim(),
+              targetValue: m.targetValue,
+              unit: m.unit,
+              assignedPoints: m.assignedPoints,
+              missionType: m.missionType,
+            };
+            if (m.targetStatTypeId != null) {
+              const list = customByStatTypeId.get(m.targetStatTypeId) ?? [];
+              list.push(entry);
+              customByStatTypeId.set(m.targetStatTypeId, list);
+            } else {
+              const sectionName = m.customSectionName.trim() || CUSTOM_STAT_NAME;
+              const list = customByNewSectionName.get(sectionName) ?? [];
+              list.push(entry);
+              customByNewSectionName.set(sectionName, list);
+            }
+          });
+
         const catalogStats = g.stats
           .map((s) => ({
             statTypeId: s.statTypeId,
-            missions: s.missions
-              .filter((m) => m.selected)
-              .map((m) => ({
-                missionDefinitionId: m.missionDefinitionId,
-                targetValue: m.targetValue,
-                unit: m.unit,
-                assignedPoints: m.assignedPoints,
-                missionType: m.missionType,
-              })),
+            missions: [
+              ...s.missions
+                .filter((m) => m.selected)
+                .map((m) => ({
+                  missionDefinitionId: m.missionDefinitionId,
+                  targetValue: m.targetValue,
+                  unit: m.unit,
+                  assignedPoints: m.assignedPoints,
+                  missionType: m.missionType,
+                })),
+              ...(customByStatTypeId.get(s.statTypeId) ?? []),
+            ],
           }))
           .filter((s) => s.missions.length > 0);
 
-        const customMissions = g.customStat.missions
-          .filter((m) => m.name.trim().length > 0)
-          .map((m) => ({
-            customName: m.name.trim(),
-            targetValue: m.targetValue,
-            unit: m.unit,
-            assignedPoints: m.assignedPoints,
-            missionType: m.missionType,
-          }));
+        const newSectionStats = Array.from(customByNewSectionName.entries()).map(([customStatName, missions]) => ({
+          customStatName,
+          missions,
+        }));
 
-        const stats = [
-          ...catalogStats,
-          ...(customMissions.length > 0 ? [{ customStatName: CUSTOM_STAT_NAME, missions: customMissions }] : []),
-        ];
+        const stats = [...catalogStats, ...newSectionStats];
 
         return { goalTypeCode: g.goalTypeCode, weightPercent: g.weightPercent, stats };
       })
@@ -367,7 +412,8 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
 
       <p className="muted">
         키우고 싶은 아비투스를 고르고 비중(%)을 입력한 뒤, 그 안에서 행동양식과 구체적인 미션(운동 등)을 선택하세요.
-        목록에 없는 행동양식은 "나만의 미션" 항목을 체크해서 직접 추가하세요.
+        목록에 없는 미션은 "나만의 미션"에서 직접 추가할 수 있는데, 이때 기존 세부 항목(운동/식단/수면 등) 밑에
+        바로 넣을지, 이름을 새로 지어 새 세부 항목을 만들지 고를 수 있어요.
       </p>
 
       {goals.map((goal) => (
@@ -454,6 +500,38 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                 <div className="stack" style={{ marginTop: 6, gap: 10, paddingLeft: 8 }}>
                   {goal.customStat.missions.map((mission) => (
                       <div key={mission.key} className="stack" style={{ gap: 6, fontSize: 13 }}>
+                        {/* 어디에 반영할지: 기존 세부 항목(운동/식단/수면 등) 중 하나를 고르면 그
+                            항목 밑에 바로 붙고, "새 세부 항목"을 고르면 아래 이름 입력칸에 적은
+                            이름으로 새 세부 항목이 만들어진다 (2026-08-26 QA 반영). */}
+                        <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                          <select
+                            value={mission.targetStatTypeId ?? "custom"}
+                            onChange={(e) =>
+                              updateCustomMission(goal.goalTypeCode, mission.key, {
+                                targetStatTypeId: e.target.value === "custom" ? null : Number(e.target.value),
+                              })
+                            }
+                            style={{ fontSize: 12, padding: "4px 6px", maxWidth: 140 }}
+                          >
+                            {goal.stats.map((s) => (
+                              <option key={s.statTypeId} value={s.statTypeId}>
+                                {s.name} 밑에 추가
+                              </option>
+                            ))}
+                            <option value="custom">새 세부 항목 만들기</option>
+                          </select>
+                          {mission.targetStatTypeId == null && (
+                            <input
+                              type="text"
+                              placeholder="세부 항목 이름 (예: 나만의 미션)"
+                              value={mission.customSectionName}
+                              onChange={(e) =>
+                                updateCustomMission(goal.goalTypeCode, mission.key, { customSectionName: e.target.value })
+                              }
+                              style={{ maxWidth: 160 }}
+                            />
+                          )}
+                        </div>
                         <div className="row" style={{ gap: 6 }}>
                           <input
                             type="text"

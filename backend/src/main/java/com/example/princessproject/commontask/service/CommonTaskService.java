@@ -62,6 +62,7 @@ public class CommonTaskService {
         record.setProject(project);
         record.setTaskType(request.taskType());
         record.setRecordDate(recordDate);
+        record.setBookTitle(request.bookTitle());
         record.setStartPage(request.startPage());
         record.setEndPage(request.endPage());
         record.setStudyPlannedAmount(request.studyPlannedAmount());

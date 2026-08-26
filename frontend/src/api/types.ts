@@ -300,6 +300,8 @@ export type CommonTaskType = "READING" | "STUDY" | "WEEKLY_RETROSPECTIVE";
 export interface CommonTaskRequest {
   taskType: CommonTaskType;
   date: string;
+  // READING 전용, 선택 입력 (2026-08-26 QA: 책 제목도 같이 기록하면 좋겠다는 요청 반영).
+  bookTitle?: string;
   startPage?: number;
   endPage?: number;
   studyPlannedAmount?: number;
@@ -316,6 +318,7 @@ export interface CommonTaskResponse {
   id: number;
   taskType: CommonTaskType;
   recordDate: string;
+  bookTitle: string | null;
   startPage: number | null;
   endPage: number | null;
   studyPlannedAmount: number | null;

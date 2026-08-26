@@ -60,7 +60,10 @@ public class CommonTaskRecord {
     /** The day (READING/STUDY) or that week's Monday (WEEKLY_RETROSPECTIVE). */
     private LocalDate recordDate;
 
-    // ---- READING: 시작~종료 페이지 ----
+    // ---- READING: 책 제목(선택), 시작~종료 페이지 ----
+    @Column(name = "book_title", length = 200)
+    private String bookTitle;
+
     private Integer startPage;
     private Integer endPage;
 

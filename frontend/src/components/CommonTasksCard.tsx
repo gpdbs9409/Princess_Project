@@ -52,6 +52,7 @@ function commonTaskErrorMessage(err: unknown, fallback: string): string {
 function ReadingSection() {
   const { showToast } = useToast();
   const [existing, setExisting] = useState<CommonTaskResponse | null>(null);
+  const [bookTitle, setBookTitle] = useState("");
   const [startPage, setStartPage] = useState("");
   const [endPage, setEndPage] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -117,6 +118,7 @@ function ReadingSection() {
       const saved = await saveCommonTask({
         taskType: "READING",
         date: todayIso(),
+        bookTitle: bookTitle.trim() || undefined,
         startPage: start,
         endPage: end,
         photoUrl: uploaded.url,
@@ -143,6 +145,12 @@ function ReadingSection() {
           <span className="badge good">완료</span>
         </div>
         <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+          {existing.bookTitle && (
+            <div className="recorded-field">
+              <span className="muted">책 제목</span>
+              <strong>{existing.bookTitle}</strong>
+            </div>
+          )}
           <div className="recorded-field">
             <span className="muted">오늘 읽은 범위</span>
             <strong>
@@ -166,6 +174,13 @@ function ReadingSection() {
         </div>
       </div>
       <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+        <input
+          type="text"
+          placeholder="책 제목 (선택)"
+          value={bookTitle}
+          onChange={(e) => setBookTitle(e.target.value)}
+          maxLength={200}
+        />
         <div className="row" style={{ gap: 6 }}>
           <input
             type="number"
