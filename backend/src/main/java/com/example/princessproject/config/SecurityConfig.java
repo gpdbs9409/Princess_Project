@@ -40,7 +40,9 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/signup",
                                 "/api/auth/forgot-password",
-                                "/api/auth/reset-password"
+                                "/api/auth/reset-password",
+                                "/api/auth/email-verification/request",
+                                "/api/auth/email-verification/confirm"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/uploads/*").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
