@@ -1,5 +1,6 @@
 package com.example.princessproject.record.controller;
 
+import com.example.princessproject.aifeedback.dto.AiFeedbackHistoryEntryResponse;
 import com.example.princessproject.aifeedback.dto.AiFeedbackResponse;
 import com.example.princessproject.aifeedback.service.AiFeedbackResult;
 import com.example.princessproject.aifeedback.service.AiFeedbackService;
@@ -9,6 +10,7 @@ import com.example.princessproject.record.service.DailyRecordService;
 import com.example.princessproject.record.service.MissionProgress;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -62,5 +64,15 @@ public class DailyRecordController {
         Long userId = (Long) authentication.getPrincipal();
         AiFeedbackResult result = aiFeedbackService.generateFeedback(userId, date);
         return AiFeedbackResponse.from(result);
+    }
+
+    // 레오집사 채팅(누적 히스토리) 화면용 - 지금까지 쌓인 모든 날짜의 코멘트를 오래된 순으로
+    // 내려준다 (2026-08-26 요청: 상단 네비바에서 채팅처럼 쭉 볼 수 있게).
+    @GetMapping("/api/projects/active/ai-feedback/history")
+    public List<AiFeedbackHistoryEntryResponse> getAiFeedbackHistory(Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        return aiFeedbackService.getFeedbackHistory(userId).stream()
+                .map(AiFeedbackHistoryEntryResponse::from)
+                .toList();
     }
 }

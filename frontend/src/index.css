@@ -1137,6 +1137,21 @@ a.link:hover {
   }
 }
 
+/* 레오집사 채팅 히스토리(ButlerChatPage) - 날짜별 구분선 */
+.butler-chat-date-divider {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.butler-chat-date-divider span {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
 /* admin member table */
 .admin-table {
   width: 100%;

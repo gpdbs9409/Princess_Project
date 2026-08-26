@@ -13,6 +13,8 @@ import type {
   DailySummaryResponse,
   LoginResponse,
   AiFeedbackResponse,
+  AiFeedbackHistoryEntry,
+  EmailVerificationConfirmResponse,
   ParticipantResponse,
   ProfileStatsResponse,
   ProjectResponse,
@@ -27,8 +29,17 @@ import type {
 export const login = (nickname: string, password: string) =>
   api.post<LoginResponse>("/api/auth/login", { nickname, password });
 
-export const signup = (nickname: string, password: string, email?: string) =>
-  api.post<LoginResponse>("/api/auth/signup", { nickname, password, email: email || undefined });
+// 2026-08-26: 이메일이 선택에서 필수로 바뀌었고, 가입 전에 이메일 인증을 통과해야 한다 -
+// requestEmailVerification/confirmEmailVerification으로 먼저 인증하고 받은 verifiedToken을
+// 여기 실어 보내야 가입이 완료된다 (서버가 다시 한번 검증함).
+export const signup = (nickname: string, password: string, email: string, emailVerificationToken: string) =>
+  api.post<LoginResponse>("/api/auth/signup", { nickname, password, email, emailVerificationToken });
+
+export const requestEmailVerification = (email: string) =>
+  api.post<void>("/api/auth/email-verification/request", { email });
+
+export const confirmEmailVerification = (email: string, code: string) =>
+  api.post<EmailVerificationConfirmResponse>("/api/auth/email-verification/confirm", { email, code });
 
 export const forgotPassword = (nickname: string) =>
   api.post<void>("/api/auth/forgot-password", { nickname });
@@ -67,6 +78,10 @@ export const getDailySummary = (date: string) =>
 
 export const generateAiFeedback = (date: string) =>
   api.post<AiFeedbackResponse>(`/api/projects/active/ai-feedback?date=${date}`);
+
+// 레오집사 채팅(누적 히스토리) - 지금까지 쌓인 모든 날짜의 코멘트를 오래된 순으로 받는다.
+export const getAiFeedbackHistory = () =>
+  api.get<AiFeedbackHistoryEntry[]>("/api/projects/active/ai-feedback/history");
 
 export const getWeeklyReport = (weekStart: string) =>
   api.get<WeeklyReportResponse>(`/api/projects/active/weekly-report?weekStart=${weekStart}`);

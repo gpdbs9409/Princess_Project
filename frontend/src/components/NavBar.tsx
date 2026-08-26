@@ -24,6 +24,11 @@ export function NavBar() {
           <NavLink to="/weekly-retrospective" className={({ isActive }) => (isActive ? "link active" : "link")}>
             주간 회고
           </NavLink>
+          {/* 예전엔 /record 페이지 안에서 그날그날 일회성으로만 보이던 걸, 지금까지 쌓인 전체
+              대화를 채팅처럼 쭉 볼 수 있게 상단 메뉴로 뺐다 (2026-08-26 요청). */}
+          <NavLink to="/butler" className={({ isActive }) => (isActive ? "link active" : "link")}>
+            레오집사
+          </NavLink>
           <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "link active" : "link")}>
             대시보드
           </NavLink>

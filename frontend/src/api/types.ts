@@ -135,6 +135,12 @@ export interface LoginResponse {
   user: UserResponse;
 }
 
+// ---- 회원가입 이메일 인증 (2026-08-26 요청: 이메일 필수화 + 인증 후 가입) ----
+
+export interface EmailVerificationConfirmResponse {
+  verifiedToken: string;
+}
+
 // ---- catalog (read-only reference tree) ----
 
 export interface CatalogMission {
@@ -238,6 +244,17 @@ export interface ProjectSelectionsRequest {
 // ---- daily records / reports ----
 
 export interface AiFeedbackResponse {
+  summary: string;
+  praise: string;
+  improvement: string;
+  tomorrow: string;
+  cheer: string;
+}
+
+// 레오집사 채팅(누적 히스토리) 화면용 - AiFeedbackResponse와 필드는 같지만 날짜(feedbackDate)가
+// 추가로 붙어서, 여러 날짜를 한번에 리스트로 받아 쭉 이어지는 채팅처럼 렌더링할 수 있다.
+export interface AiFeedbackHistoryEntry {
+  feedbackDate: string;
   summary: string;
   praise: string;
   improvement: string;

@@ -12,6 +12,7 @@ import com.example.princessproject.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,6 +79,15 @@ public class AiFeedbackService {
                 .findByUserIdAndProjectIdAndFeedbackDateAndFeedbackType(userId, project.getId(), date, FeedbackType.DAILY)
                 .map(f -> new AiFeedbackResult(f.getSummary(), f.getPraise(), f.getImprovement(), f.getTomorrow(), f.getCheer()))
                 .orElse(null);
+    }
+
+    // 레오집사 채팅(누적 히스토리) 화면용 - 지금까지 쌓인 모든 날짜의 피드백을 오래된 순으로
+    // 돌려준다 (2026-08-26 요청).
+    @Transactional
+    public List<AiFeedback> getFeedbackHistory(Long userId) {
+        UserProject project = userProjectService.getOrCreateActive(userId);
+        return aiFeedbackRepository.findByUserIdAndProjectIdAndFeedbackTypeOrderByFeedbackDateAsc(
+                userId, project.getId(), FeedbackType.DAILY);
     }
 
     private AiFeedbackContext toContext(MissionProgress progress) {

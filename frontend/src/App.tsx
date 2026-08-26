@@ -13,6 +13,7 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { RecordPage } from "./pages/RecordPage";
 import { WeeklyRetrospectivePage } from "./pages/WeeklyRetrospectivePage";
+import { ButlerChatPage } from "./pages/ButlerChatPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { StatFocusPage } from "./pages/StatFocusPage";
 import { MyPage } from "./pages/MyPage";
@@ -59,6 +60,14 @@ function App() {
           element={
             <RequireAuth>
               <WeeklyRetrospectivePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/butler"
+          element={
+            <RequireAuth>
+              <ButlerChatPage />
             </RequireAuth>
           }
         />
