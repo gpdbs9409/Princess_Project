@@ -821,7 +821,7 @@ a.link:hover {
    왼쪽정렬 리스트 + 스크롤이 필요한 이 화면은 별도로 살짝만 덮어쓴다 (2026-08 요청). */
 .participant-modal {
   text-align: left;
-  max-width: 360px;
+  max-width: 520px;
   max-height: 70vh;
   overflow-y: auto;
 }
@@ -867,6 +867,8 @@ a.link:hover {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
+  width: 0;
   min-width: 0;
   padding-top: 2px;
 }
@@ -875,14 +877,25 @@ a.link:hover {
   font-weight: 600;
 }
 .participant-list-goal {
+  display: block;
+  width: 100%;
   font-size: 12px;
   line-height: 1.4;
   white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
   overflow-wrap: anywhere;
+  word-break: keep-all;
 }
 .participant-list-goal strong {
   color: var(--text);
   font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .participant-modal {
+    max-width: 100%;
+  }
 }
 
 .retro-readonly-text {
