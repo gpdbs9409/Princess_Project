@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { generateAiFeedback, getActiveProject, getDailySummary } from "../api/endpoints";
+import { getActiveProject, getDailySummary } from "../api/endpoints";
 import { GOAL_TYPE_LABELS, type DailySummaryResponse, type ProjectResponse } from "../api/types";
 import { CommonTasksCard } from "../components/CommonTasksCard";
 import { MissionCard, type FlatMission } from "../components/MissionCard";
@@ -19,7 +19,6 @@ export function RecordPage() {
   const [missions, setMissions] = useState<FlatMission[]>([]);
   const [summary, setSummary] = useState<DailySummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasNoMissions, setHasNoMissions] = useState(false);
   const date = todayIso();
@@ -53,18 +52,6 @@ export function RecordPage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const handleGenerateFeedback = async () => {
-    setFeedbackLoading(true);
-    try {
-      const feedback = await generateAiFeedback(date);
-      setSummary((s) => (s ? { ...s, aiFeedback: feedback } : s));
-    } catch {
-      setError("집사의 한마디를 받아오지 못했어요. 잠시 후 다시 시도해주세요.");
-    } finally {
-      setFeedbackLoading(false);
-    }
-  };
 
   return (
     <div className="container">
@@ -144,45 +131,6 @@ export function RecordPage() {
         </div>
       )}
 
-      {missions.length > 0 && (
-        <div className="card" style={{ marginTop: 16 }}>
-          <div className="row-between">
-            <strong>오늘 완료</strong>
-            <button className="ghost" onClick={handleGenerateFeedback} disabled={feedbackLoading}>
-              {feedbackLoading ? "집사가 오늘 하루를 살펴보는 중..." : "집사의 한마디 듣기"}
-            </button>
-          </div>
-          {summary?.aiFeedback && (
-            <div className="butler-feedback">
-              <div className="butler-feedback-header">
-                <img src="/butler/butler.jpg" alt="" className="butler-avatar" />
-                <div className="butler-name-block">
-                  <span className="butler-name-eyebrow">AI 집사</span>
-                  <span className="butler-name">레오 집사</span>
-                </div>
-              </div>
-              <div className="butler-bubbles">
-                {[
-                  summary.aiFeedback.summary,
-                  summary.aiFeedback.praise,
-                  summary.aiFeedback.improvement,
-                  summary.aiFeedback.tomorrow,
-                  summary.aiFeedback.cheer,
-                ]
-                  .filter(Boolean)
-                  .map((text, i) => (
-                    <div className="butler-bubble-row" key={i} style={{ animationDelay: `${i * 0.08}s` }}>
-                      <div className="butler-bubble" style={{ animationDelay: `${i * 0.08}s` }}>
-                        {text}
-                      </div>
-                      <span className="butler-bubble-read">읽음</span>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
