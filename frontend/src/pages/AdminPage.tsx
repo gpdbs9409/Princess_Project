@@ -85,6 +85,11 @@ export function AdminPage() {
   const [applicants, setApplicants] = useState<AdminApplicantResponse[]>([]);
   const [participants, setParticipants] = useState<AdminMemberWeekResponse[]>([]);
   const [newCohortInput, setNewCohortInput] = useState<Record<number, string>>({});
+  // "직접 입력(새 기수)"를 고른 행만 true - 그 외에는 드롭다운으로 기존 기수 중에서만 고르게
+  // 해서, 오타로 잘못된 기수 문자열이 만들어지는 걸 막는다 (2026-08-26 요청: 플레인텍스트
+  // 입력은 위험하니 드롭다운으로).
+  const [customCohortRows, setCustomCohortRows] = useState<Record<number, boolean>>({});
+  const NEW_COHORT_OPTION = "__new__";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
@@ -387,16 +392,53 @@ export function AdminPage() {
                     <td>{a.nickname}</td>
                     <td>{new Date(a.appliedAt).toLocaleDateString("ko-KR")}</td>
                     <td>
-                      <div className="row" style={{ gap: 6 }}>
-                        <input
-                          type="text"
-                          placeholder="예: 1기"
-                          style={{ maxWidth: 100 }}
-                          value={newCohortInput[a.userId] ?? ""}
-                          onChange={(e) =>
-                            setNewCohortInput((prev) => ({ ...prev, [a.userId]: e.target.value }))
-                          }
-                        />
+                      <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                        {customCohortRows[a.userId] ? (
+                          <input
+                            type="text"
+                            placeholder="예: 1기"
+                            style={{ maxWidth: 100 }}
+                            value={newCohortInput[a.userId] ?? ""}
+                            onChange={(e) =>
+                              setNewCohortInput((prev) => ({ ...prev, [a.userId]: e.target.value }))
+                            }
+                          />
+                        ) : (
+                          <select
+                            style={{ maxWidth: 130 }}
+                            value={newCohortInput[a.userId] ?? ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === NEW_COHORT_OPTION) {
+                                setCustomCohortRows((prev) => ({ ...prev, [a.userId]: true }));
+                                setNewCohortInput((prev) => ({ ...prev, [a.userId]: "" }));
+                              } else {
+                                setNewCohortInput((prev) => ({ ...prev, [a.userId]: value }));
+                              }
+                            }}
+                          >
+                            <option value="">기수 선택</option>
+                            {cohorts.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                            <option value={NEW_COHORT_OPTION}>+ 새 기수 직접 입력</option>
+                          </select>
+                        )}
+                        {customCohortRows[a.userId] && (
+                          <button
+                            type="button"
+                            className="ghost"
+                            style={{ padding: "4px 8px", fontSize: 12 }}
+                            onClick={() => {
+                              setCustomCohortRows((prev) => ({ ...prev, [a.userId]: false }));
+                              setNewCohortInput((prev) => ({ ...prev, [a.userId]: "" }));
+                            }}
+                          >
+                            목록에서 선택
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="ghost"
