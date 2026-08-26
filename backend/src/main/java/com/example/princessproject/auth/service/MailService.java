@@ -1,14 +1,11 @@
 package com.example.princessproject.auth.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +16,11 @@ import org.springframework.stereotype.Service;
  * "Couldn't connect to host ... timeout 5000"으로 실패했다. 비밀번호 문제(앱 비밀번호 공백)를
  * 고치고, IPv4 강제(-Djava.net.preferIPv4Stack=true)까지 해봐도 동일하게 타임아웃이 나서, PaaS가
  * 아웃바운드 SMTP 포트 자체를 막아둔 것으로 판단했다. 일반 HTTPS 요청만 쓰는 이메일 API로 옮기면
- * 포트 차단과 무관해진다. spring-boot-starter-mail(JavaMailSender)은 더 이상 여기서 안 쓴다 -
- * 의존성 자체는 혹시 몰라 build.gradle에 남겨뒀지만 실제 발송 경로는 이 클래스뿐이다.
+ * 포트 차단과 무관해진다. spring-boot-starter-mail(JavaMailSender)은 더 이상 여기서 안 쓴다.
+ *
+ * 요청 바디는 Jackson 대신 직접 조립한다 - 이 프로젝트의 backend 빌드에는 com.fasterxml.jackson
+ * .databind가 컴파일 클래스패스에 없어서(2026-08-27 배포 실패로 확인), 굳이 새 의존성을 추가하는
+ * 대신 필드 4개짜리 단순 JSON을 문자열로 직접 만든다.
  *
  * 주의(운영자 확인 필요): Resend는 발신 도메인을 인증하기 전까지 "onboarding@resend.dev"로만
  * 보낼 수 있고, 그 상태에서는 Resend 계정 소유자 본인 이메일로만 발송이 허용되는 샌드박스
@@ -35,7 +35,6 @@ public class MailService {
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final String apiKey;
     private final String fromAddress;
@@ -72,13 +71,12 @@ public class MailService {
                     "RESEND_API_KEY is not configured - set it in the environment before sending email");
         }
         try {
-            Map<String, Object> payload = Map.of(
-                    "from", fromAddress,
-                    "to", List.of(toEmail),
-                    "subject", subject,
-                    "text", text
-            );
-            String body = objectMapper.writeValueAsString(payload);
+            String body = "{"
+                    + "\"from\":\"" + jsonEscape(fromAddress) + "\","
+                    + "\"to\":[\"" + jsonEscape(toEmail) + "\"],"
+                    + "\"subject\":\"" + jsonEscape(subject) + "\","
+                    + "\"text\":\"" + jsonEscape(text) + "\""
+                    + "}";
             HttpRequest request = HttpRequest.newBuilder(RESEND_ENDPOINT)
                     .timeout(Duration.ofSeconds(10))
                     .header("Authorization", "Bearer " + apiKey)
@@ -96,5 +94,16 @@ public class MailService {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while sending email via Resend", e);
         }
+    }
+
+    // Jackson 없이 손으로 JSON 문자열을 조립하다 보니 이스케이프도 직접 해야 한다 - 이메일 본문에
+    // 개행/따옴표/역슬래시가 들어가면 JSON이 깨지므로 최소한의 이스케이프만 처리한다.
+    private String jsonEscape(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }
