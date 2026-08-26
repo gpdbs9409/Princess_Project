@@ -44,7 +44,10 @@ CREATE TABLE users (
     -- "1기", "2기"처럼 자유 텍스트로 두어 운영진이 새 기수를 코드 배포 없이 바로 쓸 수 있게 한다.
     cohort VARCHAR(20) NULL,
 
-    -- 선택 항목. 없으면 "비밀번호 찾기"를 쓸 수 없다 (회원가입 때 입력하거나 마이페이지에서 나중에 등록).
+    -- 2026-08-26부터 회원가입 시 이메일 인증을 거쳐 필수로 입력받는다 (없으면 "비밀번호 찾기"도
+    -- 못 씀). 컬럼 자체는 여전히 NULL 허용 - 이 변경 이전에 만들어진 기존 계정들은 이메일이 없을
+    -- 수 있고, DB 레벨 NOT NULL로 바꾸면 그 계정들이 깨지기 때문 (필수 여부는 애플리케이션단
+    -- 검증(SignupRequest/UserService)에서만 강제한다).
     email VARCHAR(255) NULL,
 
     CONSTRAINT uk_users_nickname
@@ -1005,4 +1008,37 @@ CREATE TABLE password_reset_tokens (
         FOREIGN KEY (user_id) REFERENCES users(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+
+-- =========================================================
+-- 17. EMAIL_VERIFICATIONS
+-- 회원가입 전 이메일 인증 6자리 코드 (2026-08-26). 계정이 아직 없는 상태에서 발급되므로
+-- users FK가 없다 - email 문자열 자체가 식별자. 인증 성공 시 verified_token이 발급되고,
+-- 실제 회원가입 요청이 이 토큰을 다시 실어 보내야 계정이 생성된다. 코드를 재요청하면 해당
+-- 이메일의 기존 행은 전부 삭제하므로 이메일당 항상 최신 행 1개만 유효하다.
+-- =========================================================
+
+CREATE TABLE email_verifications (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    email VARCHAR(255) NOT NULL,
+
+    code VARCHAR(6) NOT NULL,
+
+    verified_token VARCHAR(128) NULL,
+
+    verified BOOLEAN NOT NULL DEFAULT FALSE,
+
+    expires_at TIMESTAMP NOT NULL,
+
+    created_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_email_verifications_email (
+        email
+    ),
+
+    CONSTRAINT uk_email_verifications_verified_token
+        UNIQUE (verified_token)
 ) ENGINE = InnoDB;

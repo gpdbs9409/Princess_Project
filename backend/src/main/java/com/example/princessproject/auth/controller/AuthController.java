@@ -2,8 +2,12 @@ package com.example.princessproject.auth.controller;
 
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.service.UserService;
+import com.example.princessproject.auth.service.EmailVerificationService;
 import com.example.princessproject.auth.service.JwtService;
 import com.example.princessproject.auth.service.PasswordResetService;
+import com.example.princessproject.auth.dto.EmailVerificationConfirmRequest;
+import com.example.princessproject.auth.dto.EmailVerificationConfirmResponse;
+import com.example.princessproject.auth.dto.EmailVerificationRequest;
 import com.example.princessproject.auth.dto.ForgotPasswordRequest;
 import com.example.princessproject.auth.dto.LoginRequest;
 import com.example.princessproject.auth.dto.LoginResponse;
@@ -27,16 +31,39 @@ public class AuthController {
     private final UserService userService;
     private final JwtService jwtService;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
 
-    public AuthController(UserService userService, JwtService jwtService, PasswordResetService passwordResetService) {
+    public AuthController(
+            UserService userService,
+            JwtService jwtService,
+            PasswordResetService passwordResetService,
+            EmailVerificationService emailVerificationService
+    ) {
         this.userService = userService;
         this.jwtService = jwtService;
         this.passwordResetService = passwordResetService;
+        this.emailVerificationService = emailVerificationService;
     }
 
+    // 이메일 인증 코드 발급 (2026-08-26) - 가입 전이라 계정이 아직 없으므로 이메일 문자열만으로 요청한다.
+    @PostMapping("/email-verification/request")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void requestEmailVerification(@Valid @RequestBody EmailVerificationRequest request) {
+        emailVerificationService.requestCode(request.email());
+    }
+
+    @PostMapping("/email-verification/confirm")
+    public EmailVerificationConfirmResponse confirmEmailVerification(
+            @Valid @RequestBody EmailVerificationConfirmRequest request) {
+        String verifiedToken = emailVerificationService.confirmCode(request.email(), request.code());
+        return new EmailVerificationConfirmResponse(verifiedToken);
+    }
+
+    // 이메일 인증(verifiedToken)을 통과해야만 가입이 완료된다 (2026-08-26).
     @PostMapping("/signup")
     public LoginResponse signup(@Valid @RequestBody SignupRequest request) {
-        User user = userService.signup(request.nickname(), request.password(), request.email());
+        User user = userService.signup(
+                request.nickname(), request.password(), request.email(), request.emailVerificationToken());
         String token = jwtService.generateToken(user);
         return new LoginResponse(token, UserResponse.from(user));
     }

@@ -1,26 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
-import { getActiveProject, login, signup, updateProfileImage } from "../api/endpoints";
+import {
+  confirmEmailVerification,
+  getActiveProject,
+  login,
+  requestEmailVerification,
+  signup,
+  updateProfileImage,
+} from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
 
 type Mode = "login" | "signup";
-
-// 약관 원문은 아직 확정 전 (2026-08-21: 쥐콩이가 문구 전달 예정, 받으면 TERMS_PLACEHOLDER_TEXT
-// 자리에 실제 약관 내용으로 교체). 지금은 자리표시 문구만 넣어 체크박스 UI/검증 로직을 먼저 붙인다.
-type TermItem = {
-  id: string;
-  label: string;
-  required: boolean;
-};
-
-const TERMS: TermItem[] = [
-  { id: "service", label: "이용약관 동의", required: true },
-  { id: "privacy", label: "개인정보 수집 및 이용 동의", required: true },
-  { id: "marketing", label: "마케팅 정보 수신 동의 (선택)", required: false },
-];
-
-const TERMS_PLACEHOLDER_TEXT = "약관 추후 변경 예정입니다.";
+type VerifyStep = "none" | "sent" | "verified";
 
 export function LoginPage() {
   const { signIn, updateUser } = useAuth();
@@ -31,17 +23,19 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
-  const [agreements, setAgreements] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(TERMS.map((term) => [term.id, false]))
-  );
-  const [expandedTermId, setExpandedTermId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const allTermsAgreed = TERMS.every((term) => agreements[term.id]);
-  const requiredTermsAgreed = TERMS.filter((term) => term.required).every(
-    (term) => agreements[term.id]
-  );
+  // 이메일 인증 (2026-08-26 요청: 이메일 선택 -> 필수, 인증에 성공해야만 회원가입 버튼이 풀린다).
+  // verifiedToken은 이메일이 바뀌면 더 이상 그 이메일에 대해 유효하지 않으므로, 이메일을 다시
+  // 수정하면 인증 상태를 처음(none)으로 되돌린다 - handleEmailChange에서 처리.
+  const [verifyStep, setVerifyStep] = useState<VerifyStep>("none");
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifiedToken, setVerifiedToken] = useState<string | null>(null);
+  const [verifySending, setVerifySending] = useState(false);
+  const [verifyConfirming, setVerifyConfirming] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -49,9 +43,23 @@ export function LoginPage() {
     };
   }, [photoPreviewUrl]);
 
+  const resetVerification = () => {
+    setVerifyStep("none");
+    setVerifiedToken(null);
+    setVerifyCode("");
+    setVerifyError(null);
+    setVerifyInfo(null);
+  };
+
   const switchMode = (next: Mode) => {
     setMode(next);
     setError(null);
+    resetVerification();
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    if (verifyStep !== "none") resetVerification();
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,31 +71,56 @@ export function LoginPage() {
     });
   };
 
-  const toggleAllTerms = (checked: boolean) => {
-    setAgreements(Object.fromEntries(TERMS.map((term) => [term.id, checked])));
+  const handleRequestVerification = async () => {
+    if (!email.trim()) return;
+    setVerifySending(true);
+    setVerifyError(null);
+    setVerifyInfo(null);
+    try {
+      await requestEmailVerification(email.trim());
+      setVerifyStep("sent");
+      setVerifyInfo("인증 코드를 보냈어요. 메일함(스팸함 포함)을 확인해주세요.");
+    } catch {
+      setVerifyError("인증 코드 발송에 실패했습니다. 이메일 주소를 확인하고 다시 시도해주세요.");
+    } finally {
+      setVerifySending(false);
+    }
   };
 
-  const toggleTerm = (id: string, checked: boolean) => {
-    setAgreements((prev) => ({ ...prev, [id]: checked }));
-  };
-
-  const toggleTermPreview = (id: string) => {
-    setExpandedTermId((prev) => (prev === id ? null : id));
+  const handleConfirmVerification = async () => {
+    if (verifyCode.length !== 6) return;
+    setVerifyConfirming(true);
+    setVerifyError(null);
+    try {
+      const res = await confirmEmailVerification(email.trim(), verifyCode);
+      setVerifiedToken(res.verifiedToken);
+      setVerifyStep("verified");
+      setVerifyInfo(null);
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "CODE_EXPIRED") {
+        setVerifyError("인증 코드가 만료됐어요. 다시 발송해주세요.");
+      } else if (err instanceof ApiError && err.code === "CODE_INVALID") {
+        setVerifyError("인증 코드가 올바르지 않아요.");
+      } else if (err instanceof ApiError && err.code === "CODE_NOT_REQUESTED") {
+        setVerifyError("먼저 '인증하기'를 눌러 코드를 받아주세요.");
+      } else {
+        setVerifyError("인증에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      }
+    } finally {
+      setVerifyConfirming(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nickname.trim() || !password) return;
-    if (mode === "signup" && !requiredTermsAgreed) {
-      setError("필수 약관에 모두 동의해주세요.");
-      return;
-    }
+    if (mode === "signup" && (verifyStep !== "verified" || !verifiedToken)) return;
     setLoading(true);
     setError(null);
     try {
       const res =
         mode === "signup"
-          ? await signup(nickname.trim(), password, email.trim())
+          ? await signup(nickname.trim(), password, email.trim(), verifiedToken as string)
           : await login(nickname.trim(), password);
       signIn(res.token, res.user);
 
@@ -111,6 +144,9 @@ export function LoginPage() {
         setError("이미 사용 중인 닉네임이에요. 다른 닉네임을 입력하거나 로그인해주세요.");
       } else if (err instanceof ApiError && mode === "signup" && err.code === "EMAIL_TAKEN") {
         setError("이미 사용 중인 이메일이에요. 다른 이메일을 입력해주세요.");
+      } else if (err instanceof ApiError && mode === "signup" && err.code === "EMAIL_NOT_VERIFIED") {
+        setError("이메일 인증이 만료됐어요. 인증을 다시 진행해주세요.");
+        resetVerification();
       } else {
         setError(mode === "signup" ? "회원가입에 실패했습니다. 잠시 후 다시 시도해주세요." : "로그인에 실패했습니다. 잠시 후 다시 시도해주세요.");
       }
@@ -118,6 +154,8 @@ export function LoginPage() {
       setLoading(false);
     }
   };
+
+  const signupDisabled = loading || (mode === "signup" && verifyStep !== "verified");
 
   return (
     <div className="container" style={{ maxWidth: 420, paddingTop: 96 }}>
@@ -167,15 +205,63 @@ export function LoginPage() {
         </div>
         {mode === "signup" && (
           <div className="stack" style={{ gap: 6 }}>
-            <label htmlFor="email">이메일 (선택)</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="비밀번호를 잊었을 때 필요해요"
-            />
+            <label htmlFor="email">이메일</label>
+            <div className="row" style={{ gap: 8 }}>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => handleEmailChange(e.target.value)}
+                placeholder="이메일 인증에 사용돼요"
+                disabled={verifyStep === "verified"}
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className="ghost"
+                onClick={handleRequestVerification}
+                disabled={!email.trim() || verifySending || verifyStep === "verified"}
+              >
+                {verifyStep === "verified"
+                  ? "인증완료"
+                  : verifySending
+                    ? "발송 중..."
+                    : verifyStep === "sent"
+                      ? "재발송"
+                      : "인증하기"}
+              </button>
+            </div>
           </div>
+        )}
+        {mode === "signup" && verifyStep === "sent" && (
+          <div className="stack" style={{ gap: 6 }}>
+            <label htmlFor="verifyCode">인증 코드</label>
+            <div className="row" style={{ gap: 8 }}>
+              <input
+                id="verifyCode"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={verifyCode}
+                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="6자리 코드"
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className="ghost"
+                onClick={handleConfirmVerification}
+                disabled={verifyCode.length !== 6 || verifyConfirming}
+              >
+                {verifyConfirming ? "확인 중..." : "확인"}
+              </button>
+            </div>
+            {verifyInfo && <p className="muted">{verifyInfo}</p>}
+            {verifyError && <div className="error-banner">{verifyError}</div>}
+          </div>
+        )}
+        {mode === "signup" && verifyStep === "verified" && (
+          <p className="muted">이메일 인증을 완료했어요.</p>
         )}
         {mode === "signup" && (
           <div className="stack" style={{ gap: 8 }}>
@@ -190,49 +276,8 @@ export function LoginPage() {
             </div>
           </div>
         )}
-        {mode === "signup" && (
-          <div className="terms-block">
-            <label className="terms-row terms-row-all">
-              <input
-                type="checkbox"
-                checked={allTermsAgreed}
-                onChange={(e) => toggleAllTerms(e.target.checked)}
-              />
-              <span>약관 전체 동의</span>
-            </label>
-            <div className="terms-divider" />
-            <div className="stack" style={{ gap: 2 }}>
-              {TERMS.map((term) => (
-                <div key={term.id} className="terms-row">
-                  <label className="terms-checkbox-label" htmlFor={`term-${term.id}`}>
-                    <input
-                      id={`term-${term.id}`}
-                      type="checkbox"
-                      checked={agreements[term.id]}
-                      onChange={(e) => toggleTerm(term.id, e.target.checked)}
-                    />
-                    <span>
-                      <span className={term.required ? "terms-tag required" : "terms-tag optional"}>
-                        {term.required ? "필수" : "선택"}
-                      </span>{" "}
-                      {term.label}
-                    </span>
-                  </label>
-                  <button
-                    type="button"
-                    className="terms-view-toggle"
-                    onClick={() => toggleTermPreview(term.id)}
-                  >
-                    {expandedTermId === term.id ? "닫기" : "보기"}
-                  </button>
-                </div>
-              ))}
-            </div>
-            {expandedTermId && <p className="muted terms-content">{TERMS_PLACEHOLDER_TEXT}</p>}
-          </div>
-        )}
         {error && <div className="error-banner">{error}</div>}
-        <button type="submit" className="primary" disabled={loading || (mode === "signup" && !requiredTermsAgreed)}>
+        <button type="submit" className="primary" disabled={signupDisabled}>
           {loading ? "처리 중..." : mode === "signup" ? "회원가입" : "로그인"}
         </button>
         {mode === "login" && (

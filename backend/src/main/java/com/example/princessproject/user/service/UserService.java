@@ -1,6 +1,7 @@
 package com.example.princessproject.user.service;
 
 import com.example.princessproject.auth.service.AuthValidationException;
+import com.example.princessproject.auth.service.EmailVerificationService;
 import com.example.princessproject.record.repository.DailyRecordRepository;
 import com.example.princessproject.user.dto.ParticipantResponse;
 import com.example.princessproject.user.dto.ProfileStatsResponse;
@@ -20,15 +21,18 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final DailyRecordRepository dailyRecordRepository;
+    private final EmailVerificationService emailVerificationService;
 
     public UserService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            DailyRecordRepository dailyRecordRepository
+            DailyRecordRepository dailyRecordRepository,
+            EmailVerificationService emailVerificationService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.dailyRecordRepository = dailyRecordRepository;
+        this.emailVerificationService = emailVerificationService;
     }
 
     /**
@@ -36,22 +40,31 @@ public class UserService {
      * silently created a brand-new empty account on any nickname typo instead of telling the
      * user their nickname was wrong - now separate, each with its own clear failure mode.
      *
-     * email is optional (null/blank both treated as "not provided") since it only exists to
-     * power "비밀번호 찾기" - accounts created before this feature, or anyone who skips it,
-     * simply can't use password reset until they add one from 마이페이지.
+     * 2026-08-26: 이메일이 선택에서 필수로 바뀌었다 - "비밀번호 찾기"뿐 아니라 가입 자체가
+     * emailVerificationToken(POST /api/auth/email-verification/confirm에서 발급)을 다시
+     * EmailVerificationService로 검증해야 통과한다. 프론트가 보낸 토큰을 그냥 믿지 않고, 이
+     * 이메일로 실제 인증에 성공한 토큰인지 서버가 재확인한다. 가입이 끝나면 해당 이메일의 인증
+     * 행은 정리한다(clearAfterSignup) - 같은 토큰을 다른 계정 생성에 재사용할 수 없게 하기 위해서다.
      */
     @Transactional
-    public User signup(String nickname, String rawPassword, String email) {
+    public User signup(String nickname, String rawPassword, String email, String emailVerificationToken) {
         if (userRepository.findByNickname(nickname).isPresent()) {
             throw new AuthValidationException("NICKNAME_TAKEN", "Nickname already exists: " + nickname);
         }
         String normalizedEmail = normalizeEmail(email);
-        if (normalizedEmail != null && userRepository.findByEmail(normalizedEmail).isPresent()) {
+        if (normalizedEmail == null) {
+            throw new AuthValidationException("EMAIL_REQUIRED", "Email is required");
+        }
+        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
             throw new AuthValidationException("EMAIL_TAKEN", "Email already registered: " + normalizedEmail);
         }
+        emailVerificationService.assertVerified(normalizedEmail, emailVerificationToken);
+
         User user = new User(nickname, passwordEncoder.encode(rawPassword));
         user.setEmail(normalizedEmail);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        emailVerificationService.clearAfterSignup(normalizedEmail);
+        return saved;
     }
 
     @Transactional
