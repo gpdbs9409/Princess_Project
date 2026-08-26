@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getProfileStats } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
+import { ParticipantListModal } from "./ParticipantListModal";
 
 export function ProfileHeader() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [recordCount, setRecordCount] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [showParticipants, setShowParticipants] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -49,18 +51,28 @@ export function ProfileHeader() {
             <strong>{recordCount}</strong>
             <span className="muted">게시물</span>
           </div>
-          <div className="profile-header-stat">
+          <button
+            type="button"
+            className="profile-header-stat profile-header-stat-btn"
+            onClick={() => setShowParticipants(true)}
+          >
             <strong>{totalUsers}</strong>
             <span className="muted">팔로워</span>
-          </div>
-          <div className="profile-header-stat">
+          </button>
+          <button
+            type="button"
+            className="profile-header-stat profile-header-stat-btn"
+            onClick={() => setShowParticipants(true)}
+          >
             <strong>{totalUsers}</strong>
             <span className="muted">팔로잉</span>
-          </div>
+          </button>
         </div>
       </div>
 
       <div className="profile-header-nickname">{user.nickname}</div>
+
+      {showParticipants && <ParticipantListModal onClose={() => setShowParticipants(false)} />}
     </div>
   );
 }

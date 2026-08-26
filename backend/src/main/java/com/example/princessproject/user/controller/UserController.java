@@ -1,11 +1,13 @@
 package com.example.princessproject.user.controller;
 
 import com.example.princessproject.upload.service.FileStorageClient;
+import com.example.princessproject.user.dto.ParticipantResponse;
 import com.example.princessproject.user.dto.UpdateEmailRequest;
 import com.example.princessproject.user.service.UserService;
 import com.example.princessproject.user.dto.ProfileStatsResponse;
 import com.example.princessproject.user.dto.UserResponse;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -60,5 +62,13 @@ public class UserController {
     @PreAuthorize("#id == authentication.principal")
     public ProfileStatsResponse getProfileStats(@PathVariable Long id) {
         return userService.getProfileStats(id);
+    }
+
+    // 대시보드 팔로워/팔로잉 클릭 시 "다른 참가자" 프로필 목록 (2026-08 요청). 실제 팔로우
+    // 관계는 없어서 같은 기수 참가자를 그냥 보여준다 - UserService.getParticipants 참고.
+    @GetMapping("/{id}/participants")
+    @PreAuthorize("#id == authentication.principal")
+    public List<ParticipantResponse> getParticipants(@PathVariable Long id) {
+        return userService.getParticipants(id);
     }
 }

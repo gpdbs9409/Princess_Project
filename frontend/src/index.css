@@ -556,6 +556,33 @@ a.link:hover {
 .site-footer-inner {
   padding: 20px;
 }
+.site-footer-contact {
+  margin-bottom: 14px;
+}
+.site-footer-contact-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.site-footer-contact-lead {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.site-footer-contact-line {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.site-footer-contact-line a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.site-footer-contact-line a:hover {
+  text-decoration: underline;
+}
 .site-footer-copyright {
   font-size: 11.5px;
   color: var(--text-muted);
@@ -781,6 +808,57 @@ a.link:hover {
   gap: 14px;
 }
 
+/* 팔로워/팔로잉 클릭 시 뜨는 참가자 목록 모달 - .modal-card 기본형은 확인창용 가운데정렬이라,
+   왼쪽정렬 리스트 + 스크롤이 필요한 이 화면은 별도로 살짝만 덮어쓴다 (2026-08 요청). */
+.participant-modal {
+  text-align: left;
+  max-width: 360px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.participant-modal-close {
+  padding: 2px 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+.participant-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.participant-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.participant-list-item:last-child {
+  border-bottom: none;
+}
+.participant-list-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.participant-list-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+.participant-list-nickname {
+  font-size: 14px;
+  font-weight: 600;
+}
+
 /* Instagram-style profile header */
 .profile-header {
   margin-bottom: 20px;
@@ -874,6 +952,19 @@ a.link:hover {
 }
 .profile-header-stat .muted {
   font-size: 12px;
+}
+/* 팔로워/팔로잉은 버튼이라 전역 button 스타일(패딩/테두리/굵기)을 지우고 원래
+   .profile-header-stat 모양 그대로 클릭 가능하게 만든다 (2026-08 요청). */
+.profile-header-stat-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-weight: inherit;
+  align-items: center;
+  cursor: pointer;
+}
+.profile-header-stat-btn:hover strong {
+  color: var(--accent);
 }
 
 .profile-header-nickname {

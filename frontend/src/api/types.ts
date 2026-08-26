@@ -123,6 +123,13 @@ export interface ProfileStatsResponse {
   totalUsers: number;
 }
 
+// 팔로워/팔로잉 클릭 시 보여주는 같은 기수 참가자 목록 (실제 팔로우 관계는 없음).
+export interface ParticipantResponse {
+  id: number;
+  nickname: string;
+  profileImageUrl: string | null;
+}
+
 export interface LoginResponse {
   token: string;
   user: UserResponse;

@@ -13,6 +13,7 @@ import type {
   DailySummaryResponse,
   LoginResponse,
   AiFeedbackResponse,
+  ParticipantResponse,
   ProfileStatsResponse,
   ProjectResponse,
   ProjectSelectionsRequest,
@@ -42,6 +43,9 @@ export const updateEmail = (userId: number, email: string) =>
 
 export const getProfileStats = (userId: number) =>
   api.get<ProfileStatsResponse>(`/api/users/${userId}/profile-stats`);
+
+export const getParticipants = (userId: number) =>
+  api.get<ParticipantResponse[]>(`/api/users/${userId}/participants`);
 
 export const updateProfileImage = (userId: number, file: File) => {
   const formData = new FormData();
