@@ -4,6 +4,7 @@ import com.example.princessproject.commontask.model.CommonTaskRecord;
 import com.example.princessproject.commontask.model.CommonTaskType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record CommonTaskResponse(
         Long id,
@@ -18,7 +19,8 @@ public record CommonTaskResponse(
         String retroWeekReview,
         String retroNextWeekPlan,
         String photoUrl,
-        String memo
+        String memo,
+        LocalDateTime createdAt
 ) {
     public static CommonTaskResponse from(CommonTaskRecord record) {
         return new CommonTaskResponse(
@@ -34,7 +36,8 @@ public record CommonTaskResponse(
                 record.getRetroWeekReview(),
                 record.getRetroNextWeekPlan(),
                 record.getPhotoUrl(),
-                record.getMemo()
+                record.getMemo(),
+                record.getCreatedAt()
         );
     }
 }

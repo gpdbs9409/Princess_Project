@@ -877,9 +877,12 @@ a.link:hover {
 .participant-list-goal {
   font-size: 12px;
   line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.participant-list-goal strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .retro-readonly-text {

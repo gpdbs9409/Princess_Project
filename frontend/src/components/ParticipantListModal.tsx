@@ -38,12 +38,11 @@ export function ParticipantListModal({ onClose }: { onClose: () => void }) {
         {!error && participants !== null && participants.length > 0 && (
           <ul className="participant-list">
             {participants.map((p) => {
-              const goalLine = [
-                p.goalAppearance && `추구미 · ${p.goalAppearance}`,
-                p.goalHuman && `이상향 · ${p.goalHuman}`,
-              ]
-                .filter(Boolean)
-                .join("  /  ");
+              const profileLines = [
+                p.goalAppearance && { label: "추구미", value: p.goalAppearance },
+                p.goalHuman && { label: "이상향", value: p.goalHuman },
+                p.goalEnding && { label: "행동양식", value: p.goalEnding },
+              ].filter((line): line is { label: string; value: string } => Boolean(line));
               return (
                 <li key={p.id} className="participant-list-item">
                   {p.profileImageUrl ? (
@@ -55,7 +54,11 @@ export function ParticipantListModal({ onClose }: { onClose: () => void }) {
                   )}
                   <div className="participant-list-info">
                     <span className="participant-list-nickname">{p.nickname}</span>
-                    {goalLine && <span className="participant-list-goal muted">{goalLine}</span>}
+                    {profileLines.map((line) => (
+                      <span key={line.label} className="participant-list-goal muted">
+                        <strong>{line.label}</strong> · {line.value}
+                      </span>
+                    ))}
                   </div>
                 </li>
               );

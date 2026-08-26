@@ -2,7 +2,6 @@ package com.example.princessproject.user.service;
 
 import com.example.princessproject.auth.service.AuthValidationException;
 import com.example.princessproject.auth.service.EmailVerificationService;
-import com.example.princessproject.project.model.ProjectStatus;
 import com.example.princessproject.project.model.UserProject;
 import com.example.princessproject.project.repository.UserProjectRepository;
 import com.example.princessproject.record.repository.DailyRecordRepository;
@@ -157,7 +156,7 @@ public class UserService {
         }
         List<Long> cohortUserIds = cohortUsers.stream().map(User::getId).toList();
         Map<Long, UserProject> projectByUserId = userProjectRepository
-                .findByUserIdInAndStatus(cohortUserIds, ProjectStatus.ACTIVE).stream()
+                .findByUserIdInOrderByUpdatedAtDesc(cohortUserIds).stream()
                 .collect(Collectors.toMap(
                         project -> project.getUser().getId(), Function.identity(), (a, b) -> a));
         return cohortUsers.stream()
@@ -166,7 +165,8 @@ public class UserService {
                     return ParticipantResponse.from(
                             user,
                             project == null ? null : project.getGoalHuman(),
-                            project == null ? null : project.getGoalAppearance());
+                            project == null ? null : project.getGoalAppearance(),
+                            project == null ? null : project.getGoalEnding());
                 })
                 .toList();
     }

@@ -13,9 +13,15 @@ import com.example.princessproject.user.model.User;
  * (2026-08-27 요청: "함께하는 참가자 목록에 추구미/이상향도 보이게").
  */
 public record ParticipantResponse(
-        Long id, String nickname, String profileImageUrl, String goalHuman, String goalAppearance) {
-    public static ParticipantResponse from(User user, String goalHuman, String goalAppearance) {
+        Long id,
+        String nickname,
+        String profileImageUrl,
+        String goalHuman,
+        String goalAppearance,
+        String goalEnding) {
+    public static ParticipantResponse from(
+            User user, String goalHuman, String goalAppearance, String goalEnding) {
         return new ParticipantResponse(
-                user.getId(), user.getNickname(), user.getProfileImageUrl(), goalHuman, goalAppearance);
+                user.getId(), user.getNickname(), user.getProfileImageUrl(), goalHuman, goalAppearance, goalEnding);
     }
 }

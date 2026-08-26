@@ -131,6 +131,7 @@ export interface ParticipantResponse {
   profileImageUrl: string | null;
   goalHuman: string | null;
   goalAppearance: string | null;
+  goalEnding: string | null;
 }
 
 export interface LoginResponse {
@@ -348,4 +349,5 @@ export interface CommonTaskResponse {
   retroNextWeekPlan: string | null;
   photoUrl: string | null;
   memo: string | null;
+  createdAt: string;
 }

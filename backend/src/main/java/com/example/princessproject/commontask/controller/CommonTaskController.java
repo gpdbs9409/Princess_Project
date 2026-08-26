@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -66,5 +68,15 @@ public class CommonTaskController {
     ) {
         Long userId = (Long) authentication.getPrincipal();
         return commonTaskService.getWeeklyHistory(userId, weekStart).stream().map(CommonTaskResponse::from).toList();
+    }
+
+    @PutMapping("/api/common-tasks/weekly/{recordId}")
+    public CommonTaskResponse updateWeekly(
+            Authentication authentication,
+            @PathVariable Long recordId,
+            @Valid @RequestBody CommonTaskRequest request
+    ) {
+        Long userId = (Long) authentication.getPrincipal();
+        return CommonTaskResponse.from(commonTaskService.updateWeeklyRetrospective(userId, recordId, request));
     }
 }

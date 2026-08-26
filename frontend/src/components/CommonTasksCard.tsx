@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import {
   getDailyCommonTasks,
-  getWeeklyCommonTask,
   getWeeklyRetrospectiveHistory,
   saveCommonTask,
+  updateWeeklyRetrospective,
   uploadFile,
 } from "../api/endpoints";
 import type { CommonTaskResponse } from "../api/types";
@@ -436,75 +436,80 @@ function RetroReadOnlyBlock({ record }: { record: CommonTaskResponse }) {
 // 로직(saveCommonTask가 항상 todayIso() 기준으로 그 주에 upsert) 특성상 열람 전용으로만 둔다.
 export function WeeklyRetrospectiveSection() {
   const { showToast } = useToast();
-  const [current, setCurrent] = useState<CommonTaskResponse | null>(null);
   const [history, setHistory] = useState<CommonTaskResponse[]>([]);
-  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<RetroDraft>(EMPTY_RETRO_DRAFT);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState<RetroDraft>(EMPTY_RETRO_DRAFT);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getWeeklyCommonTask(todayIso())
-      .then((existing) => {
-        setCurrent(existing ?? null);
-        setDraft(draftFromRecord(existing ?? null));
-        setEditing(!existing);
-      })
-      .catch(() => {
-        // No existing entry (or a failed load) just leaves the 3 fields blank/editable.
-        setEditing(true);
-      })
-      .finally(() => setLoading(false));
-
     getWeeklyRetrospectiveHistory(todayIso())
       .then(setHistory)
-      .catch(() => {
-        // 지난 회고를 못 불러와도 이번 주 작성/열람에는 영향 없음 - 조용히 빈 목록으로 둔다.
-      });
+      .catch(() => setError("지난 회고를 불러오지 못했어요."))
+      .finally(() => setLoading(false));
   }, []);
 
-  const startEditing = () => {
-    setDraft(draftFromRecord(current));
+  const startEditing = (record: CommonTaskResponse) => {
+    setEditingId(record.id);
+    setEditDraft(draftFromRecord(record));
     setError(null);
-    setEditing(true);
   };
 
   const cancelEditing = () => {
-    setDraft(draftFromRecord(current));
+    setEditingId(null);
+    setEditDraft(EMPTY_RETRO_DRAFT);
     setError(null);
-    setEditing(false);
   };
 
-  const handleSave = async () => {
-    if (!draft.dailyLife.trim() && !draft.weekReview.trim() && !draft.nextWeekPlan.trim()) {
+  const validateDraft = (value: RetroDraft) => {
+    if (!value.dailyLife.trim() && !value.weekReview.trim() && !value.nextWeekPlan.trim()) {
       setError("PART1~3 중 최소 하나는 내용을 입력해주세요.");
-      return;
+      return false;
     }
-    if (
-      draft.dailyLife.length > MAX_RETRO_TEXT_LENGTH ||
-      draft.weekReview.length > MAX_RETRO_TEXT_LENGTH ||
-      draft.nextWeekPlan.length > MAX_RETRO_TEXT_LENGTH
-    ) {
+    if (Object.values(value).some((text) => text.length > MAX_RETRO_TEXT_LENGTH)) {
       setError(`각 항목은 ${MAX_RETRO_TEXT_LENGTH.toLocaleString()}자 이하로 입력해주세요.`);
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const requestFromDraft = (value: RetroDraft) => ({
+    taskType: "WEEKLY_RETROSPECTIVE" as const,
+    date: todayIso(),
+    retroDailyLife: value.dailyLife.trim() || undefined,
+    retroWeekReview: value.weekReview.trim() || undefined,
+    retroNextWeekPlan: value.nextWeekPlan.trim() || undefined,
+  });
+
+  const handleSave = async () => {
+    if (!validateDraft(draft)) return;
     setSaving(true);
     setError(null);
     try {
-      const saved = await saveCommonTask({
-        taskType: "WEEKLY_RETROSPECTIVE",
-        date: todayIso(),
-        retroDailyLife: draft.dailyLife.trim() || undefined,
-        retroWeekReview: draft.weekReview.trim() || undefined,
-        retroNextWeekPlan: draft.nextWeekPlan.trim() || undefined,
-      });
-      setCurrent(saved);
-      setDraft(draftFromRecord(saved));
-      setEditing(false);
+      const saved = await saveCommonTask(requestFromDraft(draft));
+      setHistory((records) => [saved, ...records]);
+      setDraft(EMPTY_RETRO_DRAFT);
       showToast("주간 회고가 저장되었어요");
     } catch (err) {
       setError(commonTaskErrorMessage(err, "저장에 실패했습니다. 다시 시도해주세요."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdate = async (recordId: number) => {
+    if (!validateDraft(editDraft)) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await updateWeeklyRetrospective(recordId, requestFromDraft(editDraft));
+      setHistory((records) => records.map((record) => (record.id === recordId ? updated : record)));
+      cancelEditing();
+      showToast("주간 회고가 수정되었어요");
+    } catch (err) {
+      setError(commonTaskErrorMessage(err, "수정에 실패했습니다. 다시 시도해주세요."));
     } finally {
       setSaving(false);
     }
@@ -518,22 +523,10 @@ export function WeeklyRetrospectiveSection() {
         <div className="row-between">
           <div>
             <strong>주간 회고</strong>
-            <div className="muted">
-              공통 과제 · {current && !editing ? "이번 주 작성 완료" : "PART1~3 중 최소 하나는 입력해주세요"}
-            </div>
+            <div className="muted">공통 과제 · PART1~3 중 최소 하나는 입력해주세요</div>
           </div>
-          {current && !editing && <span className="badge good">완료</span>}
         </div>
-
-        {current && !editing ? (
-          <>
-            <RetroReadOnlyBlock record={current} />
-            <button type="button" className="ghost" onClick={startEditing} style={{ marginTop: 12 }}>
-              수정하기
-            </button>
-          </>
-        ) : (
-          <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+        <div className="stack" style={{ gap: 10, marginTop: 12 }}>
             <div className="stack" style={{ gap: 4 }}>
               <label className="muted" style={{ fontSize: 12.5 }}>
                 PART1. 일상 공유
@@ -576,16 +569,10 @@ export function WeeklyRetrospectiveSection() {
                 disabled={saving}
                 style={{ alignSelf: "flex-start" }}
               >
-                {saving ? "저장 중..." : current ? "수정 저장" : "저장"}
+                {saving ? "저장 중..." : "저장"}
               </button>
-              {current && (
-                <button type="button" className="ghost" onClick={cancelEditing} disabled={saving}>
-                  취소
-                </button>
-              )}
             </div>
           </div>
-        )}
       </div>
 
       {history.map((record) => (
@@ -597,7 +584,38 @@ export function WeeklyRetrospectiveSection() {
             </div>
             <span className="badge good">완료</span>
           </div>
-          <RetroReadOnlyBlock record={record} />
+          {editingId === record.id ? (
+            <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+              {([
+                ["dailyLife", "PART1. 일상 공유"],
+                ["weekReview", "PART2. 이번 주 회고"],
+                ["nextWeekPlan", "PART3. 다음 주 계획"],
+              ] as const).map(([key, label]) => (
+                <div key={key} className="stack" style={{ gap: 4 }}>
+                  <label className="muted" style={{ fontSize: 12.5 }}>{label}</label>
+                  <textarea
+                    value={editDraft[key]}
+                    onChange={(e) => setEditDraft((value) => ({ ...value, [key]: e.target.value }))}
+                    rows={2}
+                    maxLength={MAX_RETRO_TEXT_LENGTH}
+                  />
+                </div>
+              ))}
+              <div className="row" style={{ gap: 8 }}>
+                <button type="button" className="primary" onClick={() => handleUpdate(record.id)} disabled={saving}>
+                  {saving ? "저장 중..." : "수정 저장"}
+                </button>
+                <button type="button" className="ghost" onClick={cancelEditing} disabled={saving}>취소</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <RetroReadOnlyBlock record={record} />
+              <button type="button" className="ghost" onClick={() => startEditing(record)} style={{ marginTop: 12 }}>
+                수정하기
+              </button>
+            </>
+          )}
         </div>
       ))}
     </div>

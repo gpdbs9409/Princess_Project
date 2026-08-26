@@ -901,8 +901,7 @@ CREATE TABLE common_task_records (
         DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT uk_common_task_records_user_type_date
-        UNIQUE (
+    INDEX idx_common_task_records_user_type_date (
             user_id,
             task_type,
             record_date

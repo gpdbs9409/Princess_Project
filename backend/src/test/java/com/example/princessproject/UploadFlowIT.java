@@ -2,8 +2,8 @@ package com.example.princessproject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.example.princessproject.auth.dto.LoginRequest;
 import com.example.princessproject.auth.dto.LoginResponse;
+import com.example.princessproject.auth.repository.EmailVerificationRepository;
 import com.example.princessproject.upload.dto.UploadResponse;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -38,6 +39,9 @@ class UploadFlowIT {
 
     private RestTestClient client;
 
+    @Autowired
+    private EmailVerificationRepository emailVerificationRepository;
+
     @BeforeEach
     void setUp() {
         client = RestTestClient.bindToServer().baseUrl("http://localhost:" + port).build();
@@ -46,7 +50,7 @@ class UploadFlowIT {
     @Test
     void uploadedFileIsRetrievableAtReturnedUrl() throws Exception {
         LoginResponse login = client.post().uri("/api/auth/signup")
-                .body(new LoginRequest("upload-tester", "test-password"))
+                .body(TestAccountSupport.verifiedSignup(emailVerificationRepository, "upload-tester"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(LoginResponse.class)

@@ -102,6 +102,9 @@ export const getWeeklyCommonTask = (weekStart: string) =>
 export const getWeeklyRetrospectiveHistory = (weekStart: string) =>
   api.get<CommonTaskResponse[]>(`/api/common-tasks/weekly/history?weekStart=${weekStart}`);
 
+export const updateWeeklyRetrospective = (recordId: number, request: CommonTaskRequest) =>
+  api.put<CommonTaskResponse>(`/api/common-tasks/weekly/${recordId}`, request);
+
 export const uploadFile = (file: File) => {
   const formData = new FormData();
   formData.append("file", file);

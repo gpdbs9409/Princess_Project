@@ -55,9 +55,12 @@ public class CommonTaskService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         UserProject project = userProjectService.getOrCreateActive(userId);
 
-        CommonTaskRecord record = commonTaskRecordRepository
-                .findByUserIdAndTaskTypeAndRecordDate(userId, request.taskType(), recordDate)
-                .orElseGet(CommonTaskRecord::new);
+        // 독서/공부는 하루 한 건을 수정 저장하지만, 주간회고는 저장할 때마다 새 카드로 누적한다.
+        CommonTaskRecord record = request.taskType() == CommonTaskType.WEEKLY_RETROSPECTIVE
+                ? new CommonTaskRecord()
+                : commonTaskRecordRepository
+                        .findByUserIdAndTaskTypeAndRecordDate(userId, request.taskType(), recordDate)
+                        .orElseGet(CommonTaskRecord::new);
         record.setUser(user);
         record.setProject(project);
         record.setTaskType(request.taskType());
@@ -85,7 +88,8 @@ public class CommonTaskService {
     public CommonTaskRecord getWeekly(Long userId, LocalDate anyDayInWeek) {
         LocalDate weekStart = normalizeDate(CommonTaskType.WEEKLY_RETROSPECTIVE, anyDayInWeek);
         return commonTaskRecordRepository
-                .findByUserIdAndTaskTypeAndRecordDate(userId, CommonTaskType.WEEKLY_RETROSPECTIVE, weekStart)
+                .findTopByUserIdAndTaskTypeAndRecordDateOrderByCreatedAtDesc(
+                        userId, CommonTaskType.WEEKLY_RETROSPECTIVE, weekStart)
                 .orElse(null);
     }
 
@@ -94,9 +98,23 @@ public class CommonTaskService {
     // 이전 주들만 최신순으로 내려준다.
     @Transactional
     public List<CommonTaskRecord> getWeeklyHistory(Long userId, LocalDate anyDayInWeek) {
-        LocalDate weekStart = normalizeDate(CommonTaskType.WEEKLY_RETROSPECTIVE, anyDayInWeek);
-        return commonTaskRecordRepository.findByUserIdAndTaskTypeAndRecordDateLessThanOrderByRecordDateDesc(
-                userId, CommonTaskType.WEEKLY_RETROSPECTIVE, weekStart);
+        return commonTaskRecordRepository.findByUserIdAndTaskTypeOrderByCreatedAtDesc(
+                userId, CommonTaskType.WEEKLY_RETROSPECTIVE);
+    }
+
+    @Transactional
+    public CommonTaskRecord updateWeeklyRetrospective(Long userId, Long recordId, CommonTaskRequest request) {
+        if (request.taskType() != CommonTaskType.WEEKLY_RETROSPECTIVE) {
+            throw new CommonTaskValidationException("RETROSPECTIVE_TYPE_REQUIRED", "Weekly retrospective required");
+        }
+        validateRetrospective(request);
+        CommonTaskRecord record = commonTaskRecordRepository
+                .findByIdAndUserIdAndTaskType(recordId, userId, CommonTaskType.WEEKLY_RETROSPECTIVE)
+                .orElseThrow(() -> new IllegalArgumentException("Weekly retrospective not found: " + recordId));
+        record.setRetroDailyLife(request.retroDailyLife());
+        record.setRetroWeekReview(request.retroWeekReview());
+        record.setRetroNextWeekPlan(request.retroNextWeekPlan());
+        return commonTaskRecordRepository.save(record);
     }
 
     /** WEEKLY_RETROSPECTIVE is always keyed by that week's Monday, no matter which day is passed in. */

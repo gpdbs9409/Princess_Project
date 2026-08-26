@@ -2,8 +2,8 @@ package com.example.princessproject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.example.princessproject.auth.dto.LoginRequest;
 import com.example.princessproject.auth.dto.LoginResponse;
+import com.example.princessproject.auth.repository.EmailVerificationRepository;
 import com.example.princessproject.catalog.dto.GoalTypeResponse;
 import com.example.princessproject.catalog.dto.MissionDefinitionResponse;
 import com.example.princessproject.catalog.dto.StatTypeResponse;
@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
@@ -37,6 +38,9 @@ class WeeklyReportFlowIT {
 
     private RestTestClient client;
 
+    @Autowired
+    private EmailVerificationRepository emailVerificationRepository;
+
     @BeforeEach
     void setUp() {
         client = RestTestClient.bindToServer().baseUrl("http://localhost:" + port).build();
@@ -45,7 +49,7 @@ class WeeklyReportFlowIT {
     @Test
     void aggregatesTwoDaysOfRecordsIntoTheContainingWeek() {
         LoginResponse login = client.post().uri("/api/auth/signup")
-                .body(new LoginRequest("weekly-tester", "test-password"))
+                .body(TestAccountSupport.verifiedSignup(emailVerificationRepository, "weekly-tester"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(LoginResponse.class)

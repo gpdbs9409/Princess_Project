@@ -3,8 +3,8 @@ package com.example.princessproject;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.princessproject.aifeedback.dto.AiFeedbackResponse;
-import com.example.princessproject.auth.dto.LoginRequest;
 import com.example.princessproject.auth.dto.LoginResponse;
+import com.example.princessproject.auth.repository.EmailVerificationRepository;
 import com.example.princessproject.catalog.dto.GoalTypeResponse;
 import com.example.princessproject.catalog.dto.MissionDefinitionResponse;
 import com.example.princessproject.catalog.dto.StatTypeResponse;
@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.client.RestTestClient;
@@ -38,6 +39,9 @@ class DailyMissionFlowIT {
 
     private RestTestClient client;
 
+    @Autowired
+    private EmailVerificationRepository emailVerificationRepository;
+
     @BeforeEach
     void setUp() {
         client = RestTestClient.bindToServer().baseUrl("http://localhost:" + port).build();
@@ -45,7 +49,7 @@ class DailyMissionFlowIT {
 
     private LoginResponse login(String nickname) {
         return client.post().uri("/api/auth/signup")
-                .body(new LoginRequest(nickname, "test-password"))
+                .body(TestAccountSupport.verifiedSignup(emailVerificationRepository, nickname))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(LoginResponse.class)
