@@ -1,6 +1,9 @@
 package com.example.princessproject.record.service;
 
 import com.example.princessproject.catalog.model.MissionType;
+import com.example.princessproject.commontask.model.CommonTaskRecord;
+import com.example.princessproject.commontask.model.CommonTaskType;
+import com.example.princessproject.commontask.repository.CommonTaskRecordRepository;
 import com.example.princessproject.record.dto.TodayRecordEntry;
 import com.example.princessproject.project.model.UserGoal;
 import com.example.princessproject.project.model.UserMission;
@@ -35,25 +38,30 @@ public class DailyRecordService {
     // (e.g. "999999" typed into a 30-minute mission) - genuine overachievement stays well
     // inside it, and the score itself is already capped at 100% by ScoringService regardless.
     private static final BigDecimal MAX_INPUT_MULTIPLE_OF_TARGET = BigDecimal.valueOf(50);
+    private static final BigDecimal COMMON_TASK_POINTS = BigDecimal.valueOf(20);
+    private static final BigDecimal READING_DAILY_TARGET_PAGES = BigDecimal.TEN;
 
     private final DailyRecordRepository dailyRecordRepository;
     private final UserMissionRepository userMissionRepository;
     private final UserRepository userRepository;
     private final UserProjectService userProjectService;
     private final ScoringService scoringService;
+    private final CommonTaskRecordRepository commonTaskRecordRepository;
 
     public DailyRecordService(
             DailyRecordRepository dailyRecordRepository,
             UserMissionRepository userMissionRepository,
             UserRepository userRepository,
             UserProjectService userProjectService,
-            ScoringService scoringService
+            ScoringService scoringService,
+            CommonTaskRecordRepository commonTaskRecordRepository
     ) {
         this.dailyRecordRepository = dailyRecordRepository;
         this.userMissionRepository = userMissionRepository;
         this.userRepository = userRepository;
         this.userProjectService = userProjectService;
         this.scoringService = scoringService;
+        this.commonTaskRecordRepository = commonTaskRecordRepository;
     }
 
     @Transactional
@@ -147,8 +155,10 @@ public class DailyRecordService {
 
         LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         List<DailyRecord> records = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, date);
+        List<CommonTaskRecord> commonRecords = commonTaskRecordRepository
+                .findByUserIdAndRecordDateBetweenAndTaskTypeIn(userId, weekStart, date, List.of(CommonTaskType.values()));
 
-        return computeProgress(activeMissions, records, weekStart, date);
+        return computeProgress(activeMissions, records, commonRecords, weekStart, date, true);
     }
 
     /**
@@ -183,19 +193,22 @@ public class DailyRecordService {
         LocalDate weekEnd = weekStart.plusDays(6);
 
         List<DailyRecord> weekRecords = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd);
+        List<CommonTaskRecord> commonRecords = commonTaskRecordRepository
+                .findByUserIdAndRecordDateBetweenAndTaskTypeIn(userId, weekStart, weekEnd, List.of(CommonTaskType.values()));
 
         List<MissionProgress> result = new ArrayList<>(7);
         for (LocalDate date = weekStart; !date.isAfter(weekEnd); date = date.plusDays(1)) {
             // weekRecords already covers the whole week - computeProgress only needs the
             // slice up to `date` for "week-to-date", so hand it the same in-memory list each
             // time (it filters by date itself) instead of re-hitting the DB.
-            result.add(computeProgress(activeMissions, weekRecords, weekStart, date));
+            result.add(computeProgress(activeMissions, weekRecords, commonRecords, weekStart, date, !dailyOnly));
         }
         return result;
     }
 
     private MissionProgress computeProgress(
-            List<ActiveMission> activeMissions, List<DailyRecord> recordsInRange, LocalDate weekStart, LocalDate date
+            List<ActiveMission> activeMissions, List<DailyRecord> recordsInRange,
+            List<CommonTaskRecord> commonRecords, LocalDate weekStart, LocalDate date, boolean includeWeeklyCommon
     ) {
         Map<Long, DailyRecord> todaysRecordByMissionId = new LinkedHashMap<>();
         Map<Long, BigDecimal> weekToDateInputByMissionId = new LinkedHashMap<>();
@@ -256,9 +269,17 @@ public class DailyRecordService {
                     actualValue, mission.getAssignedPoints(), earnedScore, achievementRate, isComplete));
         }
 
+        for (CommonMissionScore common : commonMissionScores(commonRecords, date, includeWeeklyCommon)) {
+            totalScore = totalScore.add(common.earnedScore());
+            statScores.merge(common.goalTypeCode(), common.earnedScore(), BigDecimal::add);
+            (common.completed() ? completed : remaining).add(common.name());
+            missionDetails.add(common.toDetail());
+        }
+
         BigDecimal maxPossible = activeMissions.stream()
                 .map(active -> active.mission().getAssignedPoints())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        maxPossible = maxPossible.add(COMMON_TASK_POINTS.multiply(BigDecimal.valueOf(includeWeeklyCommon ? 3 : 2)));
         BigDecimal progress = maxPossible.signum() > 0
                 ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
@@ -288,6 +309,8 @@ public class DailyRecordService {
         LocalDate weekEnd = weekStart.plusDays(6);
 
         List<DailyRecord> records = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd);
+        List<CommonTaskRecord> commonRecords = commonTaskRecordRepository
+                .findByUserIdAndRecordDateBetweenAndTaskTypeIn(userId, weekStart, weekEnd, List.of(CommonTaskType.values()));
         Map<Long, List<DailyRecord>> recordsByMissionId = new LinkedHashMap<>();
         for (DailyRecord record : records) {
             recordsByMissionId.computeIfAbsent(record.getUserMission().getId(), k -> new ArrayList<>()).add(record);
@@ -320,6 +343,24 @@ public class DailyRecordService {
             statScores.merge(statKey, earnedScore, BigDecimal::add);
         }
 
+
+        for (CommonTaskRecord record : commonRecords) {
+            if (record.getTaskType() == CommonTaskType.WEEKLY_RETROSPECTIVE) continue;
+            CommonMissionScore score = scoreDailyCommonTask(record);
+            totalScore = totalScore.add(score.earnedScore());
+            statScores.merge(score.goalTypeCode(), score.earnedScore(), BigDecimal::add);
+        }
+        boolean hasRetrospective = commonRecords.stream()
+                .anyMatch(record -> record.getTaskType() == CommonTaskType.WEEKLY_RETROSPECTIVE);
+        if (hasRetrospective) {
+            totalScore = totalScore.add(COMMON_TASK_POINTS);
+            statScores.merge("psychology", COMMON_TASK_POINTS, BigDecimal::add);
+        } else {
+            statScores.putIfAbsent("psychology", BigDecimal.ZERO);
+        }
+        statScores.putIfAbsent("knowledge", BigDecimal.ZERO);
+        maxPossible = maxPossible.add(COMMON_TASK_POINTS.multiply(BigDecimal.valueOf(15)));
+
         BigDecimal progress = maxPossible.signum() > 0
                 ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
@@ -328,6 +369,72 @@ public class DailyRecordService {
     }
 
     private record ActiveMission(UserMission mission, String goalTypeCode, MissionType missionType) {
+    }
+
+    private List<CommonMissionScore> commonMissionScores(
+            List<CommonTaskRecord> records, LocalDate date, boolean includeWeeklyCommon
+    ) {
+        List<CommonMissionScore> scores = new ArrayList<>();
+        records.stream()
+                .filter(record -> record.getRecordDate().equals(date))
+                .filter(record -> record.getTaskType() != CommonTaskType.WEEKLY_RETROSPECTIVE)
+                .map(this::scoreDailyCommonTask)
+                .forEach(scores::add);
+
+        for (CommonTaskType type : List.of(CommonTaskType.READING, CommonTaskType.STUDY)) {
+            if (scores.stream().noneMatch(score -> score.taskType() == type)) {
+                String name = type == CommonTaskType.READING ? "독서" : "공부";
+                scores.add(new CommonMissionScore(type, name, "knowledge", MissionType.DAILY,
+                        commonTarget(type, null), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false));
+            }
+        }
+
+        if (includeWeeklyCommon) {
+            boolean retrospectiveDone = records.stream()
+                    .filter(record -> record.getTaskType() == CommonTaskType.WEEKLY_RETROSPECTIVE)
+                    .anyMatch(record -> record.getCreatedAt() == null || !record.getCreatedAt().toLocalDate().isAfter(date));
+            scores.add(new CommonMissionScore(CommonTaskType.WEEKLY_RETROSPECTIVE, "주간 회고", "psychology",
+                    MissionType.WEEKLY, BigDecimal.ONE, retrospectiveDone ? BigDecimal.ONE : BigDecimal.ZERO,
+                    retrospectiveDone ? COMMON_TASK_POINTS : BigDecimal.ZERO,
+                    retrospectiveDone ? BigDecimal.ONE : BigDecimal.ZERO, retrospectiveDone));
+        }
+        return scores;
+    }
+
+    private CommonMissionScore scoreDailyCommonTask(CommonTaskRecord record) {
+        BigDecimal actual;
+        if (record.getTaskType() == CommonTaskType.READING) {
+            int pages = Math.max(0, (record.getEndPage() == null ? 0 : record.getEndPage())
+                    - (record.getStartPage() == null ? 0 : record.getStartPage()));
+            actual = BigDecimal.valueOf(pages);
+        } else {
+            actual = record.getStudyCompletedAmount() == null ? BigDecimal.ZERO : record.getStudyCompletedAmount();
+        }
+        BigDecimal target = commonTarget(record.getTaskType(), record);
+        BigDecimal rate = scoringService.achievementRate(actual, target);
+        return new CommonMissionScore(record.getTaskType(),
+                record.getTaskType() == CommonTaskType.READING ? "독서" : "공부", "knowledge", MissionType.DAILY,
+                target, actual, scoringService.earnedScore(COMMON_TASK_POINTS, rate), rate,
+                actual.compareTo(target) >= 0);
+    }
+
+    private BigDecimal commonTarget(CommonTaskType type, CommonTaskRecord record) {
+        if (type == CommonTaskType.READING) return READING_DAILY_TARGET_PAGES;
+        if (record != null && record.getStudyPlannedAmount() != null && record.getStudyPlannedAmount().signum() > 0) {
+            return record.getStudyPlannedAmount();
+        }
+        return BigDecimal.ONE;
+    }
+
+    private record CommonMissionScore(
+            CommonTaskType taskType, String name, String goalTypeCode, MissionType missionType,
+            BigDecimal target, BigDecimal actual, BigDecimal earnedScore, BigDecimal achievementRate,
+            boolean completed
+    ) {
+        MissionProgressDetail toDetail() {
+            return new MissionProgressDetail(name, goalTypeCode, missionType, target, actual,
+                    COMMON_TASK_POINTS, earnedScore, achievementRate, completed);
+        }
     }
 
     private List<ActiveMission> flattenActiveMissions(UserProject project) {

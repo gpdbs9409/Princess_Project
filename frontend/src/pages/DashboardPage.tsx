@@ -71,6 +71,9 @@ function dailyMaxByGoal(project: ProjectResponse | null): Record<string, number>
       0
     );
   }
+  // 공통과제도 기존 점수 트리에 편입: 독서·공부는 지식, 주간회고는 심리.
+  result.knowledge = (result.knowledge ?? 0) + 40;
+  result.psychology = (result.psychology ?? 0) + 20;
   return result;
 }
 
@@ -85,7 +88,15 @@ function weeklyMaxByGoal(project: ProjectResponse | null): Record<string, number
       0
     );
   }
+  result.knowledge = (result.knowledge ?? 0) + 40 * 7;
+  result.psychology = (result.psychology ?? 0) + 20;
   return result;
+}
+
+function scoredGoalCodes(project: ProjectResponse | null) {
+  return GOAL_TYPE_CODES.filter((code) =>
+    project?.goals.some((goal) => goal.goalTypeCode === code) || code === "KNOWLEDGE" || code === "PSYCHOLOGY"
+  );
 }
 
 export function DashboardPage() {
@@ -181,7 +192,7 @@ export function DashboardPage() {
         <div className="section">
           <div className="section-band">오늘의 스탯</div>
           <div className="card">
-            {GOAL_TYPE_CODES.filter((code) => project?.goals.some((g) => g.goalTypeCode === code)).map((s) => (
+            {scoredGoalCodes(project).map((s) => (
               <StatMeter
                 key={s}
                 label={GOAL_TYPE_LABELS[s]}
@@ -224,7 +235,7 @@ export function DashboardPage() {
             <WeeklyStatLineChart
               scores={report.statScoreTotals}
               maxByGoal={weeklyMax}
-              goalCodes={GOAL_TYPE_CODES.filter((code) => project?.goals.some((g) => g.goalTypeCode === code))}
+              goalCodes={scoredGoalCodes(project)}
             />
           </div>
         </div>

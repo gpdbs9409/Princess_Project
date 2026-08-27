@@ -14,9 +14,6 @@ import com.example.princessproject.admin.repository.RecruitmentApplicantReposito
 import com.example.princessproject.admin.repository.ScoreAdjustmentRepository;
 import com.example.princessproject.admin.repository.WeeklyMvpRepository;
 import com.example.princessproject.admin.repository.WeeklyRefundRepository;
-import com.example.princessproject.commontask.model.CommonTaskRecord;
-import com.example.princessproject.commontask.model.CommonTaskType;
-import com.example.princessproject.commontask.repository.CommonTaskRecordRepository;
 import com.example.princessproject.common.CohortNames;
 import com.example.princessproject.record.service.DailyRecordService;
 import com.example.princessproject.record.service.MissionProgress;
@@ -26,7 +23,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,7 +44,6 @@ public class AdminService {
     private final ScoreAdjustmentRepository scoreAdjustmentRepository;
     private final RecruitmentApplicantRepository recruitmentApplicantRepository;
     private final DailyRecordService dailyRecordService;
-    private final CommonTaskRecordRepository commonTaskRecordRepository;
 
     public AdminService(
             UserRepository userRepository,
@@ -56,8 +51,7 @@ public class AdminService {
             WeeklyMvpRepository weeklyMvpRepository,
             ScoreAdjustmentRepository scoreAdjustmentRepository,
             RecruitmentApplicantRepository recruitmentApplicantRepository,
-            DailyRecordService dailyRecordService,
-            CommonTaskRecordRepository commonTaskRecordRepository
+            DailyRecordService dailyRecordService
     ) {
         this.userRepository = userRepository;
         this.weeklyRefundRepository = weeklyRefundRepository;
@@ -65,7 +59,6 @@ public class AdminService {
         this.scoreAdjustmentRepository = scoreAdjustmentRepository;
         this.recruitmentApplicantRepository = recruitmentApplicantRepository;
         this.dailyRecordService = dailyRecordService;
-        this.commonTaskRecordRepository = commonTaskRecordRepository;
     }
 
     // ---- recruitment applicants (internal-only, decoupled from users) ----
@@ -304,14 +297,6 @@ public class AdminService {
     private double computeSuccessDays(Long userId, LocalDate weekStart) {
         double total = 0;
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
-        LocalDate weekEnd = weekStart.plusDays(6);
-        var commonRecords = commonTaskRecordRepository.findByUserIdAndRecordDateBetweenAndTaskTypeIn(
-                userId, weekStart, weekEnd, List.of(CommonTaskType.READING, CommonTaskType.STUDY));
-        Map<LocalDate, HashSet<CommonTaskType>> commonByDate = new HashMap<>();
-        for (CommonTaskRecord record : commonRecords) {
-            commonByDate.computeIfAbsent(record.getRecordDate(), ignored -> new HashSet<>()).add(record.getTaskType());
-        }
-
         int dayOffset = 0;
         for (MissionProgress progress : dailyRecordService.getWeekDailyRefundProgress(userId, weekStart)) {
             LocalDate date = weekStart.plusDays(dayOffset++);
@@ -320,9 +305,6 @@ public class AdminService {
             }
             int completed = progress.completedMissions().size();
             int remaining = progress.remainingMissions().size();
-            var completedCommon = commonByDate.getOrDefault(date, new HashSet<>());
-            completed += completedCommon.size();
-            remaining += 2 - completedCommon.size();
             int activeCount = completed + remaining;
             if (activeCount == 0) {
                 continue;
