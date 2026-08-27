@@ -268,11 +268,9 @@ public class AdminService {
 
     private AdminMemberWeekResponse buildWeekResponse(User user, LocalDate weekStart, Long mvpUserId, WeeklyRefund refund) {
         double successDays = computeSuccessDays(user.getId(), weekStart);
-        boolean hasWeeklyRetrospective = commonTaskRecordRepository
-                .findTopByUserIdAndTaskTypeAndRecordDateOrderByCreatedAtDesc(
-                        user.getId(), CommonTaskType.WEEKLY_RETROSPECTIVE, weekStart)
-                .isPresent();
-        boolean eligible = successDays >= ELIGIBLE_SUCCESS_DAYS && hasWeeklyRetrospective;
+        // The terms explicitly allow the weekly refund when six attendance days are met even
+        // without the Sunday retrospective. Retrospective is scored separately, not a refund gate.
+        boolean eligible = successDays >= ELIGIBLE_SUCCESS_DAYS;
         boolean paid = refund != null && refund.isPaid();
 
         return new AdminMemberWeekResponse(

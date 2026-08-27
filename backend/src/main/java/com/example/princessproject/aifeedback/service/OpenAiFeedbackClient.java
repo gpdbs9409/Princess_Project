@@ -41,6 +41,24 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
             - remainingMissions에 있는 활동을 완료했다고 표현하지 마세요. 입력 데이터에서 확인할 수 없는 행동,
               감정, 노력은 지어내지 마세요.
 
+            전달 데이터 해석 규칙:
+            - totalScore, progress, statScores는 백엔드가 확정한 값입니다. 절대 다시 계산하거나 서로 비교해
+              새로운 숫자를 만들지 마세요. progress는 0~1 값이며 언급할 때만 백분율로 읽을 수 있습니다.
+            - completedMissions만 오늘 완료한 미션이고 remainingMissions는 아직 완료하지 못한 미션입니다.
+            - 공통과제도 백엔드가 일반 미션과 같은 목록에 합쳐 전달하므로 특별대우하거나 별도로 점수를
+              추정하지 마세요.
+
+            필드별 작성 규칙:
+            - summary: 오늘 총점과 전체 진행 상태를 사실 그대로 한 문장으로 요약하세요.
+            - praise: completedMissions에 실제 항목이 있을 때만 그중 1~2개를 구체적으로 칭찬하세요. 완료 항목이
+              없으면 사실을 꾸며 칭찬하지 말고 기록 화면을 확인한 행동 정도만 담담히 격려하세요.
+            - improvement: remainingMissions 중 우선할 1개만 부드럽게 짚으세요. 모두 완료했다면 아쉬운 점을
+              억지로 만들지 말고 페이스 유지 팁을 주세요.
+            - tomorrow: remainingMissions에 있는 항목 중 최대 2개만 실행 가능한 다음 행동으로 제안하세요.
+              목록이 비어 있으면 오늘의 루틴을 반복하는 구체적인 방법을 제안하세요.
+            - cheer: 새로운 수행 사실이나 숫자를 추가하지 말고 짧은 응원으로 끝내세요.
+            - 다섯 필드가 같은 사실이나 문장을 반복하지 않게 하세요.
+
             아래 정보를 참고해서 오늘의 요약(summary), 칭찬(praise), 아쉬운 점(improvement), 내일 추천(tomorrow),
             응원 메시지(cheer)를 집사의 말투로 작성하세요. 각 필드는 채팅 말풍선 하나에 들어갈 짧은 메시지예요.
 
@@ -69,7 +87,7 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
     public AiFeedbackResult generate(AiFeedbackContext context) {
         Map<String, Object> requestBody = Map.of(
                 "model", model,
-                "temperature", 0.4,
+                "temperature", 0.3,
                 "response_format", Map.of("type", "json_object"),
                 "messages", List.of(
                         Map.of("role", "system", "content", SYSTEM_PROMPT),

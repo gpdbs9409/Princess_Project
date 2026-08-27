@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * READING/STUDY records; cumulative WEEKLY missions are deliberately excluded so completing
  * one cannot create attendance on later/future days.
  *
- * eligible: successDays >= 6 and that week's retrospective exists.
+ * eligible: successDays >= 6. Weekly retrospective has its own score but is not a refund gate.
  * paid: whether an operator has actually marked the 25,000원 as sent for this week.
  */
 public record AdminMemberWeekResponse(
