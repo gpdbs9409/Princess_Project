@@ -92,8 +92,10 @@ public class AiFeedbackService {
 
     private AiFeedbackContext toContext(MissionProgress progress, LocalDate date) {
         Map<String, BigDecimal> possibleByCapital = new LinkedHashMap<>();
-        progress.missionDetails().forEach(detail ->
-                possibleByCapital.merge(detail.goalTypeCode().toLowerCase(), detail.assignedPoints(), BigDecimal::add));
+        progress.missionDetails().stream()
+                .filter(detail -> !detail.goalTypeCode().equalsIgnoreCase("common"))
+                .forEach(detail -> possibleByCapital.merge(
+                        detail.goalTypeCode().toLowerCase(), detail.assignedPoints(), BigDecimal::add));
 
         Map<String, AiFeedbackContext.CapitalSummary> capitals = new LinkedHashMap<>();
         for (Map.Entry<String, BigDecimal> entry : possibleByCapital.entrySet()) {

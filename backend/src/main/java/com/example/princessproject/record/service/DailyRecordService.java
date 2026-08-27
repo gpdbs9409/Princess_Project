@@ -271,7 +271,6 @@ public class DailyRecordService {
 
         for (CommonMissionScore common : commonMissionScores(commonRecords, date, includeWeeklyCommon)) {
             totalScore = totalScore.add(common.earnedScore());
-            statScores.merge(common.goalTypeCode(), common.earnedScore(), BigDecimal::add);
             (common.completed() ? completed : remaining).add(common.name());
             missionDetails.add(common.toDetail());
         }
@@ -348,17 +347,12 @@ public class DailyRecordService {
             if (record.getTaskType() == CommonTaskType.WEEKLY_RETROSPECTIVE) continue;
             CommonMissionScore score = scoreDailyCommonTask(record);
             totalScore = totalScore.add(score.earnedScore());
-            statScores.merge(score.goalTypeCode(), score.earnedScore(), BigDecimal::add);
         }
         boolean hasRetrospective = commonRecords.stream()
                 .anyMatch(record -> record.getTaskType() == CommonTaskType.WEEKLY_RETROSPECTIVE);
         if (hasRetrospective) {
             totalScore = totalScore.add(COMMON_TASK_POINTS);
-            statScores.merge("psychology", COMMON_TASK_POINTS, BigDecimal::add);
-        } else {
-            statScores.putIfAbsent("psychology", BigDecimal.ZERO);
         }
-        statScores.putIfAbsent("knowledge", BigDecimal.ZERO);
         maxPossible = maxPossible.add(COMMON_TASK_POINTS.multiply(BigDecimal.valueOf(15)));
 
         BigDecimal progress = maxPossible.signum() > 0
@@ -384,7 +378,7 @@ public class DailyRecordService {
         for (CommonTaskType type : List.of(CommonTaskType.READING, CommonTaskType.STUDY)) {
             if (scores.stream().noneMatch(score -> score.taskType() == type)) {
                 String name = type == CommonTaskType.READING ? "독서" : "공부";
-                scores.add(new CommonMissionScore(type, name, "knowledge", MissionType.DAILY,
+                scores.add(new CommonMissionScore(type, name, "common", MissionType.DAILY,
                         commonTarget(type, null), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false));
             }
         }
@@ -393,7 +387,7 @@ public class DailyRecordService {
             boolean retrospectiveDone = records.stream()
                     .filter(record -> record.getTaskType() == CommonTaskType.WEEKLY_RETROSPECTIVE)
                     .anyMatch(record -> record.getCreatedAt() == null || !record.getCreatedAt().toLocalDate().isAfter(date));
-            scores.add(new CommonMissionScore(CommonTaskType.WEEKLY_RETROSPECTIVE, "주간 회고", "psychology",
+            scores.add(new CommonMissionScore(CommonTaskType.WEEKLY_RETROSPECTIVE, "주간 회고", "common",
                     MissionType.WEEKLY, BigDecimal.ONE, retrospectiveDone ? BigDecimal.ONE : BigDecimal.ZERO,
                     retrospectiveDone ? COMMON_TASK_POINTS : BigDecimal.ZERO,
                     retrospectiveDone ? BigDecimal.ONE : BigDecimal.ZERO, retrospectiveDone));
@@ -413,7 +407,7 @@ public class DailyRecordService {
         BigDecimal target = commonTarget(record.getTaskType(), record);
         BigDecimal rate = scoringService.achievementRate(actual, target);
         return new CommonMissionScore(record.getTaskType(),
-                record.getTaskType() == CommonTaskType.READING ? "독서" : "공부", "knowledge", MissionType.DAILY,
+                record.getTaskType() == CommonTaskType.READING ? "독서" : "공부", "common", MissionType.DAILY,
                 target, actual, scoringService.earnedScore(COMMON_TASK_POINTS, rate), rate,
                 actual.compareTo(target) >= 0);
     }
