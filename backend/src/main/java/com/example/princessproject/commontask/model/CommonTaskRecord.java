@@ -90,6 +90,10 @@ public class CommonTaskRecord {
     @Column(name = "photo_url", length = 500)
     private String photoUrl;
 
+    /** Vision API relevance verdict. Null is reserved for legacy records/not-yet-checked photos. */
+    @Column(name = "ai_verified")
+    private Boolean aiVerified;
+
     @Column(length = 1000)
     private String memo;
 

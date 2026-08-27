@@ -74,6 +74,7 @@ public class CommonTaskService {
         record.setRetroWeekReview(request.retroWeekReview());
         record.setRetroNextWeekPlan(request.retroNextWeekPlan());
         record.setPhotoUrl(request.photoUrl());
+        record.setAiVerified(request.aiVerified());
         record.setMemo(request.memo());
         return commonTaskRecordRepository.save(record);
     }

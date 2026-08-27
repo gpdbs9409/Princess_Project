@@ -332,6 +332,8 @@ export interface CommonTaskRequest {
   retroNextWeekPlan?: string;
   // READING/STUDY만 필수 (2026-08-21: 타 습관 카드와 동일하게 사진인증 추가). WEEKLY_RETROSPECTIVE는 없음.
   photoUrl?: string;
+  // Vision 결과는 저장 차단용이 아니라 운영진 검토용 플래그다.
+  aiVerified?: boolean;
   memo?: string;
 }
 
@@ -348,6 +350,7 @@ export interface CommonTaskResponse {
   retroWeekReview: string | null;
   retroNextWeekPlan: string | null;
   photoUrl: string | null;
+  aiVerified: boolean | null;
   memo: string | null;
   createdAt: string;
 }

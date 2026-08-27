@@ -145,6 +145,7 @@ function ReadingSection() {
         startPage: start,
         endPage: end,
         photoUrl: uploaded.url,
+        aiVerified: visionNote?.ok ?? false,
       });
       setExisting(saved);
       showToast("독서 기록이 저장되었어요");
@@ -331,6 +332,7 @@ function StudySection() {
         studyCompletedAmount: completedValue,
         studyPlannedAmount: plannedValue,
         photoUrl: uploaded.url,
+        aiVerified: visionNote?.ok ?? false,
       });
       setExisting(saved);
       showToast("공부 기록이 저장되었어요");

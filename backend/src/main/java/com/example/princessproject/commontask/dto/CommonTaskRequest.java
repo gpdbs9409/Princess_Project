@@ -24,6 +24,8 @@ public record CommonTaskRequest(
         String retroNextWeekPlan,
         // READING/STUDY 전용, 둘 다 필수 (CommonTaskService#validateReading/validateStudy).
         String photoUrl,
+        // Vision 판정은 저장 허용 여부가 아니라 운영진 확인용 true/false 플래그다.
+        Boolean aiVerified,
         String memo
 ) {
 }

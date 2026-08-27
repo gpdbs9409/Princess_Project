@@ -891,6 +891,8 @@ CREATE TABLE common_task_records (
 
     -- READING/STUDY 전용 사진 인증 (2026-08-21)
     photo_url VARCHAR(500) NULL,
+    -- Vision 관련성 판정. false여도 기록 저장은 허용하고 운영진 검토에만 사용한다.
+    ai_verified BOOLEAN NULL,
 
     memo VARCHAR(1000) NULL,
 

@@ -19,6 +19,7 @@ public record CommonTaskResponse(
         String retroWeekReview,
         String retroNextWeekPlan,
         String photoUrl,
+        Boolean aiVerified,
         String memo,
         LocalDateTime createdAt
 ) {
@@ -36,6 +37,7 @@ public record CommonTaskResponse(
                 record.getRetroWeekReview(),
                 record.getRetroNextWeekPlan(),
                 record.getPhotoUrl(),
+                record.getAiVerified(),
                 record.getMemo(),
                 record.getCreatedAt()
         );
