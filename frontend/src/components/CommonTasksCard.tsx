@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import {
+  analyzeVisionPhoto,
   getDailyCommonTasks,
   getWeeklyRetrospectiveHistory,
   saveCommonTask,
@@ -64,6 +65,8 @@ function ReadingSection() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [checkingVision, setCheckingVision] = useState(false);
+  const [visionNote, setVisionNote] = useState<{ text: string; ok: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -85,13 +88,23 @@ function ReadingSection() {
     };
   }, [photoPreviewUrl]);
 
-  const handlePhotoSelected = (file: File) => {
+  const handlePhotoSelected = async (file: File) => {
     setPhotoFile(file);
+    setVisionNote(null);
     setError(null);
     setPhotoPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return URL.createObjectURL(file);
     });
+    setCheckingVision(true);
+    try {
+      const result = await analyzeVisionPhoto(file, "독서");
+      setVisionNote({ text: result.reason, ok: result.likelyValid });
+    } catch {
+      setVisionNote({ text: "사진 판정을 완료하지 못했어요. 다시 선택하거나 잠시 후 시도해주세요.", ok: false });
+    } finally {
+      setCheckingVision(false);
+    }
   };
 
   const handleSave = async () => {
@@ -115,6 +128,10 @@ function ReadingSection() {
     }
     if (!photoFile) {
       setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
+      return;
+    }
+    if (checkingVision) {
+      setError("사진 판정이 끝날 때까지 잠시 기다려주세요.");
       return;
     }
     setSaving(true);
@@ -214,9 +231,15 @@ function ReadingSection() {
           onSelect={handlePhotoSelected}
           label="사진 인증 (필수 · 카메라 촬영 또는 갤러리에서 선택)"
         />
+        {checkingVision && <span className="muted">AI가 인증 사진을 확인하고 있어요...</span>}
+        {!checkingVision && visionNote && (
+          <span className="muted" style={{ color: visionNote.ok ? "var(--good)" : "var(--warn)" }}>
+            {visionNote.ok ? "인증 사진 확인 완료 · " : "인증 사진 확인 필요 · "}{visionNote.text}
+          </span>
+        )}
         {error && <div className="error-banner">{error}</div>}
-        <button className="primary" onClick={handleSave} disabled={saving}>
-          {saving ? "저장 중..." : "저장"}
+        <button className="primary" onClick={handleSave} disabled={saving || checkingVision}>
+          {saving ? "저장 중..." : checkingVision ? "사진 확인 중..." : "저장"}
         </button>
       </div>
     </div>
@@ -231,6 +254,8 @@ function StudySection() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [checkingVision, setCheckingVision] = useState(false);
+  const [visionNote, setVisionNote] = useState<{ text: string; ok: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -251,13 +276,23 @@ function StudySection() {
     };
   }, [photoPreviewUrl]);
 
-  const handlePhotoSelected = (file: File) => {
+  const handlePhotoSelected = async (file: File) => {
     setPhotoFile(file);
+    setVisionNote(null);
     setError(null);
     setPhotoPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return URL.createObjectURL(file);
     });
+    setCheckingVision(true);
+    try {
+      const result = await analyzeVisionPhoto(file, "공부");
+      setVisionNote({ text: result.reason, ok: result.likelyValid });
+    } catch {
+      setVisionNote({ text: "사진 판정을 완료하지 못했어요. 다시 선택하거나 잠시 후 시도해주세요.", ok: false });
+    } finally {
+      setCheckingVision(false);
+    }
   };
 
   const handleSave = async () => {
@@ -280,6 +315,10 @@ function StudySection() {
     }
     if (!photoFile) {
       setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
+      return;
+    }
+    if (checkingVision) {
+      setError("사진 판정이 끝날 때까지 잠시 기다려주세요.");
       return;
     }
     setSaving(true);
@@ -365,9 +404,15 @@ function StudySection() {
           onSelect={handlePhotoSelected}
           label="사진 인증 (필수 · 카메라 촬영 또는 갤러리에서 선택)"
         />
+        {checkingVision && <span className="muted">AI가 인증 사진을 확인하고 있어요...</span>}
+        {!checkingVision && visionNote && (
+          <span className="muted" style={{ color: visionNote.ok ? "var(--good)" : "var(--warn)" }}>
+            {visionNote.ok ? "인증 사진 확인 완료 · " : "인증 사진 확인 필요 · "}{visionNote.text}
+          </span>
+        )}
         {error && <div className="error-banner">{error}</div>}
-        <button className="primary" onClick={handleSave} disabled={saving}>
-          {saving ? "저장 중..." : "저장"}
+        <button className="primary" onClick={handleSave} disabled={saving || checkingVision}>
+          {saving ? "저장 중..." : checkingVision ? "사진 확인 중..." : "저장"}
         </button>
       </div>
     </div>
