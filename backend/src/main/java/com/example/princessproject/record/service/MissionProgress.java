@@ -11,6 +11,17 @@ public record MissionProgress(
         Map<String, BigDecimal> statScores,
         List<String> completedMissions,
         List<String> remainingMissions,
-        Map<Long, TodayRecordEntry> todayRecords
+        Map<Long, TodayRecordEntry> todayRecords,
+        List<MissionProgressDetail> missionDetails
 ) {
+    public MissionProgress(
+            BigDecimal totalScore,
+            BigDecimal progress,
+            Map<String, BigDecimal> statScores,
+            List<String> completedMissions,
+            List<String> remainingMissions,
+            Map<Long, TodayRecordEntry> todayRecords
+    ) {
+        this(totalScore, progress, statScores, completedMissions, remainingMissions, todayRecords, List.of());
+    }
 }

@@ -15,8 +15,8 @@ public class MockAiFeedbackClient implements AiFeedbackClient {
 
     @Override
     public AiFeedbackResult generate(AiFeedbackContext context) {
-        String strongestStat = context.statScores().entrySet().stream()
-                .max(Comparator.comparingDouble(Map.Entry::getValue))
+        String strongestStat = context.capitals().entrySet().stream()
+                .max(Comparator.comparingDouble(entry -> entry.getValue().achievementPercent()))
                 .map(Map.Entry::getKey)
                 .orElse(null);
 

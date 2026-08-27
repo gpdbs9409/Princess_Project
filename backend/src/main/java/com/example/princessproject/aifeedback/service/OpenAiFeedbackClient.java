@@ -42,8 +42,11 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
               감정, 노력은 지어내지 마세요.
 
             전달 데이터 해석 규칙:
-            - totalScore, progress, statScores는 백엔드가 확정한 값입니다. 절대 다시 계산하거나 서로 비교해
-              새로운 숫자를 만들지 마세요. progress는 0~1 값이며 언급할 때만 백분율로 읽을 수 있습니다.
+            - totalScore, overallAchievementPercent, capitals, missions는 백엔드가 확정한 값입니다. 절대 다시
+              계산하거나 서로 비교해 새로운 숫자를 만들지 마세요. 모든 achievementPercent 값은 이미 0~100
+              백분율로 변환되어 있습니다.
+            - capitals에는 자본별 획득점수, 가능점수, 달성률이 들어 있고 missions에는 각 미션의 주기, 목표,
+              실제 수행량, 배정점수, 획득점수, 달성률, 완료 상태가 들어 있습니다.
             - completedMissions만 오늘 완료한 미션이고 remainingMissions는 아직 완료하지 못한 미션입니다.
             - 공통과제도 백엔드가 일반 미션과 같은 목록에 합쳐 전달하므로 특별대우하거나 별도로 점수를
               추정하지 마세요.

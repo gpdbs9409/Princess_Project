@@ -214,6 +214,7 @@ public class DailyRecordService {
         Map<String, BigDecimal> statScores = new LinkedHashMap<>();
         List<String> completed = new ArrayList<>();
         List<String> remaining = new ArrayList<>();
+        List<MissionProgressDetail> missionDetails = new ArrayList<>();
         BigDecimal totalScore = BigDecimal.ZERO;
 
         for (ActiveMission active : activeMissions) {
@@ -223,25 +224,36 @@ public class DailyRecordService {
 
             boolean isComplete;
             BigDecimal earnedScore;
+            BigDecimal actualValue;
+            BigDecimal achievementRate;
 
             if (active.missionType() == MissionType.WEEKLY) {
                 BigDecimal weekToDateInput = weekToDateInputByMissionId.getOrDefault(mission.getId(), BigDecimal.ZERO);
-                BigDecimal rate = scoringService.achievementRate(weekToDateInput, mission.getTargetValue());
-                earnedScore = scoringService.earnedScore(mission.getAssignedPoints(), rate);
+                actualValue = weekToDateInput;
+                achievementRate = scoringService.achievementRate(actualValue, mission.getTargetValue());
+                earnedScore = scoringService.earnedScore(mission.getAssignedPoints(), achievementRate);
                 isComplete = weekToDateInput.compareTo(mission.getTargetValue()) >= 0;
             } else {
                 DailyRecord todaysRecord = todaysRecordByMissionId.get(mission.getId());
                 if (todaysRecord == null) {
+                    missionDetails.add(new MissionProgressDetail(
+                            mission.displayName(), active.goalTypeCode(), active.missionType(), mission.getTargetValue(),
+                            BigDecimal.ZERO, mission.getAssignedPoints(), BigDecimal.ZERO, BigDecimal.ZERO, false));
                     remaining.add(mission.displayName());
                     continue;
                 }
+                actualValue = todaysRecord.getInputValue();
                 earnedScore = todaysRecord.getEarnedScore();
+                achievementRate = todaysRecord.getAchievementRate();
                 isComplete = todaysRecord.getInputValue().compareTo(todaysRecord.getTargetValueSnapshot()) >= 0;
             }
 
             totalScore = totalScore.add(earnedScore);
             statScores.merge(statKey, earnedScore, BigDecimal::add);
             (isComplete ? completed : remaining).add(mission.displayName());
+            missionDetails.add(new MissionProgressDetail(
+                    mission.displayName(), active.goalTypeCode(), active.missionType(), mission.getTargetValue(),
+                    actualValue, mission.getAssignedPoints(), earnedScore, achievementRate, isComplete));
         }
 
         BigDecimal maxPossible = activeMissions.stream()
@@ -259,7 +271,7 @@ public class DailyRecordService {
             }
         }
 
-        return new MissionProgress(totalScore, progress, statScores, completed, remaining, todayRecords);
+        return new MissionProgress(totalScore, progress, statScores, completed, remaining, todayRecords, missionDetails);
     }
 
     /**
@@ -312,7 +324,7 @@ public class DailyRecordService {
                 ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
-        return new MissionProgress(totalScore, progress, statScores, List.of(), List.of(), Map.of());
+        return new MissionProgress(totalScore, progress, statScores, List.of(), List.of(), Map.of(), List.of());
     }
 
     private record ActiveMission(UserMission mission, String goalTypeCode, MissionType missionType) {

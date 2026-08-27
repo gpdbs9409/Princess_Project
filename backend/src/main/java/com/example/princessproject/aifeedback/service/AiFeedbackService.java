@@ -47,7 +47,7 @@ public class AiFeedbackService {
         UserProject project = userProjectService.getOrCreateActive(userId);
 
         MissionProgress progress = dailyRecordService.getMissionProgress(userId, date);
-        AiFeedbackContext context = toContext(progress);
+        AiFeedbackContext context = toContext(progress, date);
 
         AiFeedbackResult result = aiFeedbackClient.generate(context);
 
@@ -90,15 +90,34 @@ public class AiFeedbackService {
                 userId, project.getId(), FeedbackType.DAILY);
     }
 
-    private AiFeedbackContext toContext(MissionProgress progress) {
-        Map<String, Double> statScores = new LinkedHashMap<>();
-        for (Map.Entry<String, BigDecimal> entry : progress.statScores().entrySet()) {
-            statScores.put(entry.getKey(), entry.getValue().doubleValue());
+    private AiFeedbackContext toContext(MissionProgress progress, LocalDate date) {
+        Map<String, BigDecimal> possibleByCapital = new LinkedHashMap<>();
+        progress.missionDetails().forEach(detail ->
+                possibleByCapital.merge(detail.goalTypeCode().toLowerCase(), detail.assignedPoints(), BigDecimal::add));
+
+        Map<String, AiFeedbackContext.CapitalSummary> capitals = new LinkedHashMap<>();
+        for (Map.Entry<String, BigDecimal> entry : possibleByCapital.entrySet()) {
+            BigDecimal earned = progress.statScores().getOrDefault(entry.getKey(), BigDecimal.ZERO);
+            double percent = entry.getValue().signum() == 0
+                    ? 0
+                    : earned.divide(entry.getValue(), 4, java.math.RoundingMode.HALF_UP).doubleValue() * 100;
+            capitals.put(entry.getKey(), new AiFeedbackContext.CapitalSummary(
+                    earned.doubleValue(), entry.getValue().doubleValue(), percent));
         }
+
+        List<AiFeedbackContext.MissionSummary> missions = progress.missionDetails().stream()
+                .map(detail -> new AiFeedbackContext.MissionSummary(
+                        detail.name(), detail.goalTypeCode().toLowerCase(), detail.missionType().name(),
+                        detail.targetValue().doubleValue(), detail.actualValue().doubleValue(),
+                        detail.assignedPoints().doubleValue(), detail.earnedScore().doubleValue(),
+                        detail.achievementRate().doubleValue() * 100, detail.completed() ? "COMPLETED" : "REMAINING"))
+                .toList();
         return new AiFeedbackContext(
+                date,
                 progress.totalScore().doubleValue(),
-                progress.progress().doubleValue(),
-                statScores,
+                progress.progress().doubleValue() * 100,
+                capitals,
+                missions,
                 progress.completedMissions(),
                 progress.remainingMissions()
         );
