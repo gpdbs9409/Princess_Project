@@ -3,6 +3,7 @@ package com.example.princessproject.admin.controller;
 import com.example.princessproject.admin.dto.AdjustmentRequest;
 import com.example.princessproject.admin.dto.AdjustmentResponse;
 import com.example.princessproject.admin.dto.AdminApplicantResponse;
+import com.example.princessproject.admin.dto.AdminActivityResponse;
 import com.example.princessproject.admin.dto.AdminMemberResponse;
 import com.example.princessproject.admin.dto.AdminMemberWeekResponse;
 import com.example.princessproject.admin.dto.CohortRequest;
@@ -72,6 +73,12 @@ public class AdminController {
             @RequestParam(required = false) LocalDate weekStart
     ) {
         return adminService.listParticipantsForWeek(cohort, resolveWeekStart(weekStart));
+    }
+
+    /** 참가자 닉네임 클릭 시 보는 개인 미션·공통과제 전체 수행 이력. */
+    @GetMapping("/members/{userId}/activities")
+    public List<AdminActivityResponse> memberActivities(@PathVariable Long userId) {
+        return adminService.listMemberActivities(userId);
     }
 
     @PutMapping("/members/{userId}/cohort")

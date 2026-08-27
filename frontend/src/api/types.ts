@@ -80,6 +80,23 @@ export interface AdminMemberResponse {
   cohort: string | null;
 }
 
+export interface AdminActivityResponse {
+  id: number;
+  activityType: "PERSONAL" | CommonTaskType;
+  name: string;
+  recordDate: string;
+  actualValue: number | null;
+  targetValue: number | null;
+  unit: string | null;
+  earnedScore: number | null;
+  achievementRate: number | null;
+  detail: string | null;
+  memo: string | null;
+  photoUrl: string | null;
+  aiVerified: boolean | null;
+  recordedAt: string | null;
+}
+
 export interface AdminMvpResponse {
   userId: number;
   nickname: string;

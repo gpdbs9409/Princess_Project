@@ -12,5 +12,7 @@ public interface DailyRecordRepository extends JpaRepository<DailyRecord, Long> 
 
     List<DailyRecord> findByUserIdAndRecordDateBetween(Long userId, LocalDate start, LocalDate end);
 
+    List<DailyRecord> findByUserIdOrderByRecordDateDescCreatedAtDesc(Long userId);
+
     long countByUserId(Long userId);
 }

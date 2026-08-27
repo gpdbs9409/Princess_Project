@@ -1,6 +1,7 @@
 import { api } from "./client";
 import type {
   AdminAdjustmentResponse,
+  AdminActivityResponse,
   AdminApplicantResponse,
   AdminMemberResponse,
   AdminMemberWeekResponse,
@@ -129,6 +130,9 @@ export const getAdminParticipants = (cohort: string | null, weekStart: string) =
   if (cohort) params.set("cohort", cohort);
   return api.get<AdminMemberWeekResponse[]>(`/api/admin/participants?${params.toString()}`);
 };
+
+export const getAdminMemberActivities = (userId: number) =>
+  api.get<AdminActivityResponse[]>(`/api/admin/members/${userId}/activities`);
 
 export const assignAdminCohort = (userId: number, cohort: string | null) =>
   api.put<AdminMemberResponse>(`/api/admin/members/${userId}/cohort`, { cohort });

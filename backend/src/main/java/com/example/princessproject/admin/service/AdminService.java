@@ -2,6 +2,7 @@ package com.example.princessproject.admin.service;
 
 import com.example.princessproject.admin.dto.AdjustmentResponse;
 import com.example.princessproject.admin.dto.AdminApplicantResponse;
+import com.example.princessproject.admin.dto.AdminActivityResponse;
 import com.example.princessproject.admin.dto.AdminMemberWeekResponse;
 import com.example.princessproject.admin.dto.MvpResponse;
 import com.example.princessproject.admin.dto.RecruitmentApplicantRequest;
@@ -15,6 +16,10 @@ import com.example.princessproject.admin.repository.ScoreAdjustmentRepository;
 import com.example.princessproject.admin.repository.WeeklyMvpRepository;
 import com.example.princessproject.admin.repository.WeeklyRefundRepository;
 import com.example.princessproject.common.CohortNames;
+import com.example.princessproject.commontask.model.CommonTaskRecord;
+import com.example.princessproject.commontask.repository.CommonTaskRecordRepository;
+import com.example.princessproject.record.model.DailyRecord;
+import com.example.princessproject.record.repository.DailyRecordRepository;
 import com.example.princessproject.record.service.DailyRecordService;
 import com.example.princessproject.record.service.MissionProgress;
 import com.example.princessproject.user.model.User;
@@ -28,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Comparator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +50,8 @@ public class AdminService {
     private final ScoreAdjustmentRepository scoreAdjustmentRepository;
     private final RecruitmentApplicantRepository recruitmentApplicantRepository;
     private final DailyRecordService dailyRecordService;
+    private final DailyRecordRepository dailyRecordRepository;
+    private final CommonTaskRecordRepository commonTaskRecordRepository;
 
     public AdminService(
             UserRepository userRepository,
@@ -51,7 +59,9 @@ public class AdminService {
             WeeklyMvpRepository weeklyMvpRepository,
             ScoreAdjustmentRepository scoreAdjustmentRepository,
             RecruitmentApplicantRepository recruitmentApplicantRepository,
-            DailyRecordService dailyRecordService
+            DailyRecordService dailyRecordService,
+            DailyRecordRepository dailyRecordRepository,
+            CommonTaskRecordRepository commonTaskRecordRepository
     ) {
         this.userRepository = userRepository;
         this.weeklyRefundRepository = weeklyRefundRepository;
@@ -59,6 +69,8 @@ public class AdminService {
         this.scoreAdjustmentRepository = scoreAdjustmentRepository;
         this.recruitmentApplicantRepository = recruitmentApplicantRepository;
         this.dailyRecordService = dailyRecordService;
+        this.dailyRecordRepository = dailyRecordRepository;
+        this.commonTaskRecordRepository = commonTaskRecordRepository;
     }
 
     // ---- recruitment applicants (internal-only, decoupled from users) ----
@@ -127,6 +139,46 @@ public class AdminService {
         return userRepository.findByCohortIsNullOrderByCreatedAtDesc().stream()
                 .map(AdminApplicantResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminActivityResponse> listMemberActivities(Long userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+
+        List<AdminActivityResponse> result = new ArrayList<>();
+        for (DailyRecord record : dailyRecordRepository.findByUserIdOrderByRecordDateDescCreatedAtDesc(userId)) {
+            result.add(new AdminActivityResponse(
+                    record.getId(), "PERSONAL", record.getUserMission().displayName(), record.getRecordDate(),
+                    record.getInputValue(), record.getTargetValueSnapshot(), record.getUserMission().getUnit(),
+                    record.getEarnedScore(), record.getAchievementRate(), null, record.getMemo(), record.getPhotoUrl(),
+                    record.getAiVerified(), record.getCreatedAt()));
+        }
+        for (CommonTaskRecord record : commonTaskRecordRepository.findByUserIdOrderByRecordDateDescCreatedAtDesc(userId)) {
+            String detail = switch (record.getTaskType()) {
+                case READING -> (record.getBookTitle() == null ? "" : record.getBookTitle() + " · ")
+                        + record.getStartPage() + "p~" + record.getEndPage() + "p";
+                case STUDY -> "완료 " + record.getStudyCompletedAmount()
+                        + (record.getStudyPlannedAmount() == null ? "" : " / 계획 " + record.getStudyPlannedAmount());
+                case WEEKLY_RETROSPECTIVE -> String.join(" / ", List.of(
+                        nullToEmpty(record.getRetroDailyLife()), nullToEmpty(record.getRetroWeekReview()),
+                        nullToEmpty(record.getRetroNextWeekPlan()))).replaceAll("(?: / )+$", "");
+            };
+            result.add(new AdminActivityResponse(
+                    record.getId(), record.getTaskType().name(), switch (record.getTaskType()) {
+                        case READING -> "독서";
+                        case STUDY -> "공부";
+                        case WEEKLY_RETROSPECTIVE -> "주간 회고";
+                    }, record.getRecordDate(), null, null, null, null, null, detail, record.getMemo(),
+                    record.getPhotoUrl(), record.getAiVerified(), record.getCreatedAt()));
+        }
+        result.sort(Comparator.comparing(AdminActivityResponse::recordDate).reversed()
+                .thenComparing(AdminActivityResponse::recordedAt, Comparator.nullsLast(Comparator.reverseOrder())));
+        return result;
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     /**

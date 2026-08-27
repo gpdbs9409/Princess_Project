@@ -11,6 +11,7 @@ import {
   getAdminAdjustments,
   getAdminApplicants,
   getAdminCohorts,
+  getAdminMemberActivities,
   getAdminParticipants,
   getRecruitmentApplicants,
   setAdminMvp,
@@ -19,6 +20,7 @@ import {
 } from "../api/endpoints";
 import type {
   AdminAdjustmentResponse,
+  AdminActivityResponse,
   AdminApplicantResponse,
   AdminMemberWeekResponse,
   RecruitmentApplicantRequest,
@@ -84,6 +86,10 @@ export function AdminPage() {
   const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(new Date()));
   const [applicants, setApplicants] = useState<AdminApplicantResponse[]>([]);
   const [participants, setParticipants] = useState<AdminMemberWeekResponse[]>([]);
+  const [activityMember, setActivityMember] = useState<AdminMemberWeekResponse | null>(null);
+  const [activities, setActivities] = useState<AdminActivityResponse[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [activitiesError, setActivitiesError] = useState<string | null>(null);
   const [newCohortInput, setNewCohortInput] = useState<Record<number, string>>({});
   // "직접 입력(새 기수)"를 고른 행만 true - 그 외에는 드롭다운으로 기존 기수 중에서만 고르게
   // 해서, 오타로 잘못된 기수 문자열이 만들어지는 걸 막는다 (2026-08-26 요청: 플레인텍스트
@@ -171,6 +177,20 @@ export function AdminPage() {
     if (!cohort.trim()) return;
     await assignAdminCohort(userId, cohort.trim());
     await Promise.all([loadCohorts(), loadApplicants()]);
+  };
+
+  const openActivities = async (member: AdminMemberWeekResponse) => {
+    setActivityMember(member);
+    setActivities([]);
+    setActivitiesError(null);
+    setActivitiesLoading(true);
+    try {
+      setActivities(await getAdminMemberActivities(member.userId));
+    } catch {
+      setActivitiesError("수행 내역을 불러오지 못했어요.");
+    } finally {
+      setActivitiesLoading(false);
+    }
   };
 
   const handleAddRecruitmentApplicant = async () => {
@@ -666,7 +686,16 @@ export function AdminPage() {
                   {participants.map((p) => (
                     <Fragment key={p.userId}>
                       <tr>
-                        <td>{p.nickname}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="ghost"
+                            style={{ padding: 0, fontWeight: 700, textDecoration: "underline" }}
+                            onClick={() => openActivities(p)}
+                          >
+                            {p.nickname}
+                          </button>
+                        </td>
                         <td>{p.cohort}</td>
                         <td className="tabular">{p.successDays} / 7</td>
                         <td>
@@ -771,6 +800,58 @@ export function AdminPage() {
                 </tbody>
               </table>
             )}
+          </div>
+        </div>
+      )}
+
+      {activityMember && (
+        <div className="modal-overlay" onClick={() => setActivityMember(null)}>
+          <div
+            className="modal-card"
+            style={{ width: "min(760px, calc(100vw - 32px))", maxHeight: "85vh", overflowY: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="row-between" style={{ marginBottom: 16 }}>
+              <div>
+                <strong style={{ fontSize: 20 }}>{activityMember.nickname}님의 챌린지 수행내역</strong>
+                <div className="muted">{activityMember.cohort} · 최신 기록순</div>
+              </div>
+              <button type="button" className="ghost" onClick={() => setActivityMember(null)} aria-label="닫기">×</button>
+            </div>
+
+            {activitiesLoading && <p className="muted">수행 내역을 불러오는 중...</p>}
+            {activitiesError && <div className="error-banner">{activitiesError}</div>}
+            {!activitiesLoading && !activitiesError && activities.length === 0 && (
+              <p className="muted">아직 저장된 수행 내역이 없어요.</p>
+            )}
+            <div className="stack" style={{ gap: 12 }}>
+              {activities.map((activity) => (
+                <div className="card" key={`${activity.activityType}-${activity.id}`} style={{ padding: 16 }}>
+                  <div className="row-between" style={{ alignItems: "flex-start", gap: 12 }}>
+                    <div>
+                      <strong>{activity.name}</strong>
+                      <div className="muted">{activity.recordDate} · {activity.activityType === "PERSONAL" ? "개인 미션" : "공통 과제"}</div>
+                    </div>
+                    {activity.aiVerified != null && (
+                      <span className={`badge ${activity.aiVerified ? "good" : "warn"}`}>
+                        사진 판정 {activity.aiVerified ? "적합" : "검토 필요"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="stack" style={{ gap: 6, marginTop: 10 }}>
+                    {activity.actualValue != null && (
+                      <span>수행 {activity.actualValue}{activity.unit ?? ""}{activity.targetValue != null ? ` / 목표 ${activity.targetValue}${activity.unit ?? ""}` : ""}</span>
+                    )}
+                    {activity.earnedScore != null && (
+                      <span>획득 {Math.round(activity.earnedScore * 100) / 100}점 · 달성률 {Math.round((activity.achievementRate ?? 0) * 100)}%</span>
+                    )}
+                    {activity.detail && <span style={{ whiteSpace: "pre-wrap" }}>{activity.detail}</span>}
+                    {activity.memo && <span className="muted">메모 · {activity.memo}</span>}
+                    {activity.photoUrl && <img src={activity.photoUrl} alt={`${activity.name} 인증 사진`} className="photo-preview" />}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
