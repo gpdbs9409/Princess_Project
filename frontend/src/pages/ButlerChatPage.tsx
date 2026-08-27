@@ -78,7 +78,7 @@ export function ButlerChatPage() {
           </div>
 
           <div className="stack" style={{ gap: 18 }}>
-            {entries.map((entry, entryIndex) => (
+            {entries.map((entry) => (
               <div key={entry.feedbackDate}>
                 <div className="butler-chat-date-divider">
                   <span>{entry.feedbackDate}</span>
@@ -89,9 +89,6 @@ export function ButlerChatPage() {
                     .map((text, i) => (
                       <div className="butler-bubble-row" key={i}>
                         <div className="butler-bubble">{text}</div>
-                        {entryIndex === entries.length - 1 &&
-                          i === [entry.summary, entry.praise, entry.improvement, entry.tomorrow, entry.cheer].filter(Boolean).length - 1 &&
-                          <span className="butler-bubble-read">읽음</span>}
                       </div>
                     ))}
                 </div>
