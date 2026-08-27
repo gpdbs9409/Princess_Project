@@ -100,7 +100,9 @@ export function DashboardPage() {
   useEffect(() => {
     const today = new Date();
     const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - 6);
+    // All "이번 주" figures use the same Monday-Sunday boundary as the admin/refund view.
+    const dayFromMonday = (today.getDay() + 6) % 7;
+    weekStart.setDate(today.getDate() - dayFromMonday);
 
     Promise.all([getActiveProject(), getWeeklyReport(isoDate(weekStart))])
       .then(([projectData, reportData]) => {
@@ -179,7 +181,7 @@ export function DashboardPage() {
         <div className="section">
           <div className="section-band">오늘의 스탯</div>
           <div className="card">
-            {GOAL_TYPE_CODES.map((s) => (
+            {GOAL_TYPE_CODES.filter((code) => project?.goals.some((g) => g.goalTypeCode === code)).map((s) => (
               <StatMeter
                 key={s}
                 label={GOAL_TYPE_LABELS[s]}
@@ -193,7 +195,7 @@ export function DashboardPage() {
 
       {report && (
         <div className="section">
-          <div className="section-band">최근 7일 총점 추이</div>
+          <div className="section-band">이번 주 총점 추이</div>
           <div className="card">
             <p className="muted" style={{ marginBottom: 8 }}>
               주간 합계 {Math.round(report.totalScore)}점 · 평균 달성률{" "}
@@ -219,7 +221,11 @@ export function DashboardPage() {
         <div className="section">
           <div className="section-band">이번 주 스탯 누적</div>
           <div className="card">
-            <WeeklyStatLineChart scores={report.statScoreTotals} maxByGoal={weeklyMax} />
+            <WeeklyStatLineChart
+              scores={report.statScoreTotals}
+              maxByGoal={weeklyMax}
+              goalCodes={GOAL_TYPE_CODES.filter((code) => project?.goals.some((g) => g.goalTypeCode === code))}
+            />
           </div>
         </div>
       )}

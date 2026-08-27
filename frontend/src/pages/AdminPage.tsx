@@ -674,7 +674,13 @@ export function AdminPage() {
                             {p.eligible ? "대상" : "미대상"}
                           </span>
                         </td>
-                        <td className="tabular">{p.amount.toLocaleString("ko-KR")}원</td>
+                        <td className="tabular">
+                          {p.paid
+                            ? `${p.amount.toLocaleString("ko-KR")}원 지급 완료`
+                            : p.eligible
+                              ? `${p.amount.toLocaleString("ko-KR")}원 지급 예정`
+                              : "-"}
+                        </td>
                         <td>
                           <label className="row" style={{ gap: 6, alignItems: "center" }}>
                             <input type="checkbox" checked={p.paid} onChange={() => handleTogglePaid(p)} />

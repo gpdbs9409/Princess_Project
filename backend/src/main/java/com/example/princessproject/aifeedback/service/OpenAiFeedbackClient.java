@@ -36,6 +36,10 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
               (각 항목 1~2문장, 말풍선 하나에 들어갈 분량).
             - 매번 똑같은 문장 구조를 반복하지 말고, 그날 데이터(어떤 미션을 완료/안 했는지, 점수)에 맞춰
               표현을 다르게 바꿔주세요.
+            - completedMissions에 없는 활동을 완료했거나 잘했다고 절대 말하지 마세요. 완료 목록이 비어 있으면
+              구체적인 활동을 칭찬하지 말고, 기록을 시작한 시도나 내일 다시 시작할 가능성만 응원하세요.
+            - remainingMissions에 있는 활동을 완료했다고 표현하지 마세요. 입력 데이터에서 확인할 수 없는 행동,
+              감정, 노력은 지어내지 마세요.
 
             아래 정보를 참고해서 오늘의 요약(summary), 칭찬(praise), 아쉬운 점(improvement), 내일 추천(tomorrow),
             응원 메시지(cheer)를 집사의 말투로 작성하세요. 각 필드는 채팅 말풍선 하나에 들어갈 짧은 메시지예요.
@@ -65,7 +69,7 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
     public AiFeedbackResult generate(AiFeedbackContext context) {
         Map<String, Object> requestBody = Map.of(
                 "model", model,
-                "temperature", 0.9,
+                "temperature", 0.4,
                 "response_format", Map.of("type", "json_object"),
                 "messages", List.of(
                         Map.of("role", "system", "content", SYSTEM_PROMPT),

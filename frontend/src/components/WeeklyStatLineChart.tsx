@@ -3,6 +3,7 @@ import { GOAL_TYPE_CODES, GOAL_TYPE_LABELS } from "../api/types";
 interface WeeklyStatLineChartProps {
   scores: Partial<Record<string, number>>;
   maxByGoal: Record<string, number>;
+  goalCodes: typeof GOAL_TYPE_CODES[number][];
 }
 
 const CHART_HEIGHT = 130;
@@ -15,13 +16,13 @@ const CHART_HEIGHT = 130;
 const PAD_X = 8;
 const PAD_Y = 20;
 
-export function WeeklyStatLineChart({ scores, maxByGoal }: WeeklyStatLineChartProps) {
-  const points = GOAL_TYPE_CODES.map((code, i) => {
+export function WeeklyStatLineChart({ scores, maxByGoal, goalCodes }: WeeklyStatLineChartProps) {
+  const points = goalCodes.map((code, i) => {
     const key = code.toLowerCase();
     const value = scores[key] ?? 0;
     const max = maxByGoal[key] || 1;
     const pct = Math.max(0, Math.min(100, (value / max) * 100));
-    const xPct = PAD_X + (i * (100 - PAD_X * 2)) / (GOAL_TYPE_CODES.length - 1);
+    const xPct = goalCodes.length === 1 ? 50 : PAD_X + (i * (100 - PAD_X * 2)) / (goalCodes.length - 1);
     const yPct = PAD_Y + (100 - PAD_Y * 2) * (1 - pct / 100);
     return { code, value, pct, xPct, yPct };
   });

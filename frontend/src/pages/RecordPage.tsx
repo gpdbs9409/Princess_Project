@@ -95,7 +95,7 @@ export function RecordPage() {
       {/* 오늘 총점 아래로, 독서/공부 공통 과제와 다른 습관 기록을 한 목록에 이어서 보여준다
           (2026-08-21 요청). 독서/공부는 어떤 아비투스를 골랐든 전원 필수라 hasNoMissions와
           무관하게 항상 먼저 렌더링되고, 그 아래로 선택한 습관 미션 카드가 이어진다.
-          주간 회고는 여기 없다 - 주 1회만 쓰면 되는 과제라 상단 메뉴의 "주간 회고"
+          주간 회고는 여기 없다 - 별도 히스토리로 관리하는 과제라 상단 메뉴의 "주간 회고"
           (/weekly-retrospective)로 분리했다 (2026-08-21 요청). */}
       <div className="stack" style={{ marginBottom: 16, gap: 12 }}>
         <span className="badge good" style={{ alignSelf: "flex-start" }}>
@@ -119,7 +119,7 @@ export function RecordPage() {
         <Link to="/weekly-retrospective" className="link">
           주간 회고
         </Link>
-        에서 주 1회 작성해요.
+        에서 작성하고 지난 회고도 확인할 수 있어요.
       </p>
 
       {!loading && hasNoMissions && (

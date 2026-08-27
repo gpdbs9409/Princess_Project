@@ -10,6 +10,7 @@ import com.example.princessproject.user.dto.ProfileStatsResponse;
 import com.example.princessproject.user.model.Role;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
+import com.example.princessproject.common.CohortNames;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -148,7 +149,7 @@ public class UserService {
         if (requester.getCohort() == null) {
             return List.of();
         }
-        List<User> cohortUsers = userRepository.findByCohortOrderByNicknameAsc(requester.getCohort()).stream()
+        List<User> cohortUsers = userRepository.findByCohortInOrderByNicknameAsc(CohortNames.aliases(requester.getCohort())).stream()
                 .filter(user -> !user.getId().equals(userId))
                 .toList();
         if (cohortUsers.isEmpty()) {

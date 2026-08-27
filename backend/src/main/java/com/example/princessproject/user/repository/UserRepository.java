@@ -17,6 +17,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByCohortOrderByNicknameAsc(String cohort);
 
+    List<User> findByCohortInOrderByNicknameAsc(List<String> cohorts);
+
     List<User> findByCohortIsNotNullOrderByCohortAscNicknameAsc();
 
     @Query("select distinct u.cohort from User u where u.cohort is not null order by u.cohort")

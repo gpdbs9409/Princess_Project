@@ -162,8 +162,24 @@ public class DailyRecordService {
      */
     @Transactional
     public List<MissionProgress> getWeekDailyProgress(Long userId, LocalDate weekStart) {
+        return getWeekDailyProgress(userId, weekStart, false);
+    }
+
+    /** Daily-only snapshots for refund attendance. WEEKLY goals must not make later or future
+     * days look completed merely because their cumulative target was reached earlier. */
+    @Transactional
+    public List<MissionProgress> getWeekDailyRefundProgress(Long userId, LocalDate weekStart) {
+        return getWeekDailyProgress(userId, weekStart, true);
+    }
+
+    private List<MissionProgress> getWeekDailyProgress(Long userId, LocalDate weekStart, boolean dailyOnly) {
         UserProject project = userProjectService.getOrCreateActive(userId);
         List<ActiveMission> activeMissions = flattenActiveMissions(project);
+        if (dailyOnly) {
+            activeMissions = activeMissions.stream()
+                    .filter(active -> active.missionType() == MissionType.DAILY)
+                    .toList();
+        }
         LocalDate weekEnd = weekStart.plusDays(6);
 
         List<DailyRecord> weekRecords = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd);

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import {
   isOnboardingWindowOpen,
+  isOnboardingDismissed,
+  dismissOnboarding,
   loadOnboardingProgress,
   saveOnboardingProgress,
   type OnboardingStep,
@@ -20,7 +22,7 @@ import { ONBOARDING_ENDINGS } from "../data/onboardingEndings";
 //
 // 노출 조건 및 재접속 시 이어보기 로직은 lib/onboarding.ts 참고.
 export function OnboardingBridge() {
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => isOnboardingDismissed());
   const [step, setStep] = useState<OnboardingStep>("video");
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [videoMissing, setVideoMissing] = useState(false);
@@ -44,6 +46,11 @@ export function OnboardingBridge() {
   }, [step, galleryIndex]);
 
   if (!isOnboardingWindowOpen() || dismissed) return null;
+
+  const closePermanently = () => {
+    dismissOnboarding();
+    setDismissed(true);
+  };
 
   const goToClimax = () => setStep("climax");
   const goBackToVideo = () => {
@@ -77,7 +84,7 @@ export function OnboardingBridge() {
   return (
     <div className="onboarding-overlay" role="dialog" aria-modal="true" aria-label="프린세스 다이어리 소개">
       <div className="onboarding-card">
-        <button type="button" className="onboarding-close" onClick={() => setDismissed(true)} aria-label="닫기">
+        <button type="button" className="onboarding-close" onClick={closePermanently} aria-label="닫기">
           ×
         </button>
 
@@ -154,7 +161,7 @@ export function OnboardingBridge() {
             ) : (
               <div className="onboarding-gallery-final">
                 <p className="onboarding-gallery-final-copy">당신의 공주 엔딩을 보여주세요</p>
-                <button type="button" className="primary" onClick={() => setDismissed(true)}>
+                <button type="button" className="primary" onClick={closePermanently}>
                   프린세스 다이어리 접속하기
                 </button>
               </div>

@@ -18,6 +18,9 @@ public interface CommonTaskRecordRepository extends JpaRepository<CommonTaskReco
 
     List<CommonTaskRecord> findByUserIdAndRecordDateAndTaskTypeIn(Long userId, LocalDate recordDate, List<CommonTaskType> taskTypes);
 
+    List<CommonTaskRecord> findByUserIdAndRecordDateBetweenAndTaskTypeIn(
+            Long userId, LocalDate startDate, LocalDate endDate, List<CommonTaskType> taskTypes);
+
     // 지난 주간회고 히스토리 (2026-08-27 요청: "그 아래에 시간 내림차순으로 지난회고쌓이게") - 이번 주는
     // getWeekly로 따로 조회하므로, 여기서는 그 주(recordDate) 이전 것만 최신순으로 가져온다.
     List<CommonTaskRecord> findByUserIdAndTaskTypeOrderByCreatedAtDesc(Long userId, CommonTaskType taskType);

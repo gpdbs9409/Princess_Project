@@ -5,6 +5,7 @@
 export type OnboardingStep = "video" | "climax" | "gallery";
 
 const PROGRESS_KEY = "princess_onboarding_progress_v1";
+const DISMISSED_KEY = "princess_onboarding_dismissed_v1";
 
 // 회의/기획서 기준: 9/4까지는 팝업 노출, 9/5부터는 완전히 숨김 처리.
 // KST 자정 기준으로 고정. (참고: 9/4 테스트 완료 목표는 회의록 기준, 실제 컷오프는 9/5 0시)
@@ -45,5 +46,21 @@ export function saveOnboardingProgress(progress: OnboardingProgress) {
     window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
   } catch {
     // 프라이빗 모드 등 localStorage 접근 불가 환경 - 조용히 무시 (다음 진입 시 처음부터 다시 보여줌)
+  }
+}
+
+export function isOnboardingDismissed(): boolean {
+  try {
+    return window.localStorage.getItem(DISMISSED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function dismissOnboarding() {
+  try {
+    window.localStorage.setItem(DISMISSED_KEY, "true");
+  } catch {
+    // Storage can be unavailable in private mode; the current component still closes.
   }
 }
