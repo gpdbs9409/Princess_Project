@@ -81,6 +81,12 @@ public class AdminController {
         return adminService.listMemberActivities(userId);
     }
 
+    /** Vision 판정이 false인 사진 인증만 운영진 검수함에 모아 제공한다. */
+    @GetMapping("/activities/review")
+    public List<AdminActivityResponse> activitiesForReview(@RequestParam(required = false) String cohort) {
+        return adminService.listActivitiesForReview(cohort);
+    }
+
     @PutMapping("/members/{userId}/cohort")
     public AdminMemberResponse assignCohort(@PathVariable Long userId, @RequestBody CohortRequest request) {
         return AdminMemberResponse.from(adminService.assignCohort(userId, request.cohort()));

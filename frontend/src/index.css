@@ -1219,6 +1219,36 @@ a.link:hover {
   font-size: 12px;
 }
 
+.admin-summary-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.admin-summary-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); color: inherit; cursor: pointer; text-align: left; }
+.admin-summary-card span { color: var(--text-muted); font-size: 13px; }
+.admin-summary-card strong { font-size: 24px; }
+.admin-summary-card.good { background: var(--good-soft); border-color: var(--good); }
+.admin-summary-card.warn { background: var(--warn-soft); border-color: var(--warn); }
+.admin-summary-card.accent { background: var(--accent-soft); border-color: var(--accent); }
+.admin-summary-card.danger { background: var(--danger-soft); border-color: var(--danger); }
+.admin-monitor-tools { display: flex; gap: 12px; margin-top: 14px; align-items: center; flex-wrap: wrap; }
+.admin-monitor-tools input { width: 220px; }
+.admin-filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.admin-filter-pills button { border: 1px solid var(--border); border-radius: 999px; padding: 7px 12px; background: var(--surface-2); color: var(--text); cursor: pointer; }
+.admin-filter-pills button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.admin-day-strip { display: flex; gap: 4px; min-width: 190px; }
+.admin-day-strip span { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%; font-size: 11px; font-weight: 700; }
+.admin-day-strip .complete { color: #176149; background: #dcefe6; }
+.admin-day-strip .partial { color: #96561c; background: #ffdfbd; }
+.admin-day-strip .missed { color: #a84755; background: #f7d7dc; }
+.admin-day-strip .future { color: #aaa19d; background: #f0ecea; }
+.admin-needed-days { display: block; margin-top: 5px; color: #a84755; white-space: nowrap; }
+.admin-review-modal { width: min(980px, calc(100vw - 32px)); max-height: 88vh; overflow-y: auto; }
+.admin-review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.admin-review-grid .photo-preview { width: 100%; max-height: 280px; margin-top: 12px; object-fit: contain; }
+
+@media (max-width: 900px) {
+  .admin-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-review-grid { grid-template-columns: 1fr; }
+  .admin-table { min-width: 1060px; }
+}
+
 /* 온보딩 브릿지 팝업 (카톡/인스타 초대 링크 진입 시 로그인 화면 위에 뜨는 스토리텔링 팝업) */
 .onboarding-overlay {
   position: fixed;

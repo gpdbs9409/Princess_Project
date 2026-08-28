@@ -26,4 +26,6 @@ public interface CommonTaskRecordRepository extends JpaRepository<CommonTaskReco
     List<CommonTaskRecord> findByUserIdAndTaskTypeOrderByCreatedAtDesc(Long userId, CommonTaskType taskType);
 
     List<CommonTaskRecord> findByUserIdOrderByRecordDateDescCreatedAtDesc(Long userId);
+
+    List<CommonTaskRecord> findByAiVerifiedFalseOrderByRecordDateDescCreatedAtDesc();
 }

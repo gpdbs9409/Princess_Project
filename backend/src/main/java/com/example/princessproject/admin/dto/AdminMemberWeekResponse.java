@@ -3,6 +3,7 @@ package com.example.princessproject.admin.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * One member's standing for one week, for the admin weekly-refund tracker.
@@ -21,6 +22,7 @@ public record AdminMemberWeekResponse(
         LocalDate weekStart,
         LocalDate weekEnd,
         double successDays,
+        List<Double> dailyCredits,
         boolean eligible,
         boolean paid,
         BigDecimal amount,

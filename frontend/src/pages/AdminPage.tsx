@@ -9,6 +9,7 @@ import {
   deleteAdminAdjustment,
   deleteRecruitmentApplicant,
   getAdminAdjustments,
+  getAdminActivitiesForReview,
   getAdminApplicants,
   getAdminCohorts,
   getAdminMemberActivities,
@@ -31,6 +32,8 @@ import { GOAL_TYPE_CODES, GOAL_TYPE_LABELS } from "../api/types";
 import { parseRecruitmentCsv } from "../lib/parseRecruitmentCsv";
 
 type Tab = "participants" | "unassigned" | "recruitment";
+type ParticipantFilter = "ALL" | "NEEDS_ATTENTION" | "ELIGIBLE" | "UNPAID" | "PAID";
+const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 
 const RECRUITMENT_STATUS_LABELS: Record<RecruitmentStatus, string> = {
   PENDING: "검토중",
@@ -86,10 +89,14 @@ export function AdminPage() {
   const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(new Date()));
   const [applicants, setApplicants] = useState<AdminApplicantResponse[]>([]);
   const [participants, setParticipants] = useState<AdminMemberWeekResponse[]>([]);
+  const [participantFilter, setParticipantFilter] = useState<ParticipantFilter>("ALL");
+  const [participantSearch, setParticipantSearch] = useState("");
   const [activityMember, setActivityMember] = useState<AdminMemberWeekResponse | null>(null);
   const [activities, setActivities] = useState<AdminActivityResponse[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
+  const [reviewActivities, setReviewActivities] = useState<AdminActivityResponse[]>([]);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [newCohortInput, setNewCohortInput] = useState<Record<number, string>>({});
   // "직접 입력(새 기수)"를 고른 행만 true - 그 외에는 드롭다운으로 기존 기수 중에서만 고르게
   // 해서, 오타로 잘못된 기수 문자열이 만들어지는 걸 막는다 (2026-08-26 요청: 플레인텍스트
@@ -117,6 +124,32 @@ export function AdminPage() {
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   const weekStartIso = useMemo(() => isoDate(weekStart), [weekStart]);
+
+  const participantSummary = useMemo(() => ({
+    total: participants.length,
+    eligible: participants.filter((p) => p.eligible).length,
+    unpaid: participants.filter((p) => p.eligible && !p.paid).length,
+    paid: participants.filter((p) => p.paid).length,
+    needsAttention: participants.filter((p) => !p.eligible).length,
+  }), [participants]);
+
+  const visibleParticipants = useMemo(() => {
+    const query = participantSearch.trim().toLowerCase();
+    return participants
+      .filter((p) => !query || p.nickname.toLowerCase().includes(query))
+      .filter((p) => {
+        if (participantFilter === "ELIGIBLE") return p.eligible;
+        if (participantFilter === "UNPAID") return p.eligible && !p.paid;
+        if (participantFilter === "PAID") return p.paid;
+        if (participantFilter === "NEEDS_ATTENTION") return !p.eligible;
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.paid !== b.paid) return a.paid ? 1 : -1;
+        if (a.eligible !== b.eligible) return a.eligible ? -1 : 1;
+        return b.successDays - a.successDays || a.nickname.localeCompare(b.nickname, "ko");
+      });
+  }, [participants, participantFilter, participantSearch]);
 
   const loadCohorts = useCallback(async () => {
     try {
@@ -155,7 +188,12 @@ export function AdminPage() {
     setLoading(true);
     setError(null);
     try {
-      setParticipants(await getAdminParticipants(selectedCohort || null, weekStartIso));
+      const [memberList, reviewList] = await Promise.all([
+        getAdminParticipants(selectedCohort || null, weekStartIso),
+        getAdminActivitiesForReview(selectedCohort || null),
+      ]);
+      setParticipants(memberList);
+      setReviewActivities(reviewList);
     } catch {
       setError("참가자 목록을 불러오지 못했어요. 관리자 권한이 있는 계정인지 확인해주세요.");
     } finally {
@@ -637,6 +675,14 @@ export function AdminPage() {
 
       {tab === "participants" && (
         <div className="stack" style={{ gap: 12 }}>
+          <div className="admin-summary-grid" aria-label="주간 운영 현황">
+            <button type="button" className="admin-summary-card" onClick={() => setParticipantFilter("ALL")}><span>전체 참가자</span><strong>{participantSummary.total}명</strong></button>
+            <button type="button" className="admin-summary-card good" onClick={() => setParticipantFilter("ELIGIBLE")}><span>환급 대상</span><strong>{participantSummary.eligible}명</strong></button>
+            <button type="button" className="admin-summary-card warn" onClick={() => setParticipantFilter("NEEDS_ATTENTION")}><span>이행 확인 필요</span><strong>{participantSummary.needsAttention}명</strong></button>
+            <button type="button" className="admin-summary-card accent" onClick={() => setParticipantFilter("UNPAID")}><span>환급 지급 대기</span><strong>{participantSummary.unpaid}명</strong></button>
+            <button type="button" className="admin-summary-card" onClick={() => setParticipantFilter("PAID")}><span>지급 완료</span><strong>{participantSummary.paid}명</strong></button>
+            <button type="button" className="admin-summary-card danger" onClick={() => setReviewOpen(true)}><span>사진 검토 필요</span><strong>{reviewActivities.length}건</strong></button>
+          </div>
           <div className="card">
             <div className="row-between" style={{ flexWrap: "wrap", gap: 12 }}>
               <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
@@ -662,18 +708,28 @@ export function AdminPage() {
                 CSV로 내보내기
               </button>
             </div>
+            <div className="admin-monitor-tools">
+              <input type="search" value={participantSearch} onChange={(e) => setParticipantSearch(e.target.value)} placeholder="닉네임 검색" aria-label="참가자 닉네임 검색" />
+              <div className="admin-filter-pills" aria-label="참가자 상태 필터">
+                {([["ALL", "전체"], ["NEEDS_ATTENTION", "확인 필요"], ["ELIGIBLE", "환급 대상"], ["UNPAID", "지급 대기"], ["PAID", "지급 완료"]] as [ParticipantFilter, string][]).map(([value, label]) => (
+                  <button key={value} type="button" className={participantFilter === value ? "active" : ""} onClick={() => setParticipantFilter(value)}>{label}</button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="card">
             {loading && <p className="muted">불러오는 중...</p>}
             {!loading && participants.length === 0 && <p className="muted">이 기수/주에는 참가자가 없어요.</p>}
-            {!loading && participants.length > 0 && (
+            {!loading && participants.length > 0 && visibleParticipants.length === 0 && <p className="muted">조건에 맞는 참가자가 없어요.</p>}
+            {!loading && visibleParticipants.length > 0 && (
               <table className="admin-table">
                 <thead>
                   <tr>
                     <th>닉네임</th>
                     <th>기수</th>
                     <th>성공일수</th>
+                    <th>요일별 이행</th>
                     <th>환급 대상</th>
                     <th>환급액</th>
                     <th>지급 여부</th>
@@ -683,7 +739,7 @@ export function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {participants.map((p) => (
+                  {visibleParticipants.map((p) => (
                     <Fragment key={p.userId}>
                       <tr>
                         <td>
@@ -699,6 +755,17 @@ export function AdminPage() {
                         <td>{p.cohort}</td>
                         <td className="tabular">{p.successDays} / 7</td>
                         <td>
+                          <div className="admin-day-strip" aria-label={`${p.nickname} 요일별 이행`}>
+                            {DAY_LABELS.map((day, index) => {
+                              const credit = p.dailyCredits?.[index] ?? 0;
+                              const state = credit < 0 ? "future" : credit >= 1 ? "complete" : credit > 0 ? "partial" : "missed";
+                              const label = credit < 0 ? "예정" : credit === 1 ? "완료" : credit === 0.5 ? "부분 완료" : "미완료";
+                              return <span key={day} className={state} title={`${day}요일: ${label}`}>{day}</span>;
+                            })}
+                          </div>
+                          {!p.eligible && <small className="admin-needed-days">환급까지 {Math.max(0, 6 - p.successDays)}일 필요</small>}
+                        </td>
+                        <td>
                           <span className={`badge ${p.eligible ? "good" : "warn"}`}>
                             {p.eligible ? "대상" : "미대상"}
                           </span>
@@ -712,7 +779,7 @@ export function AdminPage() {
                         </td>
                         <td>
                           <label className="row" style={{ gap: 6, alignItems: "center" }}>
-                            <input type="checkbox" checked={p.paid} onChange={() => handleTogglePaid(p)} />
+                            <input type="checkbox" checked={p.paid} disabled={!p.eligible && !p.paid} onChange={() => handleTogglePaid(p)} />
                             {p.paid ? "지급완료" : "미지급"}
                           </label>
                         </td>
@@ -740,7 +807,7 @@ export function AdminPage() {
                       </tr>
                       {expandedUserId === p.userId && (
                         <tr>
-                          <td colSpan={9}>
+                          <td colSpan={10}>
                             <div className="stack" style={{ gap: 10, padding: "8px 0" }}>
                               <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
                                 <select
@@ -850,6 +917,37 @@ export function AdminPage() {
                     {activity.photoUrl && <img src={activity.photoUrl} alt={`${activity.name} 인증 사진`} className="photo-preview" />}
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reviewOpen && (
+        <div className="modal-overlay" onClick={() => setReviewOpen(false)}>
+          <div className="modal-card admin-review-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="row-between" style={{ marginBottom: 16 }}>
+              <div>
+                <strong style={{ fontSize: 20 }}>사진 검토 필요</strong>
+                <div className="muted">Vision API가 부적합(false)으로 판정한 인증 · {reviewActivities.length}건</div>
+              </div>
+              <button type="button" className="ghost" onClick={() => setReviewOpen(false)} aria-label="닫기">×</button>
+            </div>
+            {reviewActivities.length === 0 && <p className="muted">현재 검토할 사진이 없어요.</p>}
+            <div className="admin-review-grid">
+              {reviewActivities.map((activity) => (
+                <article className="card" key={`${activity.activityType}-${activity.id}`}>
+                  <div className="row-between" style={{ alignItems: "flex-start", gap: 8 }}>
+                    <div>
+                      <strong>{activity.nickname} · {activity.name}</strong>
+                      <div className="muted">{activity.recordDate} · {activity.activityType === "PERSONAL" ? "개인 미션" : "공통 과제"}</div>
+                    </div>
+                    <span className="badge warn">검토 필요</span>
+                  </div>
+                  {activity.photoUrl && <img src={activity.photoUrl} alt={`${activity.nickname} ${activity.name} 인증 사진`} className="photo-preview" />}
+                  {activity.detail && <p>{activity.detail}</p>}
+                  {activity.memo && <p className="muted">메모 · {activity.memo}</p>}
+                </article>
               ))}
             </div>
           </div>

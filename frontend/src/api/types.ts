@@ -66,6 +66,7 @@ export interface AdminMemberWeekResponse {
   weekStart: string;
   weekEnd: string;
   successDays: number;
+  dailyCredits: number[];
   eligible: boolean;
   paid: boolean;
   amount: number;
@@ -82,6 +83,8 @@ export interface AdminMemberResponse {
 
 export interface AdminActivityResponse {
   id: number;
+  userId: number;
+  nickname: string;
   activityType: "PERSONAL" | CommonTaskType;
   name: string;
   recordDate: string;

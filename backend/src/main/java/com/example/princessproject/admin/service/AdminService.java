@@ -149,7 +149,8 @@ public class AdminService {
         List<AdminActivityResponse> result = new ArrayList<>();
         for (DailyRecord record : dailyRecordRepository.findByUserIdOrderByRecordDateDescCreatedAtDesc(userId)) {
             result.add(new AdminActivityResponse(
-                    record.getId(), "PERSONAL", record.getUserMission().displayName(), record.getRecordDate(),
+                    record.getId(), record.getUser().getId(), record.getUser().getNickname(),
+                    "PERSONAL", record.getUserMission().displayName(), record.getRecordDate(),
                     record.getInputValue(), record.getTargetValueSnapshot(), record.getUserMission().getUnit(),
                     record.getEarnedScore(), record.getAchievementRate(), null, record.getMemo(), record.getPhotoUrl(),
                     record.getAiVerified(), record.getCreatedAt()));
@@ -165,7 +166,8 @@ public class AdminService {
                         nullToEmpty(record.getRetroNextWeekPlan()))).replaceAll("(?: / )+$", "");
             };
             result.add(new AdminActivityResponse(
-                    record.getId(), record.getTaskType().name(), switch (record.getTaskType()) {
+                    record.getId(), record.getUser().getId(), record.getUser().getNickname(),
+                    record.getTaskType().name(), switch (record.getTaskType()) {
                         case READING -> "독서";
                         case STUDY -> "공부";
                         case WEEKLY_RETROSPECTIVE -> "주간 회고";
@@ -175,6 +177,42 @@ public class AdminService {
         result.sort(Comparator.comparing(AdminActivityResponse::recordDate).reversed()
                 .thenComparing(AdminActivityResponse::recordedAt, Comparator.nullsLast(Comparator.reverseOrder())));
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminActivityResponse> listActivitiesForReview(String cohort) {
+        List<AdminActivityResponse> result = new ArrayList<>();
+        for (DailyRecord record : dailyRecordRepository.findByAiVerifiedFalseOrderByRecordDateDescCreatedAtDesc()) {
+            if (!matchesCohort(record.getUser(), cohort)) continue;
+            result.add(new AdminActivityResponse(
+                    record.getId(), record.getUser().getId(), record.getUser().getNickname(),
+                    "PERSONAL", record.getUserMission().displayName(), record.getRecordDate(),
+                    record.getInputValue(), record.getTargetValueSnapshot(), record.getUserMission().getUnit(),
+                    record.getEarnedScore(), record.getAchievementRate(), null, record.getMemo(), record.getPhotoUrl(),
+                    false, record.getCreatedAt()));
+        }
+        for (CommonTaskRecord record : commonTaskRecordRepository.findByAiVerifiedFalseOrderByRecordDateDescCreatedAtDesc()) {
+            if (!matchesCohort(record.getUser(), cohort)) continue;
+            String detail = switch (record.getTaskType()) {
+                case READING -> (record.getBookTitle() == null ? "" : record.getBookTitle() + " · ")
+                        + record.getStartPage() + "p~" + record.getEndPage() + "p";
+                case STUDY -> "완료 " + record.getStudyCompletedAmount()
+                        + (record.getStudyPlannedAmount() == null ? "" : " / 계획 " + record.getStudyPlannedAmount());
+                case WEEKLY_RETROSPECTIVE -> "";
+            };
+            result.add(new AdminActivityResponse(
+                    record.getId(), record.getUser().getId(), record.getUser().getNickname(),
+                    record.getTaskType().name(), record.getTaskType() == com.example.princessproject.commontask.model.CommonTaskType.READING ? "독서" : "공부",
+                    record.getRecordDate(), null, null, null, null, null, detail, record.getMemo(), record.getPhotoUrl(),
+                    false, record.getCreatedAt()));
+        }
+        result.sort(Comparator.comparing(AdminActivityResponse::recordDate).reversed()
+                .thenComparing(AdminActivityResponse::recordedAt, Comparator.nullsLast(Comparator.reverseOrder())));
+        return result;
+    }
+
+    private boolean matchesCohort(User user, String cohort) {
+        return cohort == null || cohort.isBlank() || CohortNames.aliases(cohort).contains(user.getCohort());
     }
 
     private String nullToEmpty(String value) {
@@ -312,7 +350,8 @@ public class AdminService {
     }
 
     private AdminMemberWeekResponse buildWeekResponse(User user, LocalDate weekStart, Long mvpUserId, WeeklyRefund refund) {
-        double successDays = computeSuccessDays(user.getId(), weekStart);
+        List<Double> dailyCredits = computeDailyCredits(user.getId(), weekStart);
+        double successDays = dailyCredits.stream().mapToDouble(Double::doubleValue).sum();
         // The terms explicitly allow the weekly refund when six attendance days are met even
         // without the Sunday retrospective. Retrospective is scored separately, not a refund gate.
         boolean eligible = successDays >= ELIGIBLE_SUCCESS_DAYS;
@@ -325,6 +364,7 @@ public class AdminService {
                 weekStart,
                 weekStart.plusDays(6),
                 successDays,
+                dailyCredits,
                 eligible,
                 paid,
                 paid ? refund.getAmount() : WEEKLY_REFUND_AMOUNT,
@@ -346,27 +386,32 @@ public class AdminService {
      * per participant (49+ per admin page load for a 7-person cohort), which is what made the
      * admin weekly view noticeably heavy.
      */
-    private double computeSuccessDays(Long userId, LocalDate weekStart) {
-        double total = 0;
+    private List<Double> computeDailyCredits(Long userId, LocalDate weekStart) {
+        List<Double> credits = new ArrayList<>();
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         int dayOffset = 0;
         for (MissionProgress progress : dailyRecordService.getWeekDailyRefundProgress(userId, weekStart)) {
             LocalDate date = weekStart.plusDays(dayOffset++);
             if (date.isAfter(today)) {
+                credits.add(-1.0); // Future day: visually distinct from a missed day in the admin UI.
                 continue;
             }
             int completed = progress.completedMissions().size();
             int remaining = progress.remainingMissions().size();
             int activeCount = completed + remaining;
             if (activeCount == 0) {
+                credits.add(0.0);
                 continue;
             }
             if (remaining == 0) {
-                total += 1.0;
+                credits.add(1.0);
             } else if (completed > 0) {
-                total += 0.5;
+                credits.add(0.5);
+            } else {
+                credits.add(0.0);
             }
         }
-        return total;
+        while (credits.size() < 7) credits.add(-1.0);
+        return credits;
     }
 }
