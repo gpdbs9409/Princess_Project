@@ -301,7 +301,7 @@ users
 | 텍스트 피드백 | `gpt-4o-mini` | 텍스트 단가가 저렴 |
 
 **운영비**: 월 약 33,700원 (Railway Pro $20 = 28,400원 + AI 5,300원 + Vercel 0원)
-※ SMTP(이메일 발송) 사용을 위해 Railway Pro 요금제로 상향
+※ SMTP(이메일 발송)를 위해 Railway Pro로 상향. 기존 dev+prod $18 대비 증분 $2
 
 ---
 
