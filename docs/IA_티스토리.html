@@ -1,0 +1,880 @@
+<div style="max-width:860px;color:#222;font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;word-break:keep-all;">
+<h1 style="font-size:26px;font-weight:700;margin:0 0 8px;line-height:1.4;">프린세스 다이어리 — 정보구조(IA) 및 서비스 설명서</h1>
+<ul style="margin:10px 0;padding-left:22px;line-height:1.9;font-size:15px;">
+<li>서비스 URL: https://princess-project-2026.vercel.app</li>
+<li>최종 갱신: 2026-08-08 (코드 기준)</li>
+</ul>
+<hr style="border:0;border-top:1px solid #e8dcdc;margin:34px 0;" />
+<h2 style="font-size:21px;font-weight:700;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8dcdc;line-height:1.4;">1. 서비스 개요</h2>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">30일 동안 매일 미션을 인증하며 스스로를 성장시키는 챌린지 서비스입니다.
+소설 빙의물 세계관을 차용해, 참가자는 '시녀'에서 시작해 30일 뒤 '공주'로 엔딩을 바꿉니다.</p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">항목</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">운영 단위</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">기수제 (1기, 2기 … 자유 텍스트)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">기간</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">1기수 30일</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">참가비</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">20,000원 (반환 없음)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">예치금</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">100,000원</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">환급</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">주 6일 이상 인증 성공 시 25,000원 / 4주 완주 시 전액</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">성장 축</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">아비투스 7자본 중 3개 선택 + 공통과제 3종</td>
+</tr>
+</tbody>
+</table>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;"><strong>아비투스 7자본</strong>: 심리 · 문화 · 지식 · 경제 · 신체 · 언어 · 상징
+<strong>공통과제 3종</strong>: 독서 · 공부 · 주간 회고 (전원 필수)</p>
+<hr style="border:0;border-top:1px solid #e8dcdc;margin:34px 0;" />
+<h2 style="font-size:21px;font-weight:700;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8dcdc;line-height:1.4;">2. 사용자 유형</h2>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">유형</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">진입 경로</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">권한</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">미가입 방문자</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">카톡·인스타 초대 링크</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">로그인/회원가입, 비밀번호 찾기</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">참가자 (USER)</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">회원가입</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">본인 미션·기록·리포트</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">운영진 (ADMIN)</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">users.role = 'ADMIN'</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">참가자 전체 + 환급·MVP·보정·지원서</td>
+</tr>
+</tbody>
+</table>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">가입 계정은 모두 실제 참가자로 간주합니다. 앱 주소가 선발 완료된 인원에게만 전달되기
+때문에, 앱 안에 '승인 대기' 상태가 따로 없습니다.</p>
+<hr style="border:0;border-top:1px solid #e8dcdc;margin:34px 0;" />
+<h2 style="font-size:21px;font-weight:700;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8dcdc;line-height:1.4;">3. 화면 구조 (Sitemap)</h2>
+<pre style="background:#f6f6f6;border:1px solid #e2e2e2;border-radius:6px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.6;font-family:Menlo,Consolas,monospace;"><code>/
+├── /login                     로그인 · 회원가입          [비로그인]
+│    └── 온보딩 브릿지 팝업      초대 링크 유입자용 스토리텔링
+├── /forgot-password           비밀번호 찾기              [무관]
+├── /reset-password            비밀번호 재설정            [무관]
+│
+├── /stat-focus                나의 아비투스 · 미션 설정   [로그인]
+├── /record                    오늘 기록                  [로그인]
+├── /dashboard                 대시보드                   [로그인]
+├── /weekly-retrospective      주간 회고                  [로그인]
+├── /butler                    집사 채팅                  [로그인]
+├── /my-page                   마이페이지                 [로그인]
+│
+└── /admin                     운영 관리자                [ADMIN]
+     ├── 참가자 (기수별 주간 관리)
+     ├── 기수 미배정 회원
+     └── 지원서 (내부 기록용)
+</code></pre>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">정의되지 않은 경로는 로그인 여부에 따라 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/dashboard</code> 또는 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/login</code>으로 보냅니다.</p>
+<hr style="border:0;border-top:1px solid #e8dcdc;margin:34px 0;" />
+<h2 style="font-size:21px;font-weight:700;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8dcdc;line-height:1.4;">4. 화면별 기능</h2>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">4-1. <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/login</code> — 로그인 · 회원가입</h3>
+<ul style="margin:10px 0;padding-left:22px;line-height:1.9;font-size:15px;">
+<li>닉네임 + 비밀번호 로그인</li>
+<li>회원가입 시 이메일 인증, 약관 동의, 프로필 사진(선택)</li>
+<li>비로그인 상태로 진입 시 온보딩 브릿지 팝업 노출</li>
+</ul>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">4-2. <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/stat-focus</code> — 나의 아비투스 · 미션 설정</h3>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">최초 1회만 설정 가능합니다. 환급 심사가 최초 설정한 미션 기준으로 이뤄지기 때문입니다.</p>
+<ul style="margin:10px 0;padding-left:22px;line-height:1.9;font-size:15px;">
+<li>이상적인 나의 모습 / 나의 외적 추구미 / 목표로 하는 행동양식 입력</li>
+<li>7자본 중 3개 선택 후 비중(%) 배분, 합계 100%</li>
+<li>자본별 행동양식 → 구체 미션 선택 (목록에 없으면 직접 추가)</li>
+<li>공통과제 3종 안내 (독서는 중복 방지를 위해 선택 목록에서 제외)</li>
+<li>설정 완료 후에는 읽기 전용 화면으로 전환</li>
+</ul>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">4-3. <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/record</code> — 오늘 기록</h3>
+<ul style="margin:10px 0;padding-left:22px;line-height:1.9;font-size:15px;">
+<li>미션별 인증 사진: <strong>인앱 카메라 촬영</strong> 또는 <strong>갤러리에서 선택</strong> (2026-08-21 정책 변경)</li>
+<li>카메라 촬영 시 긴 변 1,024px로 축소 후 업로드</li>
+<li>AI Vision이 사진과 미션의 정합성 판독</li>
+<li>공통과제(독서 페이지 수, 공부 진도) 입력</li>
+</ul>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">4-4. <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/dashboard</code> — 대시보드</h3>
+<ul style="margin:10px 0;padding-left:22px;line-height:1.9;font-size:15px;">
+<li>프로필 헤더 (게시물 수, 참가자 수)</li>
+<li>자본별 진행률 · 스탯 미터</li>
+<li>주간 막대 차트 / 자본별 추이 라인 차트</li>
+<li>D-day 위젯, 참가자 목록 모달</li>
+</ul>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">4-5. <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/weekly-retrospective</code> — 주간 회고</h3>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">공통과제 중 하나로, 3부 구성입니다.</p>
+<ol style="margin:10px 0;padding-left:22px;line-height:1.9;font-size:15px;">
+<li>PART1 일상 공유</li>
+<li>PART2 이번 주 회고</li>
+<li>PART3 다음 주 계획</li>
+</ol>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">4-6. <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/butler</code> — 집사 채팅</h3>
+<ul style="margin:10px 0;padding-left:22px;line-height:1.9;font-size:15px;">
+<li>'레오집사'의 한마디를 날짜별로 이어서 조회 (말풍선 UI)</li>
+<li><strong>'오늘의 한마디 듣기' 버튼으로 당일 AI 피드백 생성</strong> — 오늘 기록을 저장한 뒤 사용 가능</li>
+<li>피드백에는 서버가 이미 계산한 점수·미션명만 전달 (원본 기록·닉네임 미전송)</li>
+</ul>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">4-7. <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/my-page</code> — 마이페이지</h3>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">프로필 사진 변경, 이메일 등록, 누적 기록 수 확인.</p>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">4-8. <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/admin</code> — 운영 관리자</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">탭</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">기능</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">참가자 (기수별 주간 관리)</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">주간 성공일수, 환급 대상 판정, 지급 체크, MVP 지정, 점수 보정, CSV 내보내기</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">기수 미배정 회원</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">가입했으나 기수 태그가 없는 회원에게 기수 배정</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">지원서 (내부 기록용)</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">모집 단계 지원자 수기 입력 + CSV 일괄 등록</td>
+</tr>
+</tbody>
+</table>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">참가자·미배정 회원 목록에서 운영진 계정에는 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">관리자</code> 태그가 표시됩니다.</p>
+<hr style="border:0;border-top:1px solid #e8dcdc;margin:34px 0;" />
+<h2 style="font-size:21px;font-weight:700;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8dcdc;line-height:1.4;">5. API 구조</h2>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">인증은 JWT Bearer 토큰, 세션은 STATELESS입니다.</p>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">5-1. 인증 (공개)</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">메서드</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">경로</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/auth/signup</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">회원가입</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/auth/login</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">로그인, JWT 발급</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/auth/email-verification/request</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">이메일 인증 코드 발송</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/auth/email-verification/confirm</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">인증 코드 확인</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/auth/forgot-password</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">비밀번호 재설정 링크 발송</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/auth/reset-password</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">비밀번호 재설정</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">5-2. 회원 (본인만)</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">메서드</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">경로</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/users/{id}</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">회원 정보 조회</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">PUT</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/users/{id}/profile-image</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">프로필 사진 변경</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">PUT</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/users/{id}/email</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">이메일 등록·변경</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/users/{id}/profile-stats</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">누적 기록 수, 전체 참가자 수</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/users/{id}/participants</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">함께하는 참가자 목록</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">5-3. 카탈로그 · 프로젝트 (로그인)</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">메서드</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">경로</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/catalog</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">7자본 · 행동양식 · 미션 기준 정보</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/projects/active</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">진행 중인 프로젝트 조회</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">PUT</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/projects/active/selections</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">아비투스·미션 일괄 저장 (최초 1회)</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">5-4. 일일 기록 · 리포트 (로그인)</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">메서드</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">경로</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/records</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">미션 인증 기록 저장</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/projects/active/daily</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">당일 미션 진행률</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/projects/active/weekly-report</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">주간 리포트 (7일치)</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">5-5. 공통과제 (로그인)</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">메서드</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">경로</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/common-tasks</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">공통과제 기록 저장</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/common-tasks/daily</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">일일 공통과제(독서·공부) 조회</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/common-tasks/weekly</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">주간 회고 조회</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/common-tasks/weekly/history</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">주간 회고 이력</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">PUT</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/common-tasks/weekly/{recordId}</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">주간 회고 수정</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">5-6. AI (로그인)</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">메서드</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">경로</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/vision/analyze</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">인증 사진 판독</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/projects/active/ai-feedback</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">집사의 한마디 생성</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/projects/active/ai-feedback/history</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">집사 피드백 이력</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">5-7. 업로드</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">메서드</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">경로</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">인증</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/uploads</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">로그인</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">파일 업로드, URL 반환</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/uploads/{key}</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">공개</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">파일 조회 (키는 UUID)</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">5-8. 관리자 (ADMIN)</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">메서드</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">경로</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">PUT</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/users/{userId}/role</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">운영진 승격·강등</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/cohorts</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">기수 목록</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/applicants</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">기수 미배정 회원 목록</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">PUT</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/members/{userId}/cohort</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">기수 배정</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/participants</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">기수별 주간 현황 (성공일수·환급·MVP)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/members/{userId}/activities</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">개인 활동 상세</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">PUT</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/members/{userId}/refund</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">환급 지급 여부 체크</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">PUT</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/mvp</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">주간 MVP 지정</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">DELETE</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/mvp</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">주간 MVP 해제</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/members/{userId}/adjustments</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">점수 보정 추가</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/members/{userId}/adjustments</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">점수 보정 이력</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">DELETE</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/adjustments/{adjustmentId}</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">점수 보정 롤백</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">GET</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/recruitment-applicants</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">지원서 목록</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/recruitment-applicants</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">지원서 수기 등록</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">POST</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/recruitment-applicants/bulk</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">지원서 CSV 일괄 등록</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">PUT</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/recruitment-applicants/{id}</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">지원서 수정</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">DELETE</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/recruitment-applicants/{id}</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">지원서 삭제</td>
+</tr>
+</tbody>
+</table>
+<hr style="border:0;border-top:1px solid #e8dcdc;margin:34px 0;" />
+<h2 style="font-size:21px;font-weight:700;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8dcdc;line-height:1.4;">6. 데이터 모델</h2>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">회원 · 프로젝트</h3>
+<pre style="background:#f6f6f6;border:1px solid #e2e2e2;border-radius:6px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.6;font-family:Menlo,Consolas,monospace;"><code>users
+ └─ user_projects            (1기수 = 1프로젝트)
+     └─ user_goals           (선택한 7자본 중 3개 + 비중)
+         └─ user_stats       (자본 내 행동양식)
+             └─ user_missions (구체 미션)
+</code></pre>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">기록</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">테이블</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">daily_records</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">미션별 일일 인증 기록 (사진 URL, 수치)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">common_task_records</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">공통과제 3종 기록</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">ai_feedbacks</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">집사 피드백 이력</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">운영</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">테이블</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">weekly_refunds</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">주차별 환급 지급 여부·지급일</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">weekly_mvp</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">기수·주차별 MVP</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">score_adjustments</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">점수 보정 이력 (삭제로 롤백)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">recruitment_applicants</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">모집 지원서 (users와 무관)</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">기준 정보</h3>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">goal_types</code>(7자본) · <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">stat_types</code>(행동양식) · <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">mission_definitions</code>(미션 카탈로그)</p>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">인증 보조</h3>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">password_reset_tokens</code> · <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">email_verifications</code></p>
+<hr style="border:0;border-top:1px solid #e8dcdc;margin:34px 0;" />
+<h2 style="font-size:21px;font-weight:700;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8dcdc;line-height:1.4;">7. 핵심 규칙</h2>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;"><strong>인증 사진</strong></p>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">초기에는 조작 방지를 위해 인앱 카메라 촬영만 허용했습니다. 다만 독서·공부처럼 화면
+캡처가 자연스러운 미션이 있어, 2026-08-21에 갤러리 업로드를 다시 허용했습니다.
+현재는 두 경로 모두 지원하며, 카메라 촬영분은 canvas로 인코딩되어 EXIF가 남지 않습니다.
+백엔드의 촬영일시 검증은 EXIF가 존재하면서 날짜가 어긋난 경우에만 반려하도록
+느슨하게 유지하고 있습니다.</p>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;"><strong>성공일수 판정</strong></p>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">하루 단위로 그날 활성화된 미션 기준입니다.</p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">상태</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">점수</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">전부 완료</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">1.0일</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">일부 완료</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">0.5일</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">미완료</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">0일</td>
+</tr>
+</tbody>
+</table>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">주간 합계 6일 이상이면 환급 대상으로 자동 표시되며, 실제 지급 여부는 운영진이 확인 후
+직접 체크합니다.</p>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;"><strong>미션 수정 불가</strong></p>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">최초 설정 후 변경할 수 없습니다. 부적절한 미션은 운영진이 개별 안내합니다.</p>
+<hr style="border:0;border-top:1px solid #e8dcdc;margin:34px 0;" />
+<h2 style="font-size:21px;font-weight:700;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8dcdc;line-height:1.4;">8. 기술 구성</h2>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">영역</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">스택</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">호스팅</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">프론트엔드</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">React 19 · TypeScript · Vite · React Router 7</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">Vercel</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">백엔드</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">Spring Boot · Spring Security · JPA</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">Railway (US West)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">DB</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">MySQL</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">Railway</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">파일 저장</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">S3 호환 버킷</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">Railway Buckets</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">AI</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">OpenAI Chat Completions</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">—</td>
+</tr>
+</tbody>
+</table>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;"><strong>AI 모델 분리</strong></p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">용도</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">모델</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">사유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">사진 판독</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">gpt-4.1-mini</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">이미지 토큰 계산 방식이 유리</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">텍스트 피드백</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">gpt-4o-mini</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">텍스트 단가가 저렴</td>
+</tr>
+</tbody>
+</table>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;"><strong>운영비</strong>: 월 약 33,700원 (Railway Pro $20 = 28,400원 + AI 5,300원 + Vercel 0원)
+※ SMTP(이메일 발송)를 위해 Railway Pro로 상향. 기존 dev+prod $18 대비 증분 $2</p>
+<hr style="border:0;border-top:1px solid #e8dcdc;margin:34px 0;" />
+<h2 style="font-size:21px;font-weight:700;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8dcdc;line-height:1.4;">9. 배포 환경 (dev / prod)</h2>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">Railway 한 프로젝트 안에 <strong>prod·dev 두 개의 Environment</strong>를 두고, 동일한 템플릿으로
+구성했습니다. 서버·MySQL·버킷이 환경마다 각각 존재해서 <strong>DB가 완전히 분리</strong>됩니다.
+테스트 데이터가 운영 데이터에 섞이지 않고, 스키마 마이그레이션도 dev에서 먼저 검증한
+뒤 prod에 적용할 수 있습니다.</p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">구분</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">prod</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">dev</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">연결 브랜치</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">develop</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">dev</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">백엔드</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">Railway (Environment: prod)</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">Railway (Environment: dev)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">DB</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">전용 MySQL 인스턴스</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">전용 MySQL 인스턴스</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">버킷</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">전용 Railway Bucket</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">전용 Railway Bucket</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">프론트엔드</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">Vercel Production</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">로컬(<code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">localhost:5173</code>) 또는 Preview</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">배포 흐름</h3>
+<pre style="background:#f6f6f6;border:1px solid #e2e2e2;border-radius:6px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.6;font-family:Menlo,Consolas,monospace;"><code>로컬 개발 (localhost:5173 → localhost:8080)
+        ↓ push
+   dev 브랜치 → Railway dev 환경 자동 배포
+        ↓ 검증 후 merge
+develop 브랜치 → Railway prod 환경 + Vercel Production 자동 배포
+</code></pre>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">환경 분리 방식</h3>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">같은 이미지를 쓰고 <strong>환경변수만 다르게</strong> 주입합니다. 코드에는 환경 분기가 없습니다.</p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">환경변수</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">MYSQLHOST</code> 등</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">Railway MySQL 플러그인 참조 (<code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">${{MySQL.MYSQLHOST}}</code>)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">BUCKET_*</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">버킷 엔드포인트·자격증명</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">OPENAI_API_KEY</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">OpenAI 인증 키</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">OPENAI_MODEL_VISION</code> / <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">_FEEDBACK</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">모델 지정 (기본값은 코드에 존재)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">JWT_SECRET</code> / <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">JWT_EXPIRATION_MINUTES</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">토큰 서명 키·만료</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">CORS_ALLOWED_ORIGINS</code></td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">허용 오리진 (콤마 구분)</td>
+</tr>
+</tbody>
+</table>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">OPENAI_API_KEY</code>가 비어 있으면 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">MockVisionClient</code> · <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">MockAiFeedbackClient</code>가 대신
+주입되도록 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">@ConditionalOnExpression</code>을 걸어두었습니다. 키 없이도 로컬에서 전체
+플로우를 돌릴 수 있고, 개발 중 불필요한 API 과금이 발생하지 않습니다.</p>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">파일 저장도 같은 방식으로, 버킷 설정이 없으면 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">LocalFileStorageClient</code>가 로컬
+디렉터리에 저장합니다.</p>
+<hr style="border:0;border-top:1px solid #e8dcdc;margin:34px 0;" />
+<h2 style="font-size:21px;font-weight:700;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8dcdc;line-height:1.4;">10. 보안 · 인프라</h2>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">인증 · 인가</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">항목</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">구현</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">비밀번호</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">BCrypt 해시 저장 (평문 미보관)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">토큰</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">JWT HS256, 서버 세션 없음(STATELESS)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">토큰 클레임</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">userId</code>, <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">nickname</code>, <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">role</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">인가</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">/api/admin/**</code>은 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">hasRole("ADMIN")</code>, 그 외 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">authenticated()</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">본인 확인</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">@PreAuthorize("#id == authentication.principal")</code> (6곳)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">만료 처리</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">401 응답 시 프론트에서 전역 로그아웃</td>
+</tr>
+</tbody>
+</table>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">관리자 권한은 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">users.role</code> 컬럼이 단일 진실 공급원입니다. 로그인 시 권한을 재계산하지
+않으므로, 설정 파일이나 환경변수 변경으로 권한이 뒤바뀌지 않습니다.</p>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">비밀번호 재설정 · 이메일 인증</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">항목</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">구현</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">토큰 생성</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">SecureRandom</code> + Base64 URL-safe 인코딩</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">유효기간</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">발급 후 제한 시간 경과 시 만료</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">재사용 방지</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">1회 사용 후 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">used</code> 플래그 처리</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">실패 구분</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">TOKEN_INVALID</code> / <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">TOKEN_EXPIRED</code> / <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">TOKEN_ALREADY_USED</code></td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">데이터 보호</h3>
+<ul style="margin:10px 0;padding-left:22px;line-height:1.9;font-size:15px;">
+<li><strong>DB 스키마</strong>: <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">ddl-auto=validate</code>. 애플리케이션이 운영 스키마를 자동 변경하지 않고,
+  마이그레이션 SQL을 사람이 검토·적용합니다.</li>
+<li><strong>참조 무결성</strong>: 사용자 하위 데이터는 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">ON DELETE CASCADE</code>, 기준 정보(자본·미션 카탈로그)는
+  <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">ON DELETE RESTRICT</code>로 실수로 인한 삭제를 차단합니다.</li>
+<li><strong>AI 전송 최소화</strong>: 피드백 생성 시 원본 기록·닉네임을 보내지 않고, 서버가 계산한
+  점수·미션명만 전달합니다.</li>
+<li><strong>국외 이전 고지</strong>: OpenAI(미국)·Railway(미국)·Vercel(미국)을 약관에 명시했습니다.</li>
+</ul>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">인프라</h3>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">항목</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">구성</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">컨테이너</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">Dockerfile 멀티스테이지 (<code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">temurin:21-jdk</code> 빌드 → <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">21-jre</code> 실행)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">CORS</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">허용 오리진 화이트리스트, 환경변수로 관리</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">업로드</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">최대 10MB, 키는 <code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">UUID.randomUUID()</code> (122비트 랜덤)</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">정적 파일</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">S3 호환 버킷, 애플리케이션 경유 서빙</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:17px;font-weight:700;margin:26px 0 10px;line-height:1.5;">알려진 한계</h3>
+<p style="margin:10px 0;line-height:1.8;font-size:15px;">문서화 목적상 현재 구조의 약점도 함께 적어둡니다.</p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+<thead>
+<tr>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">항목</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">현황</th>
+<th style="border:1px solid #ddd;padding:9px 10px;background:#f7f2f2;text-align:left;font-weight:700;">개선 방향</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">JWT 만료 30일</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">리프레시 토큰이 없어 만료 기간으로 대체. 로그아웃해도 토큰 자체는 유효</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">짧은 액세스 토큰 + 리프레시 토큰 도입</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">업로드 파일 조회</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;"><code style="background:#f2ecec;padding:1px 5px;border-radius:3px;font-size:13px;font-family:Menlo,Consolas,monospace;">GET /api/uploads/{key}</code>가 인증 없이 열려 있음 (키 추측은 어려움)</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">서명된 URL 또는 소유자 검증</td>
+</tr>
+<tr>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">마이그레이션 이력</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">적용 여부가 코드로 남지 않음</td>
+<td style="border:1px solid #ddd;padding:9px 10px;vertical-align:top;">Flyway 도입</td>
+</tr>
+</tbody>
+</table>
+<hr style="border:0;border-top:1px solid #e8dcdc;margin:34px 0;" />
+<h2 style="font-size:21px;font-weight:700;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid #e8dcdc;line-height:1.4;">11. 미구현 (다음 단계)</h2>
+<ul style="margin:10px 0;padding-left:22px;line-height:1.9;font-size:15px;">
+<li>엔딩 리포트 · 자본별 엔딩 캐릭터 배정</li>
+<li>MVP 보너스 · 점수 보정의 대시보드 점수 자동 반영</li>
+<li>완주 환급(4주 전액) 자동 계산</li>
+<li>초대장 랜딩 페이지</li>
+</ul>
+</div>

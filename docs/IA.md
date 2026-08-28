@@ -305,7 +305,110 @@ users
 
 ---
 
-## 9. 미구현 (다음 단계)
+## 9. 배포 환경 (dev / prod)
+
+Railway 한 프로젝트 안에 **prod·dev 두 개의 Environment**를 두고, 동일한 템플릿으로
+구성했습니다. 서버·MySQL·버킷이 환경마다 각각 존재해서 **DB가 완전히 분리**됩니다.
+테스트 데이터가 운영 데이터에 섞이지 않고, 스키마 마이그레이션도 dev에서 먼저 검증한
+뒤 prod에 적용할 수 있습니다.
+
+| 구분 | prod | dev |
+| --- | --- | --- |
+| 연결 브랜치 | `develop` | `dev` |
+| 백엔드 | Railway (Environment: prod) | Railway (Environment: dev) |
+| DB | 전용 MySQL 인스턴스 | 전용 MySQL 인스턴스 |
+| 버킷 | 전용 Railway Bucket | 전용 Railway Bucket |
+| 프론트엔드 | Vercel Production | 로컬(`localhost:5173`) 또는 Preview |
+
+### 배포 흐름
+
+```
+로컬 개발 (localhost:5173 → localhost:8080)
+        ↓ push
+   dev 브랜치 → Railway dev 환경 자동 배포
+        ↓ 검증 후 merge
+develop 브랜치 → Railway prod 환경 + Vercel Production 자동 배포
+```
+
+### 환경 분리 방식
+
+같은 이미지를 쓰고 **환경변수만 다르게** 주입합니다. 코드에는 환경 분기가 없습니다.
+
+| 환경변수 | 용도 |
+| --- | --- |
+| `MYSQLHOST` 등 | Railway MySQL 플러그인 참조 (`${{MySQL.MYSQLHOST}}`) |
+| `BUCKET_*` | 버킷 엔드포인트·자격증명 |
+| `OPENAI_API_KEY` | OpenAI 인증 키 |
+| `OPENAI_MODEL_VISION` / `_FEEDBACK` | 모델 지정 (기본값은 코드에 존재) |
+| `JWT_SECRET` / `JWT_EXPIRATION_MINUTES` | 토큰 서명 키·만료 |
+| `CORS_ALLOWED_ORIGINS` | 허용 오리진 (콤마 구분) |
+
+`OPENAI_API_KEY`가 비어 있으면 `MockVisionClient` · `MockAiFeedbackClient`가 대신
+주입되도록 `@ConditionalOnExpression`을 걸어두었습니다. 키 없이도 로컬에서 전체
+플로우를 돌릴 수 있고, 개발 중 불필요한 API 과금이 발생하지 않습니다.
+
+파일 저장도 같은 방식으로, 버킷 설정이 없으면 `LocalFileStorageClient`가 로컬
+디렉터리에 저장합니다.
+
+---
+
+## 10. 보안 · 인프라
+
+### 인증 · 인가
+
+| 항목 | 구현 |
+| --- | --- |
+| 비밀번호 | BCrypt 해시 저장 (평문 미보관) |
+| 토큰 | JWT HS256, 서버 세션 없음(STATELESS) |
+| 토큰 클레임 | `userId`, `nickname`, `role` |
+| 인가 | `/api/admin/**`은 `hasRole("ADMIN")`, 그 외 `authenticated()` |
+| 본인 확인 | `@PreAuthorize("#id == authentication.principal")` (6곳) |
+| 만료 처리 | 401 응답 시 프론트에서 전역 로그아웃 |
+
+관리자 권한은 `users.role` 컬럼이 단일 진실 공급원입니다. 로그인 시 권한을 재계산하지
+않으므로, 설정 파일이나 환경변수 변경으로 권한이 뒤바뀌지 않습니다.
+
+### 비밀번호 재설정 · 이메일 인증
+
+| 항목 | 구현 |
+| --- | --- |
+| 토큰 생성 | `SecureRandom` + Base64 URL-safe 인코딩 |
+| 유효기간 | 발급 후 제한 시간 경과 시 만료 |
+| 재사용 방지 | 1회 사용 후 `used` 플래그 처리 |
+| 실패 구분 | `TOKEN_INVALID` / `TOKEN_EXPIRED` / `TOKEN_ALREADY_USED` |
+
+### 데이터 보호
+
+- **DB 스키마**: `ddl-auto=validate`. 애플리케이션이 운영 스키마를 자동 변경하지 않고,
+  마이그레이션 SQL을 사람이 검토·적용합니다.
+- **참조 무결성**: 사용자 하위 데이터는 `ON DELETE CASCADE`, 기준 정보(자본·미션 카탈로그)는
+  `ON DELETE RESTRICT`로 실수로 인한 삭제를 차단합니다.
+- **AI 전송 최소화**: 피드백 생성 시 원본 기록·닉네임을 보내지 않고, 서버가 계산한
+  점수·미션명만 전달합니다.
+- **국외 이전 고지**: OpenAI(미국)·Railway(미국)·Vercel(미국)을 약관에 명시했습니다.
+
+### 인프라
+
+| 항목 | 구성 |
+| --- | --- |
+| 컨테이너 | Dockerfile 멀티스테이지 (`temurin:21-jdk` 빌드 → `21-jre` 실행) |
+| CORS | 허용 오리진 화이트리스트, 환경변수로 관리 |
+| 업로드 | 최대 10MB, 키는 `UUID.randomUUID()` (122비트 랜덤) |
+| 정적 파일 | S3 호환 버킷, 애플리케이션 경유 서빙 |
+
+### 알려진 한계
+
+문서화 목적상 현재 구조의 약점도 함께 적어둡니다.
+
+| 항목 | 현황 | 개선 방향 |
+| --- | --- | --- |
+| JWT 만료 30일 | 리프레시 토큰이 없어 만료 기간으로 대체. 로그아웃해도 토큰 자체는 유효 | 짧은 액세스 토큰 + 리프레시 토큰 도입 |
+| 업로드 파일 조회 | `GET /api/uploads/{key}`가 인증 없이 열려 있음 (키 추측은 어려움) | 서명된 URL 또는 소유자 검증 |
+| 마이그레이션 이력 | 적용 여부가 코드로 남지 않음 | Flyway 도입 |
+
+---
+
+## 11. 미구현 (다음 단계)
 
 - 엔딩 리포트 · 자본별 엔딩 캐릭터 배정
 - MVP 보너스 · 점수 보정의 대시보드 점수 자동 반영
