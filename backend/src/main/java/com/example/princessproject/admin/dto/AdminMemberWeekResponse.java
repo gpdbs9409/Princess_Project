@@ -28,6 +28,10 @@ public record AdminMemberWeekResponse(
         BigDecimal amount,
         LocalDateTime paidAt,
         boolean isMvp,
-        String role
+        String role,
+        /** 그 주에 설정된 WEEKLY 미션 개수. 0이면 주간 미션 조건 자체가 없다. */
+        int weeklyMissionTotal,
+        /** 그중 주간 목표를 채운 개수. eligible이 되려면 total과 같아야 한다. */
+        int weeklyMissionAchieved
 ) {
 }

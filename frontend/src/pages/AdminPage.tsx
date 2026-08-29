@@ -337,13 +337,14 @@ export function AdminPage() {
 
   const exportParticipantsCsv = () => {
     const rows: (string | number)[][] = [
-      ["닉네임", "기수", "주 시작일", "주 종료일", "성공일수(7일 중)", "환급 대상", "환급 지급여부", "환급액"],
+      ["닉네임", "기수", "주 시작일", "주 종료일", "성공일수(7일 중)", "주간 미션", "환급 대상", "환급 지급여부", "환급액"],
       ...participants.map((p) => [
         p.nickname,
         p.cohort ?? "",
         p.weekStart,
         p.weekEnd,
         p.successDays,
+        p.weeklyMissionTotal === 0 ? "-" : `${p.weeklyMissionAchieved}/${p.weeklyMissionTotal}`,
         p.eligible ? "대상" : "미대상",
         p.paid ? "지급완료" : "미지급",
         p.amount,
@@ -689,6 +690,7 @@ export function AdminPage() {
                     <th>기수</th>
                     <th>성공일수</th>
                     <th>요일별 이행</th>
+                    <th>주간 미션</th>
                     <th>환급 대상</th>
                     <th>환급액</th>
                     <th>지급 여부</th>
@@ -722,6 +724,19 @@ export function AdminPage() {
                             })}
                           </div>
                           {!p.eligible && <small className="admin-needed-days">환급까지 {Math.max(0, 6 - p.successDays)}일 필요</small>}
+                        </td>
+                        <td>
+                          {p.weeklyMissionTotal === 0 ? (
+                            <span className="muted">-</span>
+                          ) : (
+                            <span
+                              className={`badge ${
+                                p.weeklyMissionAchieved >= p.weeklyMissionTotal ? "good" : "warn"
+                              }`}
+                            >
+                              {p.weeklyMissionAchieved}/{p.weeklyMissionTotal}
+                            </span>
+                          )}
                         </td>
                         <td>
                           <span className={`badge ${p.eligible ? "good" : "warn"}`}>

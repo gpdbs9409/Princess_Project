@@ -182,6 +182,48 @@ public class DailyRecordService {
         return getWeekDailyProgress(userId, weekStart, true);
     }
 
+    /**
+     * WEEKLY 미션이 그 주 목표를 채웠는지를 주 단위로 딱 한 번 판정한다.
+     *
+     * 환급 심사에서 WEEKLY를 일별 성공일수에 섞으면 두 방향으로 다 틀어진다. 목표를 채우기
+     * 전(주 초반)에는 아직 못 채웠다는 이유로 매일 감점되고, 채운 뒤(주 후반)에는 아무것도
+     * 하지 않아도 누적값 덕분에 매일 완료로 잡힌다. 그래서 일별 판정에서는 빼고(dailyOnly),
+     * 대신 "주간 미션을 전부 달성했는가"를 환급의 별도 조건으로 쓴다.
+     */
+    @Transactional
+    public WeeklyMissionStatus getWeeklyMissionStatus(Long userId, LocalDate weekStart) {
+        UserProject project = userProjectService.getOrCreateActive(userId);
+        List<ActiveMission> weeklyMissions = flattenActiveMissions(project).stream()
+                .filter(active -> active.missionType() == MissionType.WEEKLY)
+                .toList();
+        if (weeklyMissions.isEmpty()) {
+            return new WeeklyMissionStatus(0, 0);
+        }
+
+        LocalDate weekEnd = weekStart.plusDays(6);
+        Map<Long, BigDecimal> weekSumByMissionId = new LinkedHashMap<>();
+        for (DailyRecord record : dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd)) {
+            weekSumByMissionId.merge(record.getUserMission().getId(), record.getInputValue(), BigDecimal::add);
+        }
+
+        int achieved = 0;
+        for (ActiveMission active : weeklyMissions) {
+            BigDecimal target = active.mission().getTargetValue();
+            BigDecimal weekSum = weekSumByMissionId.getOrDefault(active.mission().getId(), BigDecimal.ZERO);
+            if (target != null && target.signum() > 0 && weekSum.compareTo(target) >= 0) {
+                achieved++;
+            }
+        }
+        return new WeeklyMissionStatus(weeklyMissions.size(), achieved);
+    }
+
+    /** 그 주의 WEEKLY 미션 개수와 그중 목표를 채운 개수. total이 0이면 조건 자체가 없는 것으로 본다. */
+    public record WeeklyMissionStatus(int total, int achieved) {
+        public boolean allAchieved() {
+            return total == 0 || achieved >= total;
+        }
+    }
+
     private List<MissionProgress> getWeekDailyProgress(Long userId, LocalDate weekStart, boolean dailyOnly) {
         UserProject project = userProjectService.getOrCreateActive(userId);
         List<ActiveMission> activeMissions = flattenActiveMissions(project);
