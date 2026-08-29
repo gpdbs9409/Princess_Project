@@ -1,4 +1,4 @@
 package com.example.princessproject.user.dto;
 
-public record ProfileStatsResponse(long recordCount, long totalUsers) {
+public record ProfileStatsResponse(long recordCount, long totalUsers, boolean mvp) {
 }

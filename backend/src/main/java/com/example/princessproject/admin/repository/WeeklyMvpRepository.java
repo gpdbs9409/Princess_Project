@@ -16,4 +16,6 @@ public interface WeeklyMvpRepository extends JpaRepository<WeeklyMvp, Long> {
     // 1인 1회 제한 확인용 - 이 사람이 그 기수에서 이전에 이미 어느 주차든 MVP를 받은 적이
     // 있는지 확인할 때 쓴다 (주간 MVP 정책 v1.0, 2026-08-20, 시하).
     List<WeeklyMvp> findByCohortAndUserId(String cohort, Long userId);
+
+    boolean existsByUserId(Long userId);
 }

@@ -97,7 +97,10 @@ export function MyPage() {
             />
           )}
           <div>
-            <strong style={{ fontSize: 18 }}>{user.nickname}</strong>
+            <div className="row" style={{ gap: 8, alignItems: "center" }}>
+              <strong style={{ fontSize: 18 }}>{user.nickname}</strong>
+              {stats?.mvp && <span className="badge good">★ MVP</span>}
+            </div>
             <div className="muted">{user.role === "ADMIN" ? "운영진" : "프린세스 프로젝트 멤버"}</div>
           </div>
         </div>

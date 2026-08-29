@@ -63,7 +63,6 @@ function commonTaskErrorMessage(err: unknown, fallback: string): string {
 function ReadingSection({ project, date, readOnly }: { project: ProjectResponse | null; date: string; readOnly: boolean }) {
   const { showToast } = useToast();
   const [existing, setExisting] = useState<CommonTaskResponse | null>(null);
-  const [bookTitle, setBookTitle] = useState(project?.commonReadingBookTitle ?? "");
   const [startPage, setStartPage] = useState("");
   const [endPage, setEndPage] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -147,7 +146,7 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
       const saved = await saveCommonTask({
         taskType: "READING",
         date,
-        bookTitle: bookTitle.trim() || undefined,
+        bookTitle: project?.commonReadingBookTitle?.trim() || undefined,
         startPage: start,
         endPage: end,
         photoUrl: uploaded.url,
@@ -206,13 +205,12 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
         </div>
       </div>
       <div className="stack" style={{ gap: 10, marginTop: 12 }}>
-        <input
-          type="text"
-          placeholder="책 제목 (선택)"
-          value={bookTitle}
-          onChange={(e) => setBookTitle(e.target.value)}
-          maxLength={200}
-        />
+        {project?.commonReadingBookTitle && (
+          <div className="recorded-field">
+            <span className="muted">읽을 책</span>
+            <strong>{project.commonReadingBookTitle}</strong>
+          </div>
+        )}
         <div className="row" style={{ gap: 6 }}>
           <input
             type="number"
@@ -355,7 +353,8 @@ function StudySection({ project, date, readOnly }: { project: ProjectResponse | 
           <div className="recorded-field"><span className="muted">나의 공부 주제</span><strong>{project.commonStudyYoutubeTopic}</strong></div>
         )}
         <input type="url" placeholder="YouTube 링크" value={youtubeUrl}
-          onChange={(e) => setYoutubeUrl(e.target.value)} maxLength={1000} />
+          onChange={(e) => setYoutubeUrl(e.target.value)} maxLength={1000}
+          style={{ minHeight: 64, padding: "14px 16px" }} />
         <textarea placeholder="배운 점이나 느낀 점, 적용할 점을 한 줄로 작성해주세요"
           value={takeaway} onChange={(e) => setTakeaway(e.target.value)} maxLength={1000} rows={3} />
         {error && <div className="error-banner">{error}</div>}

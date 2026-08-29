@@ -143,6 +143,7 @@ export interface RecruitmentApplicantRequest {
 export interface ProfileStatsResponse {
   recordCount: number;
   totalUsers: number;
+  mvp: boolean;
 }
 
 // 팔로워/팔로잉 클릭 시 보여주는 같은 기수 참가자 목록 (실제 팔로우 관계는 없음).

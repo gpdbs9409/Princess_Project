@@ -2,6 +2,7 @@ package com.example.princessproject.user.service;
 
 import com.example.princessproject.auth.service.AuthValidationException;
 import com.example.princessproject.auth.service.EmailVerificationService;
+import com.example.princessproject.admin.repository.WeeklyMvpRepository;
 import com.example.princessproject.project.model.UserProject;
 import com.example.princessproject.project.repository.UserProjectRepository;
 import com.example.princessproject.record.repository.DailyRecordRepository;
@@ -29,19 +30,22 @@ public class UserService {
     private final DailyRecordRepository dailyRecordRepository;
     private final EmailVerificationService emailVerificationService;
     private final UserProjectRepository userProjectRepository;
+    private final WeeklyMvpRepository weeklyMvpRepository;
 
     public UserService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             DailyRecordRepository dailyRecordRepository,
             EmailVerificationService emailVerificationService,
-            UserProjectRepository userProjectRepository
+            UserProjectRepository userProjectRepository,
+            WeeklyMvpRepository weeklyMvpRepository
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.dailyRecordRepository = dailyRecordRepository;
         this.emailVerificationService = emailVerificationService;
         this.userProjectRepository = userProjectRepository;
+        this.weeklyMvpRepository = weeklyMvpRepository;
     }
 
     /**
@@ -145,7 +149,7 @@ public class UserService {
     public ProfileStatsResponse getProfileStats(Long userId) {
         long recordCount = dailyRecordRepository.countByUserId(userId);
         long totalUsers = userRepository.count();
-        return new ProfileStatsResponse(recordCount, totalUsers);
+        return new ProfileStatsResponse(recordCount, totalUsers, weeklyMvpRepository.existsByUserId(userId));
     }
 
     /**
