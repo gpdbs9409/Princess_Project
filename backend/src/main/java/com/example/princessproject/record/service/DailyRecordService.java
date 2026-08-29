@@ -108,9 +108,8 @@ public class DailyRecordService {
             }
         }
 
-        // Each record still snapshots its own day's achievement, independent of how WEEKLY
-        // missions get rolled up for display (see getMissionProgress) - this is just this
-        // record's own contribution, kept for history/auditing.
+        // 이 값은 그 기록 자체의 스냅샷(감사용)이다. 화면에 보이는 점수는 조회 시점에
+        // 자본 비중으로 다시 계산하므로 여기 저장된 earnedScore를 쓰지 않는다.
         BigDecimal achievementRate = scoringService.achievementRate(inputValue, targetValue);
         BigDecimal earnedScore = scoringService.earnedScore(assignedPoints, achievementRate);
 
@@ -149,8 +148,7 @@ public class DailyRecordService {
     /**
      * Progress "as of" a given day - 그날의 DAILY 미션 기록과 목표를 비교한다.
      *
-     * WEEKLY 미션은 점수에 포함하지 않는다 (flattenScoredMissions 주석 참고). 환급 조건에서만
-     * getWeeklyMissionStatus로 주 단위 판정한다.
+     * WEEKLY 미션은 스펙아웃되어 채점 대상이 아니다 (flattenScoredMissions 참고).
      */
     // Not readOnly: getOrCreateActive() inserts a new project on a user's very first call, and a
     // readOnly transaction puts the JDBC connection itself in read-only mode, which fails that
@@ -187,48 +185,6 @@ public class DailyRecordService {
     @Transactional
     public List<MissionProgress> getWeekDailyRefundProgress(Long userId, LocalDate weekStart) {
         return getWeekDailyProgressInternal(userId, weekStart);
-    }
-
-    /**
-     * WEEKLY 미션이 그 주 목표를 채웠는지를 주 단위로 딱 한 번 판정한다.
-     *
-     * 환급 심사에서 WEEKLY를 일별 성공일수에 섞으면 두 방향으로 다 틀어진다. 목표를 채우기
-     * 전(주 초반)에는 아직 못 채웠다는 이유로 매일 감점되고, 채운 뒤(주 후반)에는 아무것도
-     * 하지 않아도 누적값 덕분에 매일 완료로 잡힌다. 그래서 일별 판정에서는 빼고, 대신
-     * "주간 미션을 전부 달성했는가"를 환급의 별도 조건으로 쓴다.
-     */
-    @Transactional
-    public WeeklyMissionStatus getWeeklyMissionStatus(Long userId, LocalDate weekStart) {
-        UserProject project = userProjectService.getOrCreateActive(userId);
-        List<ActiveMission> weeklyMissions = flattenActiveMissions(project).stream()
-                .filter(active -> active.missionType() == MissionType.WEEKLY)
-                .toList();
-        if (weeklyMissions.isEmpty()) {
-            return new WeeklyMissionStatus(0, 0);
-        }
-
-        LocalDate weekEnd = weekStart.plusDays(6);
-        Map<Long, BigDecimal> weekSumByMissionId = new LinkedHashMap<>();
-        for (DailyRecord record : dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd)) {
-            weekSumByMissionId.merge(record.getUserMission().getId(), record.getInputValue(), BigDecimal::add);
-        }
-
-        int achieved = 0;
-        for (ActiveMission active : weeklyMissions) {
-            BigDecimal target = active.mission().getTargetValue();
-            BigDecimal weekSum = weekSumByMissionId.getOrDefault(active.mission().getId(), BigDecimal.ZERO);
-            if (target != null && target.signum() > 0 && weekSum.compareTo(target) >= 0) {
-                achieved++;
-            }
-        }
-        return new WeeklyMissionStatus(weeklyMissions.size(), achieved);
-    }
-
-    /** 그 주의 WEEKLY 미션 개수와 그중 목표를 채운 개수. total이 0이면 조건 자체가 없는 것으로 본다. */
-    public record WeeklyMissionStatus(int total, int achieved) {
-        public boolean allAchieved() {
-            return total == 0 || achieved >= total;
-        }
     }
 
     private List<MissionProgress> getWeekDailyProgressInternal(Long userId, LocalDate weekStart) {
@@ -286,15 +242,7 @@ public class DailyRecordService {
             BigDecimal actualValue;
             BigDecimal achievementRate;
 
-            // 현재 activeMissions는 DAILY만 담기므로 이 분기는 실행되지 않는다. 정책이 다시
-            // 바뀌어 WEEKLY를 점수에 넣게 될 때를 대비해 계산식만 남겨둔다.
-            if (active.missionType() == MissionType.WEEKLY) {
-                BigDecimal weekToDateInput = weekToDateInputByMissionId.getOrDefault(mission.getId(), BigDecimal.ZERO);
-                actualValue = weekToDateInput;
-                achievementRate = scoringService.achievementRate(actualValue, mission.getTargetValue());
-                earnedScore = scoringService.earnedScore(points, achievementRate);
-                isComplete = weekToDateInput.compareTo(mission.getTargetValue()) >= 0;
-            } else {
+            {
                 DailyRecord todaysRecord = todaysRecordByMissionId.get(mission.getId());
                 if (todaysRecord == null) {
                     missionDetails.add(new MissionProgressDetail(
@@ -491,7 +439,7 @@ public class DailyRecordService {
      * 방식이라 하루 점수에 넣으면 실제로 수행하지 않은 날에도 점수가 그대로 들어가고
      * (목표를 채운 뒤에는 남은 요일이 자동 만점), 7일치를 더한 값과 주간 계산값이 서로
      * 달라져서 "오늘 × 7 = 주간 × 4 = 최종"이라는 구조 자체가 성립하지 않기 때문이다.
-     * WEEKLY는 환급 조건에서만 쓴다 (getWeeklyMissionStatus).
+
      */
     /**
      * 미션별 배점을 자본 비중에서 산출한다.

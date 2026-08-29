@@ -355,11 +355,9 @@ public class AdminService {
         // The terms explicitly allow the weekly refund when six attendance days are met even
         // without the Sunday retrospective. Retrospective is scored separately, not a refund gate.
         //
-        // WEEKLY 미션은 일별 출석(dailyCredits)에서 빠져 있으므로 여기서 별도 조건으로 겁니다.
-        // 그래서 환급 조건은 "출석 6일 이상 AND 그 주 주간 미션 전부 달성"입니다.
-        DailyRecordService.WeeklyMissionStatus weeklyMissions =
-                dailyRecordService.getWeeklyMissionStatus(user.getId(), weekStart);
-        boolean eligible = successDays >= ELIGIBLE_SUCCESS_DAYS && weeklyMissions.allAchieved();
+        // WEEKLY 미션은 2026-08-29에 스펙아웃되어 환급 조건에서도 빠졌다. 환급 기준은
+        // "출석 6일 이상" 하나뿐이다.
+        boolean eligible = successDays >= ELIGIBLE_SUCCESS_DAYS;
         boolean paid = refund != null && refund.isPaid();
 
         return new AdminMemberWeekResponse(
@@ -375,9 +373,7 @@ public class AdminService {
                 paid ? refund.getAmount() : WEEKLY_REFUND_AMOUNT,
                 paid ? refund.getPaidAt() : null,
                 user.getId().equals(mvpUserId),
-                user.getRole().name(),
-                weeklyMissions.total(),
-                weeklyMissions.achieved()
+                user.getRole().name()
         );
     }
 

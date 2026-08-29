@@ -480,7 +480,6 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                             style={{ fontSize: 12, padding: "4px 6px" }}
                           >
                             <option value="DAILY">{MISSION_TYPE_LABELS.DAILY}</option>
-                            <option value="WEEKLY">{MISSION_TYPE_LABELS.WEEKLY}</option>
                           </select>
                           <input
                             type="number"
@@ -570,7 +569,6 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                             style={{ fontSize: 12, padding: "4px 6px", maxWidth: 90 }}
                           >
                             <option value="DAILY">{MISSION_TYPE_LABELS.DAILY}</option>
-                            <option value="WEEKLY">{MISSION_TYPE_LABELS.WEEKLY}</option>
                           </select>
                           <input
                             type="number"

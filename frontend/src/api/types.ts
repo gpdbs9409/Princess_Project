@@ -74,10 +74,6 @@ export interface AdminMemberWeekResponse {
   paidAt: string | null;
   isMvp: boolean;
   role: Role;
-  /** 그 주에 설정된 WEEKLY 미션 개수 (0이면 주간 미션 조건 없음) */
-  weeklyMissionTotal: number;
-  /** 그중 주간 목표를 채운 개수 */
-  weeklyMissionAchieved: number;
 }
 
 export interface AdminMemberResponse {
