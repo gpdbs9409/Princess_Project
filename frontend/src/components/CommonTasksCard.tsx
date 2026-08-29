@@ -397,7 +397,8 @@ function formatWeekLabel(weekStartIso: string): string {
 // "최소 하나"만 요구하므로 나머지 둘은 비어있을 수 있다).
 function RetroReadOnlyBlock({ record }: { record: WeeklyRetrospectiveResponse }) {
   const parts = [
-        { label: "이번 주 회고", value: record.retroWeekReview },
+    { label: "공유하고 싶은 일상", value: record.retroDailyLife },
+    { label: "이번 주 회고", value: record.retroWeekReview },
     { label: "다음 주 계획", value: record.retroNextWeekPlan },
   ].filter((part) => part.value && part.value.trim().length > 0);
 
@@ -463,7 +464,7 @@ export function WeeklyRetrospectiveSection() {
 
   const validateDraft = (value: RetroDraft) => {
     if (!value.dailyLife.trim() && !value.weekReview.trim() && !value.nextWeekPlan.trim()) {
-      setError("회고 또는 다음 주 계획 중 최소 하나는 입력해주세요.");
+      setError("공유하고 싶은 일상, 회고, 다음 주 계획 중 최소 하나는 입력해주세요.");
       return false;
     }
     if (Object.values(value).some((text) => text.length > MAX_RETRO_TEXT_LENGTH)) {
@@ -536,6 +537,17 @@ export function WeeklyRetrospectiveSection() {
         <div className="stack" style={{ gap: 10, marginTop: 12 }}>
             <div className="stack" style={{ gap: 4 }}>
               <label className="muted" style={{ fontSize: 12.5 }}>
+                공유하고 싶은 일상
+              </label>
+              <textarea
+                value={draft.dailyLife}
+                onChange={(e) => setDraft((d) => ({ ...d, dailyLife: e.target.value }))}
+                rows={2}
+                maxLength={MAX_RETRO_TEXT_LENGTH}
+              />
+            </div>
+            <div className="stack" style={{ gap: 4 }}>
+              <label className="muted" style={{ fontSize: 12.5 }}>
                 이번 주 회고
               </label>
               <textarea
@@ -584,6 +596,7 @@ export function WeeklyRetrospectiveSection() {
           {editingId === record.id ? (
             <div className="stack" style={{ gap: 10, marginTop: 12 }}>
               {([
+                ["dailyLife", "공유하고 싶은 일상"],
                 ["weekReview", "이번 주 회고"],
                 ["nextWeekPlan", "다음 주 계획"],
               ] as const).map(([key, label]) => (
