@@ -6,3 +6,8 @@
 --    이미 실행했다면 Duplicate column 에러가 나므로 재실행하지 말 것.
 ALTER TABLE user_projects
     ADD COLUMN goal_appearance VARCHAR(500) NULL AFTER goal_human;
+
+-- 2) 인스타그램 핸들 (선택 입력)
+--    이미 실행했다면 Duplicate column 에러가 나므로 재실행하지 말 것.
+ALTER TABLE users
+    ADD COLUMN instagram VARCHAR(30) NULL AFTER profile_image_url;

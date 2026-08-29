@@ -23,6 +23,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
+  const [instagram, setInstagram] = useState("");
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,7 +135,7 @@ export function LoginPage() {
     try {
       const res =
         mode === "signup"
-          ? await signup(nickname.trim(), password, email.trim(), verifiedToken as string)
+          ? await signup(nickname.trim(), password, email.trim(), verifiedToken as string, instagram)
           : await login(nickname.trim(), password);
       signIn(res.token, res.user);
 
@@ -285,6 +286,20 @@ export function LoginPage() {
         )}
         {mode === "signup" && (
           <div className="stack" style={{ gap: 8 }}>
+            <div className="stack" style={{ gap: 4, marginBottom: 14 }}>
+              <label htmlFor="instagram">인스타그램 (선택)</label>
+              <input
+                id="instagram"
+                type="text"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                placeholder="예: princess_diary"
+                autoComplete="off"
+              />
+              <span className="muted" style={{ fontSize: 12 }}>
+                입력하시면 함께하는 참가자 목록에 표시돼요.
+              </span>
+            </div>
             <label htmlFor="photo">본인 사진 (선택)</label>
             {photoPreviewUrl && <img src={photoPreviewUrl} alt="선택한 사진 미리보기" className="photo-preview" />}
             <div className="row" style={{ gap: 10 }}>

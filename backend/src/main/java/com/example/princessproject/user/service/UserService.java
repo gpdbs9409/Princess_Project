@@ -56,7 +56,9 @@ public class UserService {
      * 행은 정리한다(clearAfterSignup) - 같은 토큰을 다른 계정 생성에 재사용할 수 없게 하기 위해서다.
      */
     @Transactional
-    public User signup(String nickname, String rawPassword, String email, String emailVerificationToken) {
+    public User signup(
+            String nickname, String rawPassword, String email, String emailVerificationToken,
+            String instagram) {
         if (userRepository.findByNickname(nickname).isPresent()) {
             throw new AuthValidationException("NICKNAME_TAKEN", "Nickname already exists: " + nickname);
         }
@@ -71,6 +73,7 @@ public class UserService {
 
         User user = new User(nickname, passwordEncoder.encode(rawPassword));
         user.setEmail(normalizedEmail);
+        user.setInstagram(normalizeInstagram(instagram));
         User saved = userRepository.save(user);
         emailVerificationService.clearAfterSignup(normalizedEmail);
         return saved;
@@ -87,6 +90,18 @@ public class UserService {
 
         user.setLastLoginAt(LocalDateTime.now());
         return userRepository.save(user);
+    }
+
+    /** 사용자가 "@handle", "instagram.com/handle", 공백 등 아무렇게나 넣어도 핸들만 남긴다. */
+    static String normalizeInstagram(String raw) {
+        if (raw == null) return null;
+        String handle = raw.trim();
+        if (handle.isEmpty()) return null;
+        handle = handle.replaceFirst("^(https?://)?(www\\.)?instagram\\.com/", "");
+        handle = handle.replaceFirst("^@", "");
+        handle = handle.split("[/?]")[0].trim();
+        if (handle.isEmpty()) return null;
+        return handle.length() > 30 ? handle.substring(0, 30) : handle;
     }
 
     @Transactional(readOnly = true)

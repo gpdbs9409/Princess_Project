@@ -33,8 +33,20 @@ export const login = (nickname: string, password: string) =>
 // 2026-08-26: 이메일이 선택에서 필수로 바뀌었고, 가입 전에 이메일 인증을 통과해야 한다 -
 // requestEmailVerification/confirmEmailVerification으로 먼저 인증하고 받은 verifiedToken을
 // 여기 실어 보내야 가입이 완료된다 (서버가 다시 한번 검증함).
-export const signup = (nickname: string, password: string, email: string, emailVerificationToken: string) =>
-  api.post<LoginResponse>("/api/auth/signup", { nickname, password, email, emailVerificationToken });
+export const signup = (
+  nickname: string,
+  password: string,
+  email: string,
+  emailVerificationToken: string,
+  instagram?: string
+) =>
+  api.post<LoginResponse>("/api/auth/signup", {
+    nickname,
+    password,
+    email,
+    emailVerificationToken,
+    instagram: instagram?.trim() || undefined,
+  });
 
 export const requestEmailVerification = (email: string) =>
   api.post<void>("/api/auth/email-verification/request", { email });

@@ -18,10 +18,12 @@ public record ParticipantResponse(
         String profileImageUrl,
         String goalHuman,
         String goalAppearance,
-        String goalEnding) {
+        String goalEnding,
+        String instagram) {
     public static ParticipantResponse from(
             User user, String goalHuman, String goalAppearance, String goalEnding) {
         return new ParticipantResponse(
-                user.getId(), user.getNickname(), user.getProfileImageUrl(), goalHuman, goalAppearance, goalEnding);
+                user.getId(), user.getNickname(), user.getProfileImageUrl(), goalHuman, goalAppearance, goalEnding,
+                user.getInstagram());
     }
 }

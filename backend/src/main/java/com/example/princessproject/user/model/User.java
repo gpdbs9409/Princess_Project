@@ -39,6 +39,11 @@ public class User {
     @Column(length = 500)
     private String profileImageUrl;
 
+    // 선택 입력. 참가자끼리 서로를 찾을 수 있게 프로필 목록에 노출된다. '@'는 저장하지 않고
+    // 핸들만 담는다(표시할 때 붙임).
+    @Column(length = 30)
+    private String instagram;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 20, nullable = false)
     private Role role = Role.USER;

@@ -63,7 +63,8 @@ public class AuthController {
     @PostMapping("/signup")
     public LoginResponse signup(@Valid @RequestBody SignupRequest request) {
         User user = userService.signup(
-                request.nickname(), request.password(), request.email(), request.emailVerificationToken());
+                request.nickname(), request.password(), request.email(), request.emailVerificationToken(),
+                request.instagram());
         String token = jwtService.generateToken(user);
         return new LoginResponse(token, UserResponse.from(user));
     }

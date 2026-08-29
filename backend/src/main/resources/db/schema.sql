@@ -36,6 +36,9 @@ CREATE TABLE users (
     -- 회원가입 시 선택적으로 등록하는 본인 사진 URL
     profile_image_url VARCHAR(500) NULL,
 
+    -- 선택 입력. '@' 없이 핸들만 저장한다 (참가자 프로필 목록에 노출)
+    instagram VARCHAR(30) NULL,
+
     -- 운영진 여부. 이 컬럼이 단일 진실 공급원(single source of truth)이라 로그인 시
     -- 덮어쓰지 않는다. 승격/강등은 어드민 API(PUT /api/admin/users/{id}/role)나 직접 UPDATE로 한다.
     role ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER',

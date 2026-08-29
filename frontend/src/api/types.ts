@@ -48,6 +48,7 @@ export interface UserResponse {
   email: string | null;
   profileImageUrl: string | null;
   role: Role;
+  instagram: string | null;
 }
 
 // ---- admin ----
@@ -156,6 +157,7 @@ export interface ParticipantResponse {
   goalHuman: string | null;
   goalAppearance: string | null;
   goalEnding: string | null;
+  instagram: string | null;
 }
 
 export interface LoginResponse {

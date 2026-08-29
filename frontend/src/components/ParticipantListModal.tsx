@@ -42,6 +42,7 @@ export function ParticipantListModal({ onClose }: { onClose: () => void }) {
                 p.goalAppearance && { label: "추구미", value: p.goalAppearance },
                 p.goalHuman && { label: "이상향", value: p.goalHuman },
                 p.goalEnding && { label: "행동양식", value: p.goalEnding },
+                p.instagram && { label: "인스타", value: `@${p.instagram}` },
               ].filter((line): line is { label: string; value: string } => Boolean(line));
               return (
                 <li key={p.id} className="participant-list-item">

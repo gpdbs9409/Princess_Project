@@ -20,6 +20,6 @@ final class TestAccountSupport {
         verification.setVerified(true);
         verification.setVerifiedToken(token);
         repository.save(verification);
-        return new SignupRequest(nickname + "-" + unique.substring(0, 8), "test-password", email, token);
+        return new SignupRequest(nickname + "-" + unique.substring(0, 8), "test-password", email, token, null);
     }
 }

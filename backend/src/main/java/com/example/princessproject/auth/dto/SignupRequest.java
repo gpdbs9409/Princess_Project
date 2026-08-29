@@ -13,6 +13,8 @@ public record SignupRequest(
         @NotBlank String nickname,
         @NotBlank String password,
         @NotBlank @Email String email,
-        @NotBlank String emailVerificationToken
+        @NotBlank String emailVerificationToken,
+        /** 선택 입력 - 비워두면 저장하지 않는다. */
+        String instagram
 ) {
 }

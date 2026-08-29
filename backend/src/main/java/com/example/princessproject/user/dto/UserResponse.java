@@ -7,10 +7,11 @@ public record UserResponse(
         String nickname,
         String email,
         String profileImageUrl,
-        String role
+        String role,
+        String instagram
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(
-                user.getId(), user.getNickname(), user.getEmail(), user.getProfileImageUrl(), user.getRole().name());
+                user.getId(), user.getNickname(), user.getEmail(), user.getProfileImageUrl(), user.getRole().name(), user.getInstagram());
     }
 }
