@@ -127,7 +127,9 @@ class DailyMissionFlowIT {
                 .expectBody(DailySummaryResponse.class)
                 .returnResult()
                 .getResponseBody();
-        assertThat(afterExercise.totalScore()).isEqualByComparingTo(exerciseMission.defaultAssignedPoints());
+        // 배점은 자본 비중에서 나온다: 개인 미션 70점 중 PHYSICAL 70% -> 49점, 미션 1개라 전액.
+        assertThat(afterExercise.totalScore()).isEqualByComparingTo(new BigDecimal("49.00"));
+        assertThat(afterExercise.maxPossible()).isEqualByComparingTo(new BigDecimal("100"));
         assertThat(afterExercise.completedMissions()).contains(exerciseMission.name());
 
         DailySummaryResponse afterJournal = client.post().uri("/api/records")
@@ -138,7 +140,8 @@ class DailyMissionFlowIT {
                 .expectBody(DailySummaryResponse.class)
                 .returnResult()
                 .getResponseBody();
-        BigDecimal expectedTotal = exerciseMission.defaultAssignedPoints().add(journalMission.defaultAssignedPoints());
+        // PSYCHOLOGY 30% -> 70 x 0.3 = 21점. 둘 다 100% 달성하면 49 + 21 = 70점.
+        BigDecimal expectedTotal = new BigDecimal("70.00");
         assertThat(afterJournal.totalScore()).isEqualByComparingTo(expectedTotal);
         assertThat(afterJournal.completedMissions())
                 .containsExactlyInAnyOrder(exerciseMission.name(), journalMission.name());

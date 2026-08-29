@@ -38,7 +38,15 @@ public class DailyRecordService {
     // (e.g. "999999" typed into a 30-minute mission) - genuine overachievement stays well
     // inside it, and the score itself is already capped at 100% by ScoringService regardless.
     private static final BigDecimal MAX_INPUT_MULTIPLE_OF_TARGET = BigDecimal.valueOf(50);
-    private static final BigDecimal COMMON_TASK_POINTS = BigDecimal.valueOf(20);
+    // 하루 만점을 100점으로 고정한다. 예전에는 미션마다 시딩된 배점(운동 20점, 식단 10점...)을
+    // 그대로 더해서 만점이 참가자마다 71점, 111점, 240점으로 제각각이었고, 정작 참가자가 고른
+    // 자본 비중(%)은 점수에 전혀 쓰이지 않았다. 그래서 "신체 70%"를 준 사람이 그 자본에 미션을
+    // 하나만 걸면 실제로는 경제가 3배 중요해지는, 설정과 정반대인 결과가 나왔다.
+    private static final BigDecimal DAILY_MAX_POINTS = BigDecimal.valueOf(100);
+    private static final BigDecimal COMMON_TASK_TOTAL_POINTS = BigDecimal.valueOf(30);
+    private static final BigDecimal MISSION_TOTAL_POINTS = BigDecimal.valueOf(70);
+    /** 독서·공부 각각의 배점 (30점을 둘로 나눔). */
+    private static final BigDecimal COMMON_TASK_POINTS = BigDecimal.valueOf(15);
 
     private final DailyRecordRepository dailyRecordRepository;
     private final UserMissionRepository userMissionRepository;
@@ -260,6 +268,7 @@ public class DailyRecordService {
             weekToDateInputByMissionId.merge(missionId, record.getInputValue(), BigDecimal::add);
         }
 
+        Map<Long, BigDecimal> pointsByMissionId = missionPoints(activeMissions);
         Map<String, BigDecimal> statScores = new LinkedHashMap<>();
         List<String> completed = new ArrayList<>();
         List<String> remaining = new ArrayList<>();
@@ -268,6 +277,7 @@ public class DailyRecordService {
 
         for (ActiveMission active : activeMissions) {
             UserMission mission = active.mission();
+            BigDecimal points = pointsByMissionId.getOrDefault(mission.getId(), BigDecimal.ZERO);
             String statKey = active.goalTypeCode().toLowerCase();
             statScores.putIfAbsent(statKey, BigDecimal.ZERO);
 
@@ -282,20 +292,22 @@ public class DailyRecordService {
                 BigDecimal weekToDateInput = weekToDateInputByMissionId.getOrDefault(mission.getId(), BigDecimal.ZERO);
                 actualValue = weekToDateInput;
                 achievementRate = scoringService.achievementRate(actualValue, mission.getTargetValue());
-                earnedScore = scoringService.earnedScore(mission.getAssignedPoints(), achievementRate);
+                earnedScore = scoringService.earnedScore(points, achievementRate);
                 isComplete = weekToDateInput.compareTo(mission.getTargetValue()) >= 0;
             } else {
                 DailyRecord todaysRecord = todaysRecordByMissionId.get(mission.getId());
                 if (todaysRecord == null) {
                     missionDetails.add(new MissionProgressDetail(
                             mission.displayName(), active.goalTypeCode(), active.missionType(), mission.getTargetValue(),
-                            BigDecimal.ZERO, mission.getAssignedPoints(), BigDecimal.ZERO, BigDecimal.ZERO, false));
+                            BigDecimal.ZERO, points, BigDecimal.ZERO, BigDecimal.ZERO, false));
                     remaining.add(mission.displayName());
                     continue;
                 }
                 actualValue = todaysRecord.getInputValue();
-                earnedScore = todaysRecord.getEarnedScore();
                 achievementRate = todaysRecord.getAchievementRate();
+                // 저장 시점에 계산해둔 earnedScore는 옛 배점 기준이라 쓰지 않는다. 달성률만
+                // 가져와서 지금 비중으로 다시 곱한다 (비중이 바뀌어도 과거 기록이 따라온다).
+                earnedScore = scoringService.earnedScore(points, achievementRate);
                 isComplete = todaysRecord.getInputValue().compareTo(todaysRecord.getTargetValueSnapshot()) >= 0;
             }
 
@@ -304,7 +316,7 @@ public class DailyRecordService {
             (isComplete ? completed : remaining).add(mission.displayName());
             missionDetails.add(new MissionProgressDetail(
                     mission.displayName(), active.goalTypeCode(), active.missionType(), mission.getTargetValue(),
-                    actualValue, mission.getAssignedPoints(), earnedScore, achievementRate, isComplete));
+                    actualValue, points, earnedScore, achievementRate, isComplete));
         }
 
         for (CommonMissionScore common : commonMissionScores(commonRecords, date)) {
@@ -313,11 +325,11 @@ public class DailyRecordService {
             missionDetails.add(common.toDetail());
         }
 
-        BigDecimal maxPossible = activeMissions.stream()
-                .map(active -> active.mission().getAssignedPoints())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        // 점수가 붙는 공통과제는 독서·공부 둘뿐이다 (주간 회고는 점수 대상 아님).
-        maxPossible = maxPossible.add(COMMON_TASK_POINTS.multiply(BigDecimal.valueOf(2)));
+        // 만점은 항상 100점 (개인 미션 70 + 공통과제 30). 미션을 아직 설정하지 않았다면
+        // 개인 미션 몫은 배분할 곳이 없으므로 공통과제 30점만 만점이 된다.
+        BigDecimal maxPossible = activeMissions.isEmpty()
+                ? COMMON_TASK_TOTAL_POINTS
+                : DAILY_MAX_POINTS;
         BigDecimal progress = maxPossible.signum() > 0
                 ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
@@ -355,32 +367,30 @@ public class DailyRecordService {
             recordsByMissionId.computeIfAbsent(record.getUserMission().getId(), k -> new ArrayList<>()).add(record);
         }
 
+        Map<Long, BigDecimal> pointsByMissionId = missionPoints(activeMissions);
         Map<String, BigDecimal> statScores = new LinkedHashMap<>();
         BigDecimal totalScore = BigDecimal.ZERO;
-        BigDecimal maxPossible = BigDecimal.ZERO;
 
         for (ActiveMission active : activeMissions) {
             UserMission mission = active.mission();
             String statKey = active.goalTypeCode().toLowerCase();
             statScores.putIfAbsent(statKey, BigDecimal.ZERO);
+            BigDecimal points = pointsByMissionId.getOrDefault(mission.getId(), BigDecimal.ZERO);
             List<DailyRecord> missionRecords = recordsByMissionId.getOrDefault(mission.getId(), List.of());
 
-            BigDecimal earnedScore;
-            if (active.missionType() == MissionType.WEEKLY) {
-                BigDecimal weekSum = missionRecords.stream().map(DailyRecord::getInputValue)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                BigDecimal rate = scoringService.achievementRate(weekSum, mission.getTargetValue());
-                earnedScore = scoringService.earnedScore(mission.getAssignedPoints(), rate);
-                maxPossible = maxPossible.add(mission.getAssignedPoints());
-            } else {
-                earnedScore = missionRecords.stream().map(DailyRecord::getEarnedScore)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                maxPossible = maxPossible.add(mission.getAssignedPoints().multiply(BigDecimal.valueOf(7)));
-            }
+            // 하루치 달성률 × 그 미션의 배점을 7일간 더한다. 저장된 earnedScore는 옛 배점
+            // 기준이라 쓰지 않고, 달성률만 꺼내 현재 비중으로 다시 계산한다.
+            BigDecimal earnedScore = missionRecords.stream()
+                    .map(record -> scoringService.earnedScore(points, record.getAchievementRate()))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             totalScore = totalScore.add(earnedScore);
             statScores.merge(statKey, earnedScore, BigDecimal::add);
         }
+
+        // 주간 만점 = 하루 만점 × 7. 하루 만점이 100으로 고정이라 주간도 700으로 고정된다.
+        BigDecimal maxPossible = (activeMissions.isEmpty() ? COMMON_TASK_TOTAL_POINTS : DAILY_MAX_POINTS)
+                .multiply(BigDecimal.valueOf(7));
 
 
         // 주간 회고는 점수 대상이 아니다 (2026-08 결정): 작성 여부와 무관하게 총점·만점 어디에도
@@ -390,8 +400,6 @@ public class DailyRecordService {
             CommonMissionScore score = scoreDailyCommonTask(record);
             totalScore = totalScore.add(score.earnedScore());
         }
-        // 독서·공부 2종 × 7일
-        maxPossible = maxPossible.add(COMMON_TASK_POINTS.multiply(BigDecimal.valueOf(14)));
 
         BigDecimal progress = maxPossible.signum() > 0
                 ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
@@ -401,7 +409,8 @@ public class DailyRecordService {
                 List.of(), maxPossible);
     }
 
-    private record ActiveMission(UserMission mission, String goalTypeCode, MissionType missionType) {
+    private record ActiveMission(
+            UserMission mission, String goalTypeCode, MissionType missionType, int goalWeightPercent) {
     }
 
     private List<CommonMissionScore> commonMissionScores(List<CommonTaskRecord> records, LocalDate date) {
@@ -484,6 +493,44 @@ public class DailyRecordService {
      * 달라져서 "오늘 × 7 = 주간 × 4 = 최종"이라는 구조 자체가 성립하지 않기 때문이다.
      * WEEKLY는 환급 조건에서만 쓴다 (getWeeklyMissionStatus).
      */
+    /**
+     * 미션별 배점을 자본 비중에서 산출한다.
+     *
+     *   개인 미션 70점  →  자본 비중(%)대로 배분  →  자본 안에서 미션끼리 균등 분배
+     *
+     * 미션이 하나도 없는 자본은 몫을 쓸 수 없으므로, 미션이 있는 자본들의 비중으로 다시
+     * 정규화해서 70점이 남김없이 배분되게 한다. 그래야 만점이 항상 100점으로 유지된다.
+     */
+    private Map<Long, BigDecimal> missionPoints(List<ActiveMission> activeMissions) {
+        Map<String, List<ActiveMission>> byGoal = new LinkedHashMap<>();
+        Map<String, Integer> weightByGoal = new LinkedHashMap<>();
+        for (ActiveMission active : activeMissions) {
+            byGoal.computeIfAbsent(active.goalTypeCode(), k -> new ArrayList<>()).add(active);
+            weightByGoal.putIfAbsent(active.goalTypeCode(), active.goalWeightPercent());
+        }
+
+        int weightSum = weightByGoal.values().stream().mapToInt(Integer::intValue).sum();
+        Map<Long, BigDecimal> points = new LinkedHashMap<>();
+        if (activeMissions.isEmpty()) {
+            return points;
+        }
+
+        for (Map.Entry<String, List<ActiveMission>> entry : byGoal.entrySet()) {
+            List<ActiveMission> goalMissions = entry.getValue();
+            // 비중이 하나도 없으면(전부 0 또는 미설정) 자본끼리 균등하게 나눈다.
+            BigDecimal goalShare = weightSum > 0
+                    ? MISSION_TOTAL_POINTS
+                            .multiply(BigDecimal.valueOf(weightByGoal.get(entry.getKey())))
+                            .divide(BigDecimal.valueOf(weightSum), 4, RoundingMode.HALF_UP)
+                    : MISSION_TOTAL_POINTS.divide(BigDecimal.valueOf(byGoal.size()), 4, RoundingMode.HALF_UP);
+            BigDecimal perMission = goalShare.divide(BigDecimal.valueOf(goalMissions.size()), 4, RoundingMode.HALF_UP);
+            for (ActiveMission active : goalMissions) {
+                points.put(active.mission().getId(), perMission);
+            }
+        }
+        return points;
+    }
+
     private List<ActiveMission> flattenScoredMissions(UserProject project) {
         return flattenActiveMissions(project).stream()
                 .filter(active -> active.missionType() == MissionType.DAILY)
@@ -494,13 +541,14 @@ public class DailyRecordService {
         List<ActiveMission> missions = new ArrayList<>();
         for (UserGoal goal : project.getGoals()) {
             String goalTypeCode = goal.getGoalType().getCode().name();
+            int goalWeight = goal.getWeightPercent() == null ? 0 : goal.getWeightPercent();
             for (UserStat stat : goal.getStats()) {
                 if (!stat.isActive()) {
                     continue;
                 }
                 for (UserMission mission : stat.getMissions()) {
                     if (mission.isActive()) {
-                        missions.add(new ActiveMission(mission, goalTypeCode, mission.getMissionType()));
+                        missions.add(new ActiveMission(mission, goalTypeCode, mission.getMissionType(), goalWeight));
                     }
                 }
             }

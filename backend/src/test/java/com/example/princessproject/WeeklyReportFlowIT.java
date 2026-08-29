@@ -117,8 +117,9 @@ class WeeklyReportFlowIT {
                 .returnResult()
                 .getResponseBody();
 
-        java.math.BigDecimal expectedTotal = exerciseMission.defaultAssignedPoints()
-                .add(exerciseMission.defaultAssignedPoints());
+        // PHYSICAL 100% 단일 자본에 미션 1개 -> 개인 미션 70점을 그 미션이 전부 가진다.
+        // 이틀치를 100% 달성했으므로 70 x 2 = 140점.
+        java.math.BigDecimal expectedTotal = new java.math.BigDecimal("140.00");
         assertThat(report.weekStart()).isEqualTo(weekStart);
         assertThat(report.totalScore()).isEqualByComparingTo(expectedTotal);
         assertThat(report.statScoreTotals().get("physical")).isEqualByComparingTo(expectedTotal);

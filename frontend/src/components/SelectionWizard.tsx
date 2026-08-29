@@ -111,7 +111,9 @@ function blankCustomMission(): CustomMissionState {
     name: "",
     targetValue: 1,
     unit: "회",
-    assignedPoints: 10,
+    // 배점은 더 이상 미션에 붙지 않는다. 서버가 자본 비중(%)에서 계산하므로 여기서는
+    // 0을 보내고, 컬럼은 하위호환을 위해서만 남아 있다.
+    assignedPoints: 0,
     missionType: "DAILY",
     targetStatTypeId: null,
     customSectionName: CUSTOM_STAT_NAME,
