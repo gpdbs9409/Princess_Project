@@ -13,17 +13,17 @@ export function ProjectReadOnlyView({ project }: { project: ProjectResponse }) {
         <div className="card stack" style={{ gap: 6 }}>
           {project.goalHuman && (
             <p>
-              <strong>이상적인 나의 모습</strong>: {project.goalHuman}
+              <strong>내가 되고 싶은 인간상</strong>: {project.goalHuman}
             </p>
           )}
           {project.goalAppearance && (
             <p>
-              <strong>나의 외적 추구미</strong>: {project.goalAppearance}
+              <strong>외적 페르소나</strong>: {project.goalAppearance}
             </p>
           )}
           {project.goalEnding && (
             <p>
-              <strong>목표로 하는 행동양식</strong>: {project.goalEnding}
+              <strong>내가 살고 싶은 삶</strong>: {project.goalEnding}
             </p>
           )}
         </div>

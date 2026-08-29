@@ -1,14 +1,11 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import {
-  addAdminAdjustment,
   addRecruitmentApplicant,
   addRecruitmentApplicantsBulk,
   assignAdminCohort,
   clearAdminMvp,
-  deleteAdminAdjustment,
   deleteRecruitmentApplicant,
-  getAdminAdjustments,
   getAdminActivitiesForReview,
   getAdminApplicants,
   getAdminCohorts,
@@ -20,7 +17,6 @@ import {
   updateRecruitmentApplicant,
 } from "../api/endpoints";
 import type {
-  AdminAdjustmentResponse,
   AdminActivityResponse,
   AdminApplicantResponse,
   AdminMemberWeekResponse,
@@ -28,7 +24,6 @@ import type {
   RecruitmentApplicantResponse,
   RecruitmentStatus,
 } from "../api/types";
-import { GOAL_TYPE_CODES, GOAL_TYPE_LABELS } from "../api/types";
 import { parseRecruitmentCsv } from "../lib/parseRecruitmentCsv";
 
 type Tab = "participants" | "unassigned" | "recruitment";
@@ -105,13 +100,6 @@ export function AdminPage() {
   const NEW_COHORT_OPTION = "__new__";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
-  const [adjustments, setAdjustments] = useState<AdminAdjustmentResponse[]>([]);
-  const [adjustmentForm, setAdjustmentForm] = useState<{ statTypeCode: string; points: string; reason: string }>({
-    statTypeCode: "",
-    points: "",
-    reason: "",
-  });
   const [recruitmentApplicants, setRecruitmentApplicants] = useState<RecruitmentApplicantResponse[]>([]);
   const [recruitmentForm, setRecruitmentForm] = useState(blankRecruitmentForm());
   const [csvUploading, setCsvUploading] = useState(false);
@@ -338,37 +326,8 @@ export function AdminPage() {
     }
   };
 
-  const toggleAdjustmentPanel = async (userId: number) => {
-    if (expandedUserId === userId) {
-      setExpandedUserId(null);
-      return;
-    }
-    setExpandedUserId(userId);
-    setAdjustmentForm({ statTypeCode: "", points: "", reason: "" });
-    try {
-      setAdjustments(await getAdminAdjustments(userId));
-    } catch {
-      setAdjustments([]);
-    }
-  };
 
-  const handleAddAdjustment = async (userId: number) => {
-    const points = Number(adjustmentForm.points);
-    if (!points || Number.isNaN(points)) return;
-    const created = await addAdminAdjustment(userId, {
-      weekStart: weekStartIso,
-      statTypeCode: adjustmentForm.statTypeCode || undefined,
-      points,
-      reason: adjustmentForm.reason || undefined,
-    });
-    setAdjustments((prev) => [created, ...prev]);
-    setAdjustmentForm({ statTypeCode: "", points: "", reason: "" });
-  };
 
-  const handleRollbackAdjustment = async (adjustmentId: number) => {
-    await deleteAdminAdjustment(adjustmentId);
-    setAdjustments((prev) => prev.filter((a) => a.id !== adjustmentId));
-  };
 
   const shiftWeek = (deltaDays: number) => {
     const next = new Date(weekStart);
@@ -734,7 +693,6 @@ export function AdminPage() {
                     <th>환급액</th>
                     <th>지급 여부</th>
                     <th>MVP</th>
-                    <th>점수 보정</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -793,75 +751,8 @@ export function AdminPage() {
                             {p.isMvp ? "★ MVP" : "MVP 지정"}
                           </button>
                         </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="ghost"
-                            style={{ padding: "4px 10px", fontSize: 12 }}
-                            onClick={() => toggleAdjustmentPanel(p.userId)}
-                          >
-                            {expandedUserId === p.userId ? "닫기" : "보정 내역"}
-                          </button>
-                        </td>
                         <td>{p.role === "ADMIN" && <span className="role-tag">관리자</span>}</td>
                       </tr>
-                      {expandedUserId === p.userId && (
-                        <tr>
-                          <td colSpan={10}>
-                            <div className="stack" style={{ gap: 10, padding: "8px 0" }}>
-                              <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-                                <select
-                                  value={adjustmentForm.statTypeCode}
-                                  onChange={(e) =>
-                                    setAdjustmentForm((f) => ({ ...f, statTypeCode: e.target.value }))
-                                  }
-                                  style={{ maxWidth: 120 }}
-                                >
-                                  <option value="">총점 보정</option>
-                                  {GOAL_TYPE_CODES.map((code) => (
-                                    <option key={code} value={code}>
-                                      {GOAL_TYPE_LABELS[code]}
-                                    </option>
-                                  ))}
-                                </select>
-                                <input
-                                  type="number"
-                                  placeholder="점수 (예: 10, -5)"
-                                  value={adjustmentForm.points}
-                                  onChange={(e) => setAdjustmentForm((f) => ({ ...f, points: e.target.value }))}
-                                  style={{ maxWidth: 140 }}
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="사유 (예: MVP 보너스, 컴플레인 보정)"
-                                  value={adjustmentForm.reason}
-                                  onChange={(e) => setAdjustmentForm((f) => ({ ...f, reason: e.target.value }))}
-                                  style={{ flex: 1, minWidth: 160 }}
-                                />
-                                <button type="button" className="primary" onClick={() => handleAddAdjustment(p.userId)}>
-                                  보정 추가
-                                </button>
-                              </div>
-                              {adjustments.length === 0 && <p className="muted">보정 내역이 없어요.</p>}
-                              {adjustments.map((a) => (
-                                <div key={a.id} className="row-between" style={{ fontSize: 13 }}>
-                                  <span>
-                                    {a.statTypeCode ? GOAL_TYPE_LABELS[a.statTypeCode as keyof typeof GOAL_TYPE_LABELS] : "총점"} ·{" "}
-                                    <strong className="tabular">{a.points > 0 ? `+${a.points}` : a.points}</strong>
-                                    {a.reason ? ` · ${a.reason}` : ""}
-                                  </span>
-                                  <button type="button" className="ghost" style={{ padding: "2px 8px", fontSize: 11.5 }} onClick={() => handleRollbackAdjustment(a.id)}>
-                                    롤백
-                                  </button>
-                                </div>
-                              ))}
-                              <p className="muted" style={{ fontSize: 11.5 }}>
-                                * 보정 내역은 기록·추적용이며, 대시보드의 실시간 점수 계산에는 아직 자동 반영되지 않아요.
-                              </p>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
                     </Fragment>
                   ))}
                 </tbody>

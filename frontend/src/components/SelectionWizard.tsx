@@ -379,21 +379,31 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
       </a>
       <div className="card stack">
         <div className="stack" style={{ gap: 6 }}>
-          <label>이상적인 나의 모습</label>
-          <input type="text" value={goalHuman} onChange={(e) => setGoalHuman(e.target.value)} placeholder="예: 꾸준히 성장하는 사람" />
+          <label>내가 되고 싶은 인간상</label>
+          <input
+            type="text"
+            value={goalHuman}
+            onChange={(e) => setGoalHuman(e.target.value)}
+            placeholder="예: 자기 기준이 분명한 여자"
+          />
         </div>
         <div className="stack" style={{ gap: 6 }}>
-          <label>나의 외적 추구미</label>
+          <label>외적 페르소나</label>
           <input
             type="text"
             value={goalAppearance}
             onChange={(e) => setGoalAppearance(e.target.value)}
-            placeholder="예: 단정하고 분위기 있는 사람"
+            placeholder="예: 승무원 이미지"
           />
         </div>
         <div className="stack" style={{ gap: 6 }}>
-          <label>목표로 하는 행동양식</label>
-          <input type="text" value={goalEnding} onChange={(e) => setGoalEnding(e.target.value)} placeholder="예: 매일 작은 습관을 쌓는 사람" />
+          <label>내가 살고 싶은 삶</label>
+          <input
+            type="text"
+            value={goalEnding}
+            onChange={(e) => setGoalEnding(e.target.value)}
+            placeholder="예: 내 취향의 공간·음식·라이프스타일을 소개하고 영향력을 끼칠 수 있는 삶"
+          />
         </div>
       </div>
 
