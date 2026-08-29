@@ -10,6 +10,8 @@ import java.util.Map;
 public record DailySummaryResponse(
         LocalDate date,
         BigDecimal totalScore,
+        /** 그날의 만점. 화면에서 "40 / 111점"처럼 분모를 같이 보여주기 위해 내려준다. */
+        BigDecimal maxPossible,
         BigDecimal progress,
         Map<String, BigDecimal> statScores,
         List<String> completedMissions,
@@ -21,6 +23,7 @@ public record DailySummaryResponse(
         return new DailySummaryResponse(
                 date,
                 progress.totalScore(),
+                progress.maxPossible(),
                 progress.progress(),
                 progress.statScores(),
                 progress.completedMissions(),

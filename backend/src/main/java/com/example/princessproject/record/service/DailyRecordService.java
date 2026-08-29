@@ -330,7 +330,8 @@ public class DailyRecordService {
             }
         }
 
-        return new MissionProgress(totalScore, progress, statScores, completed, remaining, todayRecords, missionDetails);
+        return new MissionProgress(totalScore, progress, statScores, completed, remaining, todayRecords,
+                missionDetails, maxPossible);
     }
 
     /**
@@ -396,7 +397,8 @@ public class DailyRecordService {
                 ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
-        return new MissionProgress(totalScore, progress, statScores, List.of(), List.of(), Map.of(), List.of());
+        return new MissionProgress(totalScore, progress, statScores, List.of(), List.of(), Map.of(),
+                List.of(), maxPossible);
     }
 
     private record ActiveMission(UserMission mission, String goalTypeCode, MissionType missionType) {

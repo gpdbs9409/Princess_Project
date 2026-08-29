@@ -302,6 +302,8 @@ export interface TodayRecordEntry {
 export interface DailySummaryResponse {
   date: string;
   totalScore: number;
+  /** 그날의 만점. 참가자가 미션 배점을 직접 정하므로 사람마다 다르다. */
+  maxPossible: number;
   progress: number;
   statScores: Partial<Record<string, number>>;
   completedMissions: string[];

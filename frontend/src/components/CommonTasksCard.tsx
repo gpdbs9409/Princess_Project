@@ -164,7 +164,7 @@ function ReadingSection() {
         <div className="row-between">
           <div>
             <strong>독서</strong>
-            <div className="muted">공통 과제 · 일일 최소 권장 10p</div>
+            <div className="muted">공통 과제 · 하루 한 번 기록하면 완료 (권장 10p)</div>
           </div>
           <span className="badge good">완료</span>
         </div>
@@ -194,7 +194,7 @@ function ReadingSection() {
       <div className="row-between">
         <div>
           <strong>독서</strong>
-          <div className="muted">공통 과제 · 일일 최소 권장 10p</div>
+          <div className="muted">공통 과제 · 하루 한 번 기록하면 완료 (권장 10p)</div>
         </div>
       </div>
       <div className="stack" style={{ gap: 10, marginTop: 12 }}>

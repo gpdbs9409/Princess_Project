@@ -73,8 +73,14 @@ export function RecordPage() {
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="row-between">
             <strong>오늘 총점</strong>
+            {/* 만점은 참가자가 정한 미션 배점 합이라 사람마다 다르다. 분모 없이 "40점"만
+                보여주면 잘한 건지 알 수가 없어서 항상 같이 표시한다. */}
             <span className="tabular" style={{ fontSize: 20, fontWeight: 700 }}>
-              {Math.round(summary.totalScore)}점
+              {Math.round(summary.totalScore)}
+              <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text-muted)" }}>
+                {" / "}
+                {Math.round(summary.maxPossible)}점
+              </span>
             </span>
           </div>
           <div className="stat-meter-track" style={{ marginTop: 10 }}>
