@@ -198,8 +198,7 @@ export function DashboardPage() {
           <div className="section-band">이번 주 총점 추이</div>
           <div className="card">
             <p className="muted" style={{ marginBottom: 8 }}>
-              주간 합계 {Math.round(report.totalScore)}점 · 평균 달성률{" "}
-              {Math.round(report.averageProgress * 100)}%
+              평균 달성률 {Math.round(report.averageProgress * 100)}%
             </p>
             <WeeklyBarChart
               days={report.dailyBreakdown.map((d) => {

@@ -50,7 +50,7 @@ function commonTaskErrorMessage(err: unknown, fallback: string): string {
     STUDY_PLANNED_OUT_OF_RANGE: `계획량은 0~${MAX_STUDY_AMOUNT.toLocaleString()} 사이여야 해요.`,
     READING_PHOTO_REQUIRED: "사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.",
     STUDY_PHOTO_REQUIRED: "사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.",
-    RETROSPECTIVE_EMPTY: "PART1~3 중 최소 하나는 내용을 입력해주세요.",
+    RETROSPECTIVE_EMPTY: "회고 또는 다음 주 계획 중 최소 하나는 입력해주세요.",
     RETROSPECTIVE_TOO_LONG: `각 항목은 ${MAX_RETRO_TEXT_LENGTH.toLocaleString()}자 이하로 입력해주세요.`,
   };
   return messages[err.code] ?? fallback;
@@ -449,13 +449,12 @@ function formatWeekLabel(weekStartIso: string): string {
   return `${fmt(start)} ~ ${fmt(end)}`;
 }
 
-// 저장된 회고를 읽기 전용으로 보여주는 블록 - 내용이 있는 PART만 표시한다 (RETROSPECTIVE_EMPTY 검증이
+// 저장된 회고를 읽기 전용으로 보여주는 블록 - 내용이 있는 항목만 표시한다 (RETROSPECTIVE_EMPTY 검증이
 // "최소 하나"만 요구하므로 나머지 둘은 비어있을 수 있다).
 function RetroReadOnlyBlock({ record }: { record: CommonTaskResponse }) {
   const parts = [
-    { label: "PART1. 일상 공유", value: record.retroDailyLife },
-    { label: "PART2. 이번 주 회고", value: record.retroWeekReview },
-    { label: "PART3. 다음 주 계획", value: record.retroNextWeekPlan },
+        { label: "이번 주 회고", value: record.retroWeekReview },
+    { label: "다음 주 계획", value: record.retroNextWeekPlan },
   ].filter((part) => part.value && part.value.trim().length > 0);
 
   return (
@@ -512,7 +511,7 @@ export function WeeklyRetrospectiveSection() {
 
   const validateDraft = (value: RetroDraft) => {
     if (!value.dailyLife.trim() && !value.weekReview.trim() && !value.nextWeekPlan.trim()) {
-      setError("PART1~3 중 최소 하나는 내용을 입력해주세요.");
+      setError("회고 또는 다음 주 계획 중 최소 하나는 입력해주세요.");
       return false;
     }
     if (Object.values(value).some((text) => text.length > MAX_RETRO_TEXT_LENGTH)) {
@@ -570,24 +569,13 @@ export function WeeklyRetrospectiveSection() {
         <div className="row-between">
           <div>
             <strong>주간 회고</strong>
-            <div className="muted">공통 과제 · PART1~3 중 최소 하나는 입력해주세요</div>
+            <div className="muted">한 주에 한 번, 회고와 다음 주 계획을 남겨요</div>
           </div>
         </div>
         <div className="stack" style={{ gap: 10, marginTop: 12 }}>
             <div className="stack" style={{ gap: 4 }}>
               <label className="muted" style={{ fontSize: 12.5 }}>
-                PART1. 일상 공유
-              </label>
-              <textarea
-                value={draft.dailyLife}
-                onChange={(e) => setDraft((d) => ({ ...d, dailyLife: e.target.value }))}
-                rows={2}
-                maxLength={MAX_RETRO_TEXT_LENGTH}
-              />
-            </div>
-            <div className="stack" style={{ gap: 4 }}>
-              <label className="muted" style={{ fontSize: 12.5 }}>
-                PART2. 이번 주 회고
+                이번 주 회고
               </label>
               <textarea
                 value={draft.weekReview}
@@ -598,7 +586,7 @@ export function WeeklyRetrospectiveSection() {
             </div>
             <div className="stack" style={{ gap: 4 }}>
               <label className="muted" style={{ fontSize: 12.5 }}>
-                PART3. 다음 주 계획
+                다음 주 계획
               </label>
               <textarea
                 value={draft.nextWeekPlan}
@@ -634,9 +622,8 @@ export function WeeklyRetrospectiveSection() {
           {editingId === record.id ? (
             <div className="stack" style={{ gap: 10, marginTop: 12 }}>
               {([
-                ["dailyLife", "PART1. 일상 공유"],
-                ["weekReview", "PART2. 이번 주 회고"],
-                ["nextWeekPlan", "PART3. 다음 주 계획"],
+                ["weekReview", "이번 주 회고"],
+                ["nextWeekPlan", "다음 주 계획"],
               ] as const).map(([key, label]) => (
                 <div key={key} className="stack" style={{ gap: 4 }}>
                   <label className="muted" style={{ fontSize: 12.5 }}>{label}</label>

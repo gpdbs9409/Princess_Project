@@ -9,11 +9,23 @@ interface DayPoint {
   isToday: boolean;
 }
 
+// 막대 높이는 그날의 달성률(0~100%)이라 눈금도 %로 둔다. 눈금이 없으면 막대끼리 비교만
+// 될 뿐 "오늘이 대략 몇 %인지"를 읽을 수 없어서, 자주 보는 구간 위주로 5개만 그린다.
+const AXIS_TICKS = [100, 80, 50, 30, 0];
+
 export function WeeklyBarChart({ days }: { days: DayPoint[] }) {
   const [hovered, setHovered] = useState<number | null>(null);
 
   return (
-    <div>
+    <div className="week-chart-wrap">
+      <div className="week-chart-axis" aria-hidden="true">
+        {AXIS_TICKS.map((tick) => (
+          <div key={tick} className="week-chart-tick" style={{ bottom: `${tick}%` }}>
+            <span className="week-chart-tick-label">{tick}</span>
+            <span className="week-chart-tick-line" />
+          </div>
+        ))}
+      </div>
       <div className="week-chart">
         {days.map((day, i) => {
           const heightPct = day.value > 0 ? Math.max(2, Math.min(100, day.progress * 100)) : 0;

@@ -55,12 +55,12 @@ public class CommonTaskService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         UserProject project = userProjectService.getOrCreateActive(userId);
 
-        // 독서/공부는 하루 한 건을 수정 저장하지만, 주간회고는 저장할 때마다 새 카드로 누적한다.
-        CommonTaskRecord record = request.taskType() == CommonTaskType.WEEKLY_RETROSPECTIVE
-                ? new CommonTaskRecord()
-                : commonTaskRecordRepository
-                        .findByUserIdAndTaskTypeAndRecordDate(userId, request.taskType(), recordDate)
-                        .orElseGet(CommonTaskRecord::new);
+        // 주간회고도 독서/공부와 같이 upsert한다. 예전에는 저장할 때마다 새 카드를 쌓았는데,
+        // 그러면 같은 주 회고를 여러 번 저장했을 때 1주차 회고가 계속 누적됐다. recordDate가
+        // 그 주 월요일로 정규화되어 있으므로 (user, taskType, recordDate)로 찾으면 주당 한 건이 된다.
+        CommonTaskRecord record = commonTaskRecordRepository
+                .findByUserIdAndTaskTypeAndRecordDate(userId, request.taskType(), recordDate)
+                .orElseGet(CommonTaskRecord::new);
         record.setUser(user);
         record.setProject(project);
         record.setTaskType(request.taskType());
@@ -99,8 +99,13 @@ public class CommonTaskService {
     // 이전 주들만 최신순으로 내려준다.
     @Transactional
     public List<CommonTaskRecord> getWeeklyHistory(Long userId, LocalDate anyDayInWeek) {
-        return commonTaskRecordRepository.findByUserIdAndTaskTypeOrderByCreatedAtDesc(
-                userId, CommonTaskType.WEEKLY_RETROSPECTIVE);
+        LocalDate thisWeekStart = normalizeDate(CommonTaskType.WEEKLY_RETROSPECTIVE, anyDayInWeek);
+        return commonTaskRecordRepository
+                .findByUserIdAndTaskTypeOrderByCreatedAtDesc(userId, CommonTaskType.WEEKLY_RETROSPECTIVE)
+                .stream()
+                // 이번 주 회고는 위쪽 작성 폼(getWeekly)이 이미 보여주므로 목록에서는 뺀다.
+                .filter(record -> !thisWeekStart.equals(record.getRecordDate()))
+                .toList();
     }
 
     @Transactional

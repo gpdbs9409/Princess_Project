@@ -406,7 +406,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: "var(--text-muted)" }}>
           <li>독서: 시작~종료 페이지를 기록해요. 일일 최소 권장 10p, 주간 달성률 = 독서한 일수 / 7</li>
           <li>공부: 주간 총 범위를 미리 정해두고, 달성률 = 완료량 / 계획량 (측정이 어려우면 시간 기준도 가능해요)</li>
-          <li>주간 회고: PART1 일상 공유 / PART2 이번 주 회고 / PART3 다음 주 계획</li>
+          <li>주간 회고: 이번 주 회고 / 다음 주 계획 (주 1회)</li>
         </ul>
       </div>
 

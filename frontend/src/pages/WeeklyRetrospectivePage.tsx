@@ -11,7 +11,7 @@ export function WeeklyRetrospectivePage() {
       <div className="stack" style={{ marginBottom: 20 }}>
         <span className="eyebrow">Weekly</span>
         <h1 style={{ fontSize: 26 }}>주간 회고</h1>
-        <p className="muted">공통 과제 · 새 회고를 작성하면 지난 회고가 아래에 최신순으로 쌓여요.</p>
+        <p className="muted">한 주를 돌아보고 다음주의 계획을 세워요</p>
       </div>
 
       <WeeklyRetrospectiveSection />

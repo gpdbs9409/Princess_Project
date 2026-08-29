@@ -158,7 +158,7 @@ public class DailyRecordService {
         List<CommonTaskRecord> commonRecords = commonTaskRecordRepository
                 .findByUserIdAndRecordDateBetweenAndTaskTypeIn(userId, weekStart, date, List.of(CommonTaskType.values()));
 
-        return computeProgress(activeMissions, records, commonRecords, weekStart, date, true);
+        return computeProgress(activeMissions, records, commonRecords, weekStart, date);
     }
 
     /**
@@ -201,14 +201,14 @@ public class DailyRecordService {
             // weekRecords already covers the whole week - computeProgress only needs the
             // slice up to `date` for "week-to-date", so hand it the same in-memory list each
             // time (it filters by date itself) instead of re-hitting the DB.
-            result.add(computeProgress(activeMissions, weekRecords, commonRecords, weekStart, date, !dailyOnly));
+            result.add(computeProgress(activeMissions, weekRecords, commonRecords, weekStart, date));
         }
         return result;
     }
 
     private MissionProgress computeProgress(
             List<ActiveMission> activeMissions, List<DailyRecord> recordsInRange,
-            List<CommonTaskRecord> commonRecords, LocalDate weekStart, LocalDate date, boolean includeWeeklyCommon
+            List<CommonTaskRecord> commonRecords, LocalDate weekStart, LocalDate date
     ) {
         Map<Long, DailyRecord> todaysRecordByMissionId = new LinkedHashMap<>();
         Map<Long, BigDecimal> weekToDateInputByMissionId = new LinkedHashMap<>();
@@ -269,7 +269,7 @@ public class DailyRecordService {
                     actualValue, mission.getAssignedPoints(), earnedScore, achievementRate, isComplete));
         }
 
-        for (CommonMissionScore common : commonMissionScores(commonRecords, date, includeWeeklyCommon)) {
+        for (CommonMissionScore common : commonMissionScores(commonRecords, date)) {
             totalScore = totalScore.add(common.earnedScore());
             (common.completed() ? completed : remaining).add(common.name());
             missionDetails.add(common.toDetail());
@@ -278,7 +278,8 @@ public class DailyRecordService {
         BigDecimal maxPossible = activeMissions.stream()
                 .map(active -> active.mission().getAssignedPoints())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        maxPossible = maxPossible.add(COMMON_TASK_POINTS.multiply(BigDecimal.valueOf(includeWeeklyCommon ? 3 : 2)));
+        // 점수가 붙는 공통과제는 독서·공부 둘뿐이다 (주간 회고는 점수 대상 아님).
+        maxPossible = maxPossible.add(COMMON_TASK_POINTS.multiply(BigDecimal.valueOf(2)));
         BigDecimal progress = maxPossible.signum() > 0
                 ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
@@ -343,17 +344,15 @@ public class DailyRecordService {
         }
 
 
+        // 주간 회고는 점수 대상이 아니다 (2026-08 결정): 작성 여부와 무관하게 총점·만점 어디에도
+        // 반영하지 않는다. 점수가 붙는 공통과제는 독서·공부 둘뿐이다.
         for (CommonTaskRecord record : commonRecords) {
             if (record.getTaskType() == CommonTaskType.WEEKLY_RETROSPECTIVE) continue;
             CommonMissionScore score = scoreDailyCommonTask(record);
             totalScore = totalScore.add(score.earnedScore());
         }
-        boolean hasRetrospective = commonRecords.stream()
-                .anyMatch(record -> record.getTaskType() == CommonTaskType.WEEKLY_RETROSPECTIVE);
-        if (hasRetrospective) {
-            totalScore = totalScore.add(COMMON_TASK_POINTS);
-        }
-        maxPossible = maxPossible.add(COMMON_TASK_POINTS.multiply(BigDecimal.valueOf(15)));
+        // 독서·공부 2종 × 7일
+        maxPossible = maxPossible.add(COMMON_TASK_POINTS.multiply(BigDecimal.valueOf(14)));
 
         BigDecimal progress = maxPossible.signum() > 0
                 ? totalScore.divide(maxPossible, 4, RoundingMode.HALF_UP)
@@ -365,9 +364,7 @@ public class DailyRecordService {
     private record ActiveMission(UserMission mission, String goalTypeCode, MissionType missionType) {
     }
 
-    private List<CommonMissionScore> commonMissionScores(
-            List<CommonTaskRecord> records, LocalDate date, boolean includeWeeklyCommon
-    ) {
+    private List<CommonMissionScore> commonMissionScores(List<CommonTaskRecord> records, LocalDate date) {
         List<CommonMissionScore> scores = new ArrayList<>();
         records.stream()
                 .filter(record -> record.getRecordDate().equals(date))
@@ -383,15 +380,6 @@ public class DailyRecordService {
             }
         }
 
-        if (includeWeeklyCommon) {
-            boolean retrospectiveDone = records.stream()
-                    .filter(record -> record.getTaskType() == CommonTaskType.WEEKLY_RETROSPECTIVE)
-                    .anyMatch(record -> record.getCreatedAt() == null || !record.getCreatedAt().toLocalDate().isAfter(date));
-            scores.add(new CommonMissionScore(CommonTaskType.WEEKLY_RETROSPECTIVE, "주간 회고", "common",
-                    MissionType.WEEKLY, BigDecimal.ONE, retrospectiveDone ? BigDecimal.ONE : BigDecimal.ZERO,
-                    retrospectiveDone ? COMMON_TASK_POINTS : BigDecimal.ZERO,
-                    retrospectiveDone ? BigDecimal.ONE : BigDecimal.ZERO, retrospectiveDone));
-        }
         return scores;
     }
 

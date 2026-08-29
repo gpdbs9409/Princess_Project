@@ -352,13 +352,52 @@ a.link:hover {
 }
 
 /* weekly bar chart */
+/* 눈금선을 막대 뒤에 깔기 위해 래퍼를 기준으로 축을 절대배치한다. 왼쪽 28px은 눈금
+   숫자 자리라 차트 본문을 그만큼 밀어준다. */
+.week-chart-wrap {
+  position: relative;
+  padding-left: 28px;
+}
+.week-chart-axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 8px;
+  height: 140px;
+  pointer-events: none;
+}
+.week-chart-tick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transform: translateY(50%);
+}
+.week-chart-tick-label {
+  width: 24px;
+  text-align: right;
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+.week-chart-tick-line {
+  flex: 1;
+  border-top: 1px dashed var(--border);
+  opacity: 0.5;
+}
 .week-chart {
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: 10px;
   height: 140px;
   padding-top: 8px;
   border-bottom: 1px solid var(--border);
+}
+.week-chart-wrap .week-bar-labels {
+  padding-left: 0;
 }
 .week-bar-col {
   flex: 1;

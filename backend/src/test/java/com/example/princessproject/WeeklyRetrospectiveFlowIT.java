@@ -46,7 +46,7 @@ class WeeklyRetrospectiveFlowIT {
     }
 
     @Test
-    void eachSaveCreatesANewCardHistoryIsNewestFirstAndOneCardCanBeEdited() {
+    void oneRetrospectivePerWeekHistoryExcludesThisWeekAndTheCardCanBeEdited() {
         LocalDate currentMonday = LocalDate.now()
                 .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         save(currentMonday.minusWeeks(2), "가장 오래된 회고");
@@ -55,7 +55,9 @@ class WeeklyRetrospectiveFlowIT {
         CommonTaskResponse firstCurrent = save(currentMonday.plusDays(3), "이번주 첫 내용");
         CommonTaskResponse secondCurrent = save(currentMonday.plusDays(6), "이번주 두 번째 내용");
 
-        assertThat(secondCurrent.id()).isNotEqualTo(firstCurrent.id());
+        // 주 1회 원칙: 같은 주에 다시 저장하면 새 카드가 쌓이지 않고 그 주 카드가 갱신된다.
+        assertThat(secondCurrent.id()).isEqualTo(firstCurrent.id());
+        assertThat(secondCurrent.retroWeekReview()).isEqualTo("이번주 두 번째 내용");
         assertThat(secondCurrent.recordDate()).isEqualTo(currentMonday);
 
         CommonTaskResponse updated = client.put()
@@ -89,10 +91,11 @@ class WeeklyRetrospectiveFlowIT {
                 .returnResult()
                 .getResponseBody();
 
-        assertThat(List.of(history).stream().map(CommonTaskResponse::id).toList())
-                .containsExactly(secondCurrent.id(), firstCurrent.id(), history[2].id(), history[3].id());
+        // 이번 주 회고는 위쪽 작성 폼이 이미 보여주므로 지난 회고 목록에서는 빠진다.
         assertThat(List.of(history).stream().map(CommonTaskResponse::retroWeekReview).toList())
-                .containsExactly("이번주 수정 내용", "이번주 첫 내용", "지난주 회고", "가장 오래된 회고");
+                .containsExactly("지난주 회고", "가장 오래된 회고");
+        assertThat(List.of(history).stream().map(CommonTaskResponse::id).toList())
+                .doesNotContain(secondCurrent.id());
     }
 
     private CommonTaskResponse save(LocalDate date, String weekReview) {
