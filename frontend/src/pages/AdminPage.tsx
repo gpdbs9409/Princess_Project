@@ -56,6 +56,15 @@ function isoDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** 2026-08-29 -> "8월 29일 (금)" */
+function formatDayLabel(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAY_LABELS[d.getDay()]})`;
+}
+
 function downloadCsv(filename: string, rows: (string | number)[][]) {
   const csv = rows
     .map((row) =>
@@ -87,6 +96,7 @@ export function AdminPage() {
   const [participantFilter, setParticipantFilter] = useState<ParticipantFilter>("ALL");
   const [participantSearch, setParticipantSearch] = useState("");
   const [activityMember, setActivityMember] = useState<AdminMemberWeekResponse | null>(null);
+  const [openActivityDates, setOpenActivityDates] = useState<string[]>([]);
   const [activities, setActivities] = useState<AdminActivityResponse[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
@@ -110,6 +120,18 @@ export function AdminPage() {
     fileName: string;
   } | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
+
+  // 날짜별로 한 단계 접어서 보여준다. 평평한 목록은 30일치가 쌓이면 훑기가 어려워서,
+  // 어느 날 무엇을 했는지 날짜 단위로 먼저 보이게 한다.
+  const activitiesByDate = useMemo(() => {
+    const grouped = new Map<string, AdminActivityResponse[]>();
+    for (const activity of activities) {
+      const list = grouped.get(activity.recordDate);
+      if (list) list.push(activity);
+      else grouped.set(activity.recordDate, [activity]);
+    }
+    return [...grouped.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [activities]);
 
   const weekStartIso = useMemo(() => isoDate(weekStart), [weekStart]);
 
@@ -208,10 +230,17 @@ export function AdminPage() {
   const openActivities = async (member: AdminMemberWeekResponse) => {
     setActivityMember(member);
     setActivities([]);
+    setOpenActivityDates([]);
     setActivitiesError(null);
     setActivitiesLoading(true);
     try {
-      setActivities(await getAdminMemberActivities(member.userId));
+      const loaded = await getAdminMemberActivities(member.userId);
+      setActivities(loaded);
+      // 가장 최근 날짜 하나만 펼쳐둔다 - 전부 접혀 있으면 한 번 더 눌러야 해서 번거롭고,
+      // 전부 펼치면 30일치가 쏟아져 원래 문제로 돌아간다.
+      const latest = loaded.reduce<string | null>(
+        (max, a) => (max === null || a.recordDate > max ? a.recordDate : max), null);
+      setOpenActivityDates(latest ? [latest] : []);
     } catch {
       setActivitiesError("수행 내역을 불러오지 못했어요.");
     } finally {
@@ -787,7 +816,7 @@ export function AdminPage() {
             <div className="row-between" style={{ marginBottom: 16 }}>
               <div>
                 <strong style={{ fontSize: 20 }}>{activityMember.nickname}님의 챌린지 수행내역</strong>
-                <div className="muted">{activityMember.cohort} · 최신 기록순</div>
+                <div className="muted">{activityMember.cohort} · 날짜별 · 최신순</div>
               </div>
               <button type="button" className="ghost" onClick={() => setActivityMember(null)} aria-label="닫기">×</button>
             </div>
@@ -797,8 +826,32 @@ export function AdminPage() {
             {!activitiesLoading && !activitiesError && activities.length === 0 && (
               <p className="muted">아직 저장된 수행 내역이 없어요.</p>
             )}
-            <div className="stack" style={{ gap: 12 }}>
-              {activities.map((activity) => (
+            <div className="stack" style={{ gap: 10 }}>
+              {activitiesByDate.map(([date, dayActivities]) => {
+                const open = openActivityDates.includes(date);
+                const dayScore = dayActivities.reduce((sum, a) => sum + (a.earnedScore ?? 0), 0);
+                return (
+                  <div key={date} className="admin-day-group">
+                    <button
+                      type="button"
+                      className="admin-day-header"
+                      onClick={() =>
+                        setOpenActivityDates((prev) =>
+                          prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]
+                        )
+                      }
+                      aria-expanded={open}
+                    >
+                      <span className="admin-day-toggle">{open ? "▾" : "▸"}</span>
+                      <strong>{formatDayLabel(date)}</strong>
+                      <span className="muted">
+                        {dayActivities.length}건 · {Math.round(dayScore * 100) / 100}점
+                      </span>
+                    </button>
+
+                    {open && (
+                      <div className="stack" style={{ gap: 12, marginTop: 10 }}>
+                        {dayActivities.map((activity) => (
                 <div className="card" key={`${activity.activityType}-${activity.id}`} style={{ padding: 16 }}>
                   <div className="row-between" style={{ alignItems: "flex-start", gap: 12 }}>
                     <div>
@@ -823,7 +876,12 @@ export function AdminPage() {
                     {activity.photoUrl && <img src={activity.photoUrl} alt={`${activity.name} 인증 사진`} className="photo-preview" />}
                   </div>
                 </div>
-              ))}
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
