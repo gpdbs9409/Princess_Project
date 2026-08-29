@@ -30,10 +30,13 @@ public class WeeklyRetrospectiveService {
     public WeeklyRetrospective save(Long userId, WeeklyRetrospectiveRequest request) {
         validate(request);
         LocalDate weekStart = monday(request.date());
+        if (repository.findByUserIdAndWeekStart(userId, weekStart).isPresent()) {
+            throw new CommonTaskValidationException(
+                    "RETROSPECTIVE_ALREADY_EXISTS", "A retrospective already exists for this week");
+        }
         User user = users.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         UserProject project = projects.getOrCreateActive(userId);
-        WeeklyRetrospective record = repository.findByUserIdAndWeekStart(userId, weekStart)
-                .orElseGet(WeeklyRetrospective::new);
+        WeeklyRetrospective record = new WeeklyRetrospective();
         record.setUser(user); record.setProject(project); record.setWeekStart(weekStart);
         copy(request, record);
         return repository.save(record);

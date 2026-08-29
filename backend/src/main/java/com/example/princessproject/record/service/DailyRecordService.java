@@ -396,8 +396,7 @@ public class DailyRecordService {
      * 하루 100점이 구조적으로 불가능해지기 때문이다. 그래서 하루 단위에서는 "오늘 읽었는가"만
      * 보고, 주간 달성률은 별도 지표로 다룬다.
      *
-     * 공부는 그날의 계획 대비 완료(완료/계획)라 그 자체가 일 단위 비율이므로 비례 채점을
-     * 유지한다.
+     * 공부도 YouTube 링크와 한 줄 기록을 모두 남겼는지 여부로 채점한다.
      */
     private CommonMissionScore scoreDailyCommonTask(CommonTaskRecord record) {
         if (record.getTaskType() == CommonTaskType.READING) {
@@ -411,21 +410,21 @@ public class DailyRecordService {
                     scoringService.earnedScore(COMMON_TASK_POINTS, rate), rate, done);
         }
 
-        BigDecimal actual = record.getStudyCompletedAmount() == null
-                ? BigDecimal.ZERO : record.getStudyCompletedAmount();
-        BigDecimal target = commonTarget(record.getTaskType(), record);
-        BigDecimal rate = scoringService.achievementRate(actual, target);
+        boolean done = (record.getStudyYoutubeUrl() != null && !record.getStudyYoutubeUrl().isBlank()
+                && record.getStudyTakeaway() != null && !record.getStudyTakeaway().isBlank())
+                // 배포 전 기존 공부 기록도 갑자기 0점이 되지 않도록 인정한다.
+                || (record.getStudyCompletedAmount() != null && record.getStudyCompletedAmount().signum() > 0);
+        BigDecimal actual = done ? BigDecimal.ONE : BigDecimal.ZERO;
+        BigDecimal target = BigDecimal.ONE;
+        BigDecimal rate = done ? BigDecimal.ONE : BigDecimal.ZERO;
         return new CommonMissionScore(record.getTaskType(), "공부", "common", MissionType.DAILY,
                 target, actual, scoringService.earnedScore(COMMON_TASK_POINTS, rate), rate,
-                actual.compareTo(target) >= 0);
+                done);
     }
 
     private BigDecimal commonTarget(CommonTaskType type, CommonTaskRecord record) {
         // 독서는 T/F라 목표가 1(= 했다)이다. 페이지 수는 채점에 쓰지 않는다.
         if (type == CommonTaskType.READING) return BigDecimal.ONE;
-        if (record != null && record.getStudyPlannedAmount() != null && record.getStudyPlannedAmount().signum() > 0) {
-            return record.getStudyPlannedAmount();
-        }
         return BigDecimal.ONE;
     }
 

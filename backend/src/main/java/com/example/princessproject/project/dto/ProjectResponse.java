@@ -15,6 +15,9 @@ public record ProjectResponse(
         String goalHuman,
         String goalAppearance,
         String goalEnding,
+        String commonReadingBookTitle,
+        Integer commonReadingTotalPages,
+        String commonStudyYoutubeTopic,
         ProjectStatus status,
         java.util.List<GoalItem> goals
 ) {
@@ -94,6 +97,9 @@ public record ProjectResponse(
                 project.getGoalHuman(),
                 project.getGoalAppearance(),
                 project.getGoalEnding(),
+                project.getCommonReadingBookTitle(),
+                project.getCommonReadingTotalPages(),
+                project.getCommonStudyYoutubeTopic(),
                 project.getStatus(),
                 project.getGoals().stream()
                         .sorted(Comparator.comparing(UserGoal::getId))

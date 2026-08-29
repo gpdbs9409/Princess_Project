@@ -53,15 +53,15 @@ class WeeklyRetrospectiveFlowIT {
         save(currentMonday.minusWeeks(1), "지난주 회고");
 
         WeeklyRetrospectiveResponse firstCurrent = save(currentMonday.plusDays(3), "이번주 첫 내용");
-        WeeklyRetrospectiveResponse secondCurrent = save(currentMonday.plusDays(6), "이번주 두 번째 내용");
-
-        // 주 1회 원칙: 같은 주에 다시 저장하면 새 카드가 쌓이지 않고 그 주 카드가 갱신된다.
-        assertThat(secondCurrent.id()).isEqualTo(firstCurrent.id());
-        assertThat(secondCurrent.retroWeekReview()).isEqualTo("이번주 두 번째 내용");
-        assertThat(secondCurrent.recordDate()).isEqualTo(currentMonday);
+        // 주 1회 원칙: 같은 주에 POST로 새 회고를 만들 수 없고 기존 카드의 수정만 허용한다.
+        client.post().uri("/api/weekly-retrospectives")
+                .header("Authorization", auth)
+                .body(request(currentMonday.plusDays(6), "이번주 두 번째 내용"))
+                .exchange()
+                .expectStatus().isBadRequest();
 
         WeeklyRetrospectiveResponse updated = client.put()
-                .uri("/api/weekly-retrospectives/{id}", secondCurrent.id())
+                .uri("/api/weekly-retrospectives/{id}", firstCurrent.id())
                 .header("Authorization", auth)
                 .body(request(currentMonday, "이번주 수정 내용"))
                 .exchange()
@@ -69,7 +69,7 @@ class WeeklyRetrospectiveFlowIT {
                 .expectBody(WeeklyRetrospectiveResponse.class)
                 .returnResult()
                 .getResponseBody();
-        assertThat(updated.id()).isEqualTo(secondCurrent.id());
+        assertThat(updated.id()).isEqualTo(firstCurrent.id());
         assertThat(updated.retroWeekReview()).isEqualTo("이번주 수정 내용");
 
         WeeklyRetrospectiveResponse current = client.get()
@@ -80,7 +80,7 @@ class WeeklyRetrospectiveFlowIT {
                 .expectBody(WeeklyRetrospectiveResponse.class)
                 .returnResult()
                 .getResponseBody();
-        assertThat(current.id()).isEqualTo(secondCurrent.id());
+        assertThat(current.id()).isEqualTo(firstCurrent.id());
 
         WeeklyRetrospectiveResponse[] history = client.get()
                 .uri("/api/weekly-retrospectives/history?weekStart={weekStart}", currentMonday)
@@ -95,7 +95,7 @@ class WeeklyRetrospectiveFlowIT {
         assertThat(List.of(history).stream().map(WeeklyRetrospectiveResponse::retroWeekReview).toList())
                 .containsExactly("지난주 회고", "가장 오래된 회고");
         assertThat(List.of(history).stream().map(WeeklyRetrospectiveResponse::id).toList())
-                .doesNotContain(secondCurrent.id());
+                .doesNotContain(firstCurrent.id());
 
         // 주간 회고는 선택 과제다. 여러 번 작성·수정해도 주간 점수에는 들어가지 않는다.
         WeeklyReportResponse report = client.get()

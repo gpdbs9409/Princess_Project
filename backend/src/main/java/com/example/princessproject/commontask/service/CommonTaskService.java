@@ -8,7 +8,7 @@ import com.example.princessproject.project.model.UserProject;
 import com.example.princessproject.project.service.UserProjectService;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
-import java.math.BigDecimal;
+import java.net.URI;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommonTaskService {
     private static final int MAX_PAGE_NUMBER = 100_000;
     private static final int MAX_PAGES_PER_DAY = 2_000;
-    private static final BigDecimal MAX_STUDY_AMOUNT = BigDecimal.valueOf(100_000);
     private final CommonTaskRecordRepository repository;
     private final UserRepository userRepository;
     private final UserProjectService userProjectService;
@@ -50,6 +49,8 @@ public class CommonTaskService {
         record.setEndPage(request.endPage());
         record.setStudyPlannedAmount(request.studyPlannedAmount());
         record.setStudyCompletedAmount(request.studyCompletedAmount());
+        record.setStudyYoutubeUrl(request.studyYoutubeUrl());
+        record.setStudyTakeaway(request.studyTakeaway());
         record.setPhotoUrl(request.photoUrl());
         record.setAiVerified(request.aiVerified());
         record.setMemo(request.memo());
@@ -84,16 +85,23 @@ public class CommonTaskService {
     }
 
     private void validateStudy(CommonTaskRequest request) {
-        BigDecimal completed = request.studyCompletedAmount();
-        if (completed == null) throw new CommonTaskValidationException("STUDY_COMPLETED_REQUIRED", "Completed amount required");
-        requireInRange(completed, "STUDY_COMPLETED_OUT_OF_RANGE");
-        if (request.studyPlannedAmount() != null) requireInRange(request.studyPlannedAmount(), "STUDY_PLANNED_OUT_OF_RANGE");
-        requirePhoto(request, "STUDY_PHOTO_REQUIRED");
-    }
-
-    private void requireInRange(BigDecimal value, String code) {
-        if (value.signum() < 0 || value.compareTo(MAX_STUDY_AMOUNT) > 0)
-            throw new CommonTaskValidationException(code, "Value out of range");
+        String url = request.studyYoutubeUrl();
+        if (url == null || url.isBlank())
+            throw new CommonTaskValidationException("STUDY_YOUTUBE_URL_REQUIRED", "YouTube URL required");
+        try {
+            URI uri = URI.create(url.trim());
+            if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
+                    || uri.getHost() == null)
+                throw new IllegalArgumentException();
+        } catch (IllegalArgumentException ex) {
+            throw new CommonTaskValidationException("STUDY_YOUTUBE_URL_INVALID", "Invalid URL");
+        }
+        if (url.length() > 1000)
+            throw new CommonTaskValidationException("STUDY_YOUTUBE_URL_TOO_LONG", "URL too long");
+        if (request.studyTakeaway() == null || request.studyTakeaway().isBlank())
+            throw new CommonTaskValidationException("STUDY_TAKEAWAY_REQUIRED", "Takeaway required");
+        if (request.studyTakeaway().length() > 1000)
+            throw new CommonTaskValidationException("STUDY_TAKEAWAY_TOO_LONG", "Takeaway too long");
     }
 
     private void requirePhoto(CommonTaskRequest request, String code) {

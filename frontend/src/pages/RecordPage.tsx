@@ -21,9 +21,20 @@ export function RecordPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasNoMissions, setHasNoMissions] = useState(false);
-  const date = todayIso();
+  const today = todayIso();
+  const [date, setDate] = useState(today);
+  const isToday = date === today;
+
+  const shiftDate = (days: number) => {
+    const target = new Date(`${date}T00:00:00`);
+    target.setDate(target.getDate() + days);
+    const next = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
+    if (next <= today) setDate(next);
+  };
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const [projectData, dailySummary] = await Promise.all([getActiveProject(), getDailySummary(date)]);
       const flattened: FlatMission[] = projectData.goals.flatMap((goal) =>
@@ -60,7 +71,11 @@ export function RecordPage() {
       <div className="row-between" style={{ marginBottom: 20 }}>
         <div>
           <span className="eyebrow">{date}</span>
-          <h1 style={{ fontSize: 26 }}>오늘의 기록</h1>
+          <h1 style={{ fontSize: 26 }}>{isToday ? "오늘의 기록" : "지난 기록"}</h1>
+        </div>
+        <div className="row" style={{ gap: 8 }} aria-label="기록 날짜 이동">
+          <button type="button" className="ghost" onClick={() => shiftDate(-1)} aria-label="이전 날짜">←</button>
+          <button type="button" className="ghost" onClick={() => shiftDate(1)} disabled={isToday} aria-label="다음 날짜">→</button>
         </div>
       </div>
 
@@ -69,7 +84,7 @@ export function RecordPage() {
       {/* 오늘 총점 - 페이지에서 가장 먼저 눈에 들어와야 하는 요약이라 맨 위로 옮겼다
           (2026-08-21 요청: 오늘총점은 가장상단에 와야하고 그 아래 공통과제 2종 및 타
           습관기록도 같이). */}
-      {summary && (
+      {isToday && summary && (
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="row-between">
             <strong>오늘 총점</strong>
@@ -105,9 +120,9 @@ export function RecordPage() {
           (/weekly-retrospective)로 분리했다 (2026-08-21 요청). */}
       <div className="stack" style={{ marginBottom: 16, gap: 12 }}>
         <span className="badge good" style={{ alignSelf: "flex-start" }}>
-          오늘의 기록
+          {isToday ? "오늘의 기록" : `${date} 기록`}
         </span>
-        <CommonTasksCard />
+        <CommonTasksCard key={date} project={project} date={date} readOnly={!isToday} />
         {missions.map((mission) => (
           <MissionCard
             key={mission.userMissionId}
@@ -116,19 +131,24 @@ export function RecordPage() {
             completed={summary?.completedMissions.includes(mission.name) ?? false}
             record={summary?.todayRecords[mission.userMissionId]}
             onSaved={load}
+            readOnly={!isToday}
           />
         ))}
       </div>
 
-      <p className="muted" style={{ marginTop: -4, marginBottom: 16, fontSize: 12.5 }}>
+      {isToday && <p className="muted" style={{ marginTop: -4, marginBottom: 16, fontSize: 12.5 }}>
         주간 회고는 상단 메뉴의{" "}
         <Link to="/weekly-retrospective" className="link">
           주간 회고
         </Link>
         에서 작성하고 지난 회고도 확인할 수 있어요.
-      </p>
+      </p>}
 
-      {!loading && hasNoMissions && (
+      {!isToday && !loading && summary && Object.keys(summary.todayRecords).length === 0 && (
+        <div className="card"><p className="muted">이 날짜에 저장된 개인 미션 기록이 없어요.</p></div>
+      )}
+
+      {isToday && !loading && hasNoMissions && (
         <div className="card">
           <p className="muted">아직 선택한 미션이 없어요.</p>
           <Link to="/stat-focus" className="link">

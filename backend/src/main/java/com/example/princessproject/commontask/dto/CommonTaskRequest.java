@@ -15,7 +15,9 @@ public record CommonTaskRequest(
         Integer endPage,
         BigDecimal studyPlannedAmount,
         BigDecimal studyCompletedAmount,
-        // READING/STUDY 전용, 둘 다 필수 (CommonTaskService#validateReading/validateStudy).
+        String studyYoutubeUrl,
+        String studyTakeaway,
+        // READING 전용 사진 인증. 공부는 링크와 한 줄 기록으로 인증한다.
         String photoUrl,
         // Vision 판정은 저장 허용 여부가 아니라 운영진 확인용 true/false 플래그다.
         Boolean aiVerified,

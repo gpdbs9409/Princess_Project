@@ -17,8 +17,17 @@ public record ProjectSelectionsRequest(
         String goalHuman,
         String goalAppearance,
         String goalEnding,
+        String commonReadingBookTitle,
+        Integer commonReadingTotalPages,
+        String commonStudyYoutubeTopic,
         @NotEmpty List<@Valid GoalSelection> goals
 ) {
+    /** Backward-compatible constructor for internal callers that predate common-capital goals. */
+    public ProjectSelectionsRequest(String goalHuman, String goalAppearance, String goalEnding,
+                                    List<GoalSelection> goals) {
+        this(goalHuman, goalAppearance, goalEnding, null, null, null, goals);
+    }
+
     public record GoalSelection(
             @NotNull GoalTypeCode goalTypeCode,
             @NotNull Integer weightPercent,

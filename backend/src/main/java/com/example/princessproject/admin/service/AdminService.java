@@ -164,8 +164,10 @@ public class AdminService {
             String detail = switch (record.getTaskType()) {
                 case READING -> (record.getBookTitle() == null ? "" : record.getBookTitle() + " · ")
                         + record.getStartPage() + "p~" + record.getEndPage() + "p";
-                case STUDY -> "완료 " + record.getStudyCompletedAmount()
-                        + (record.getStudyPlannedAmount() == null ? "" : " / 계획 " + record.getStudyPlannedAmount());
+                case STUDY -> record.getStudyYoutubeUrl() != null
+                        ? "영상 " + record.getStudyYoutubeUrl() + " · " + nullToEmpty(record.getStudyTakeaway())
+                        : "완료 " + record.getStudyCompletedAmount()
+                                + (record.getStudyPlannedAmount() == null ? "" : " / 계획 " + record.getStudyPlannedAmount());
             };
             result.add(new AdminActivityResponse(
                     record.getId(), record.getUser().getId(), record.getUser().getNickname(),
@@ -206,8 +208,10 @@ public class AdminService {
             String detail = switch (record.getTaskType()) {
                 case READING -> (record.getBookTitle() == null ? "" : record.getBookTitle() + " · ")
                         + record.getStartPage() + "p~" + record.getEndPage() + "p";
-                case STUDY -> "완료 " + record.getStudyCompletedAmount()
-                        + (record.getStudyPlannedAmount() == null ? "" : " / 계획 " + record.getStudyPlannedAmount());
+                case STUDY -> record.getStudyYoutubeUrl() != null
+                        ? "영상 " + record.getStudyYoutubeUrl() + " · " + nullToEmpty(record.getStudyTakeaway())
+                        : "완료 " + record.getStudyCompletedAmount()
+                                + (record.getStudyPlannedAmount() == null ? "" : " / 계획 " + record.getStudyPlannedAmount());
             };
             result.add(new AdminActivityResponse(
                     record.getId(), record.getUser().getId(), record.getUser().getNickname(),

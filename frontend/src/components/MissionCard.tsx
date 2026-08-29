@@ -20,6 +20,7 @@ interface MissionCardProps {
   completed: boolean;
   record?: TodayRecordEntry;
   onSaved: () => void;
+  readOnly?: boolean;
 }
 
 // Mirrors the backend's DailyRecordService.MAX_INPUT_MULTIPLE_OF_TARGET - generous headroom
@@ -28,7 +29,7 @@ interface MissionCardProps {
 // typed into a "30분" mission.
 const MAX_INPUT_MULTIPLE_OF_TARGET = 50;
 
-export function MissionCard({ mission, date, completed, record, onSaved }: MissionCardProps) {
+export function MissionCard({ mission, date, completed, record, onSaved, readOnly = false }: MissionCardProps) {
   const { showToast } = useToast();
   const [inputValue, setInputValue] = useState("");
   const [memo, setMemo] = useState("");
@@ -150,7 +151,7 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
             </strong>
           </div>
           <div className="recorded-field">
-            <span className="muted">오늘의 소감</span>
+            <span className="muted">기록한 소감</span>
             <span>{record.memo || "작성하지 않았어요"}</span>
           </div>
           {record.photoUrl && (
@@ -160,6 +161,8 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
       </div>
     );
   }
+
+  if (readOnly) return null;
 
   return (
     <div className="card">

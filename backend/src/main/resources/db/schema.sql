@@ -82,6 +82,10 @@ CREATE TABLE user_projects (
     -- 최종적으로 도달하고 싶은 엔딩 또는 행동양식 설명
     goal_ending TEXT,
 
+    common_reading_book_title VARCHAR(200) NULL,
+    common_reading_total_pages INT NULL,
+    common_study_youtube_topic VARCHAR(300) NULL,
+
     start_date DATE NOT NULL,
     end_date DATE NULL,
 
@@ -886,6 +890,8 @@ CREATE TABLE daily_common_task_records (
     -- STUDY
     study_planned_amount DECIMAL(10, 2) NULL,
     study_completed_amount DECIMAL(10, 2) NULL,
+    study_youtube_url VARCHAR(1000) NULL,
+    study_takeaway VARCHAR(1000) NULL,
 
     -- READING/STUDY 전용 사진 인증 (2026-08-21)
     photo_url VARCHAR(500) NULL,

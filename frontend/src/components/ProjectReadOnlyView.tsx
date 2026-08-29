@@ -1,11 +1,5 @@
 import { GOAL_TYPE_LABELS, type ProjectResponse } from "../api/types";
 
-const MISSION_TYPE_LABELS: Record<string, string> = {
-  DAILY: "매일",
-  WEEKLY: "매주",
-  TOTAL: "전체 기간",
-};
-
 export function ProjectReadOnlyView({ project }: { project: ProjectResponse }) {
   return (
     <div className="stack">
@@ -29,6 +23,18 @@ export function ProjectReadOnlyView({ project }: { project: ProjectResponse }) {
         </div>
       )}
 
+      {(project.commonReadingBookTitle || project.commonStudyYoutubeTopic) && (
+        <div className="card stack" style={{ gap: 10 }}>
+          <strong>공통자본</strong>
+          {project.commonReadingBookTitle && (
+            <div><span className="muted">독서</span><div>{project.commonReadingBookTitle} · {project.commonReadingTotalPages}쪽</div></div>
+          )}
+          {project.commonStudyYoutubeTopic && (
+            <div><span className="muted">공부 YouTube 주제</span><div>{project.commonStudyYoutubeTopic}</div></div>
+          )}
+        </div>
+      )}
+
       {project.goals.map((goal) => (
         <div className="card" key={goal.id}>
           <div className="row-between">
@@ -46,7 +52,7 @@ export function ProjectReadOnlyView({ project }: { project: ProjectResponse }) {
                     <div key={mission.id} className="row-between" style={{ fontSize: 13 }}>
                       <span>{mission.name}</span>
                       <span className="muted">
-                        {MISSION_TYPE_LABELS[mission.missionType]} · 목표 {mission.targetValue}
+                        목표 {mission.targetValue}
                         {mission.unit}
                       </span>
                     </div>

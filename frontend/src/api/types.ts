@@ -234,6 +234,9 @@ export interface ProjectResponse {
   goalHuman: string | null;
   goalAppearance: string | null;
   goalEnding: string | null;
+  commonReadingBookTitle: string | null;
+  commonReadingTotalPages: number | null;
+  commonStudyYoutubeTopic: string | null;
   status: ProjectStatus;
   goals: ProjectGoal[];
 }
@@ -265,6 +268,9 @@ export interface ProjectSelectionsRequest {
   goalHuman?: string;
   goalAppearance?: string;
   goalEnding?: string;
+  commonReadingBookTitle?: string;
+  commonReadingTotalPages?: number;
+  commonStudyYoutubeTopic?: string;
   goals: GoalSelectionInput[];
 }
 
@@ -351,7 +357,9 @@ export interface CommonTaskRequest {
   endPage?: number;
   studyPlannedAmount?: number;
   studyCompletedAmount?: number;
-  // 독서/공부 모두 사진 인증 필수.
+  studyYoutubeUrl?: string;
+  studyTakeaway?: string;
+  // 독서만 사진 인증 필수. 공부는 링크와 한 줄 기록으로 인증한다.
   photoUrl?: string;
   // Vision 결과는 저장 차단용이 아니라 운영진 검토용 플래그다.
   aiVerified?: boolean;
@@ -367,6 +375,8 @@ export interface CommonTaskResponse {
   endPage: number | null;
   studyPlannedAmount: number | null;
   studyCompletedAmount: number | null;
+  studyYoutubeUrl: string | null;
+  studyTakeaway: string | null;
   photoUrl: string | null;
   aiVerified: boolean | null;
   memo: string | null;

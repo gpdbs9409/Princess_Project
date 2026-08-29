@@ -61,6 +61,14 @@ public class UserProject {
     @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String goalEnding;
 
+    @Column(length = 200)
+    private String commonReadingBookTitle;
+
+    private Integer commonReadingTotalPages;
+
+    @Column(length = 300)
+    private String commonStudyYoutubeTopic;
+
     private LocalDate startDate;
 
     private LocalDate endDate;

@@ -144,6 +144,11 @@ export function AdminPage() {
     needsAttention: participants.filter((p) => !p.eligible).length,
   }), [participants]);
 
+  const photoReviewUserIds = useMemo(
+    () => new Set(reviewActivities.filter((activity) => !activity.adminInvalidated).map((activity) => activity.userId)),
+    [reviewActivities]
+  );
+
   const visibleParticipants = useMemo(() => {
     const query = participantSearch.trim().toLowerCase();
     return participants
@@ -383,7 +388,7 @@ export function AdminPage() {
 
   const exportParticipantsCsv = () => {
     const rows: (string | number)[][] = [
-      ["닉네임", "기수", "주 시작일", "주 종료일", "성공일수(7일 중)", "환급 대상", "환급 지급여부", "환급액"],
+      ["닉네임", "기수", "주 시작일", "주 종료일", "성공일수(7일 중)", "환급 대상", "환급 지급여부"],
       ...participants.map((p) => [
         p.nickname,
         p.cohort ?? "",
@@ -392,7 +397,6 @@ export function AdminPage() {
         p.successDays,
         p.eligible ? "대상" : "미대상",
         p.paid ? "지급완료" : "미지급",
-        p.amount,
       ]),
     ];
     downloadCsv(`princess-project_${selectedCohort || "전체"}_${weekStartIso}.csv`, rows);
@@ -736,7 +740,6 @@ export function AdminPage() {
                     <th>성공일수</th>
                     <th>요일별 이행</th>
                     <th>환급 대상</th>
-                    <th>환급액</th>
                     <th>지급 여부</th>
                     <th>MVP</th>
                     <th></th>
@@ -767,23 +770,15 @@ export function AdminPage() {
                               return <span key={day} className={state} title={`${day}요일: ${label}`}>{day}</span>;
                             })}
                           </div>
-                          {!p.eligible && <small className="admin-needed-days">환급까지 {Math.max(0, 6 - p.successDays)}일 필요</small>}
                         </td>
                         <td>
                           <span className={`badge ${p.eligible ? "good" : "warn"}`}>
                             {p.eligible ? "대상" : "미대상"}
                           </span>
                         </td>
-                        <td className="tabular">
-                          {p.paid
-                            ? `${p.amount.toLocaleString("ko-KR")}원 지급 완료`
-                            : p.eligible
-                              ? `${p.amount.toLocaleString("ko-KR")}원 지급 예정`
-                              : "-"}
-                        </td>
                         <td>
                           <label className="row" style={{ gap: 6, alignItems: "center" }}>
-                            <input type="checkbox" checked={p.paid} disabled={!p.eligible && !p.paid} onChange={() => handleTogglePaid(p)} />
+                            <input type="checkbox" checked={p.paid} onChange={() => handleTogglePaid(p)} />
                             {p.paid ? "지급완료" : "미지급"}
                           </label>
                         </td>
@@ -797,7 +792,12 @@ export function AdminPage() {
                             {p.isMvp ? "★ MVP" : "MVP 지정"}
                           </button>
                         </td>
-                        <td>{p.role === "ADMIN" && <span className="role-tag">관리자</span>}</td>
+                        <td>
+                          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                            {photoReviewUserIds.has(p.userId) && <span className="role-tag">사진검토 필요</span>}
+                            {p.role === "ADMIN" && <span className="role-tag">관리자</span>}
+                          </div>
+                        </td>
                       </tr>
                     </Fragment>
                   ))}

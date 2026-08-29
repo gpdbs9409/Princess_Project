@@ -184,6 +184,7 @@ class DailyMissionFlowIT {
         saveCommonTask(auth, new CommonTaskRequest(
                 CommonTaskType.READING, today, "테스트 책", 1, 2,
                 null, null,
+                null, null,
                 "https://example.com/reading.jpg", true, null));
         AdminMemberWeekResponse afterReading = adminService.listParticipantsForWeek("1기", weekStart).stream()
                 .filter(member -> member.userId().equals(userId))
@@ -193,7 +194,8 @@ class DailyMissionFlowIT {
         saveCommonTask(auth, new CommonTaskRequest(
                 CommonTaskType.STUDY, today, null, null, null,
                 BigDecimal.TEN, BigDecimal.TEN,
-                "https://example.com/study.jpg", true, null));
+                "https://www.youtube.com/watch?v=test", "오늘 배운 내용을 적용한다",
+                null, null, null));
         AdminMemberWeekResponse afterReadingAndStudy = adminService.listParticipantsForWeek("1기", weekStart).stream()
                 .filter(member -> member.userId().equals(userId))
                 .findFirst().orElseThrow();

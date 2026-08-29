@@ -10,7 +10,7 @@ import {
   updateWeeklyRetrospective,
   uploadFile,
 } from "../api/endpoints";
-import type { CommonTaskResponse, WeeklyRetrospectiveResponse } from "../api/types";
+import type { CommonTaskResponse, ProjectResponse, WeeklyRetrospectiveResponse } from "../api/types";
 import { PhotoCaptureField } from "./PhotoCaptureField";
 import { useToast } from "./ToastProvider";
 
@@ -29,7 +29,6 @@ import { useToast } from "./ToastProvider";
 
 const MAX_PAGE_NUMBER = 100000;
 const MAX_PAGES_PER_DAY = 2000;
-const MAX_STUDY_AMOUNT = 100000;
 const MAX_RETRO_TEXT_LENGTH = 5000;
 
 function todayIso(): string {
@@ -47,21 +46,24 @@ function commonTaskErrorMessage(err: unknown, fallback: string): string {
     READING_PAGE_OUT_OF_RANGE: `페이지 번호는 0~${MAX_PAGE_NUMBER.toLocaleString()} 사이여야 해요.`,
     READING_END_BEFORE_START: "종료 페이지가 시작 페이지보다 앞설 수 없어요.",
     READING_RANGE_TOO_LARGE: `하루 독서량이 너무 커요. ${MAX_PAGES_PER_DAY.toLocaleString()}p 이하로 입력해주세요.`,
-    STUDY_COMPLETED_REQUIRED: "오늘 완료량을 입력해주세요.",
-    STUDY_COMPLETED_OUT_OF_RANGE: `완료량은 0~${MAX_STUDY_AMOUNT.toLocaleString()} 사이여야 해요.`,
-    STUDY_PLANNED_OUT_OF_RANGE: `계획량은 0~${MAX_STUDY_AMOUNT.toLocaleString()} 사이여야 해요.`,
+    STUDY_YOUTUBE_URL_REQUIRED: "시청한 YouTube 링크를 입력해주세요.",
+    STUDY_YOUTUBE_URL_INVALID: "http:// 또는 https://로 시작하는 올바른 링크를 입력해주세요.",
+    STUDY_YOUTUBE_URL_TOO_LONG: "YouTube 링크가 너무 길어요.",
+    STUDY_TAKEAWAY_REQUIRED: "배운 점이나 적용할 점을 한 줄로 작성해주세요.",
+    STUDY_TAKEAWAY_TOO_LONG: "한 줄 기록은 1,000자 이하로 작성해주세요.",
     READING_PHOTO_REQUIRED: "사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.",
     STUDY_PHOTO_REQUIRED: "사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.",
     RETROSPECTIVE_EMPTY: "회고 또는 다음 주 계획 중 최소 하나는 입력해주세요.",
     RETROSPECTIVE_TOO_LONG: `각 항목은 ${MAX_RETRO_TEXT_LENGTH.toLocaleString()}자 이하로 입력해주세요.`,
+    RETROSPECTIVE_ALREADY_EXISTS: "이번 주 주간 회고는 이미 작성했어요. 기존 회고에서 수정해주세요.",
   };
   return messages[err.code] ?? fallback;
 }
 
-function ReadingSection() {
+function ReadingSection({ project, date, readOnly }: { project: ProjectResponse | null; date: string; readOnly: boolean }) {
   const { showToast } = useToast();
   const [existing, setExisting] = useState<CommonTaskResponse | null>(null);
-  const [bookTitle, setBookTitle] = useState("");
+  const [bookTitle, setBookTitle] = useState(project?.commonReadingBookTitle ?? "");
   const [startPage, setStartPage] = useState("");
   const [endPage, setEndPage] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -73,14 +75,16 @@ function ReadingSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getDailyCommonTasks(todayIso())
+    setLoading(true);
+    setExisting(null);
+    getDailyCommonTasks(date)
       .then((entries) => setExisting(entries.find((e) => e.taskType === "READING") ?? null))
       .catch(() => {
         // A failed load here just means the section starts as "not recorded yet" - the
         // save call below will still work, and a retry naturally happens on next visit.
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [date]);
 
   // Object URLs aren't garbage-collected on their own - revoke the previous one whenever
   // the selected file changes or the card unmounts, so we don't leak blob URLs.
@@ -142,7 +146,7 @@ function ReadingSection() {
       const uploaded = await uploadFile(photoFile);
       const saved = await saveCommonTask({
         taskType: "READING",
-        date: todayIso(),
+        date,
         bookTitle: bookTitle.trim() || undefined,
         startPage: start,
         endPage: end,
@@ -190,6 +194,8 @@ function ReadingSection() {
       </div>
     );
   }
+
+  if (readOnly) return null;
 
   return (
     <div className="card">
@@ -249,92 +255,52 @@ function ReadingSection() {
   );
 }
 
-function StudySection() {
+function StudySection({ project, date, readOnly }: { project: ProjectResponse | null; date: string; readOnly: boolean }) {
   const { showToast } = useToast();
   const [existing, setExisting] = useState<CommonTaskResponse | null>(null);
-  const [planned, setPlanned] = useState("");
-  const [completed, setCompleted] = useState("");
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [takeaway, setTakeaway] = useState("");
   const [saving, setSaving] = useState(false);
-  const [checkingVision, setCheckingVision] = useState(false);
-  const [visionNote, setVisionNote] = useState<{ text: string; ok: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getDailyCommonTasks(todayIso())
+    setLoading(true);
+    setExisting(null);
+    getDailyCommonTasks(date)
       .then((entries) => setExisting(entries.find((e) => e.taskType === "STUDY") ?? null))
       .catch(() => {
         // See ReadingSection's identical catch - starts as "not recorded yet" on failure.
       })
       .finally(() => setLoading(false));
-  }, []);
-
-  // Object URLs aren't garbage-collected on their own - revoke the previous one whenever
-  // the selected file changes or the card unmounts, so we don't leak blob URLs.
-  useEffect(() => {
-    return () => {
-      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-    };
-  }, [photoPreviewUrl]);
-
-  const handlePhotoSelected = async (file: File) => {
-    setPhotoFile(file);
-    setVisionNote(null);
-    setError(null);
-    setPhotoPreviewUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(file);
-    });
-    setCheckingVision(true);
-    try {
-      const result = await analyzeVisionPhoto(file, "공부");
-      setVisionNote({ text: result.reason, ok: result.likelyValid });
-    } catch {
-      setVisionNote({ text: "사진 판정을 완료하지 못했어요. 다시 선택하거나 잠시 후 시도해주세요.", ok: false });
-    } finally {
-      setCheckingVision(false);
-    }
-  };
+  }, [date]);
 
   const handleSave = async () => {
-    const completedValue = Number(completed);
-    if (completed === "" || Number.isNaN(completedValue)) {
-      setError("오늘 완료량을 입력해주세요.");
+    const link = youtubeUrl.trim();
+    const note = takeaway.trim();
+    if (!link) {
+      setError("시청한 YouTube 링크를 입력해주세요.");
       return;
     }
-    if (completedValue < 0 || completedValue > MAX_STUDY_AMOUNT) {
-      setError(`완료량은 0~${MAX_STUDY_AMOUNT.toLocaleString()} 사이여야 해요.`);
+    try {
+      const parsed = new URL(link);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error();
+    } catch {
+      setError("올바른 YouTube 링크를 입력해주세요.");
       return;
     }
-    let plannedValue: number | undefined;
-    if (planned !== "") {
-      plannedValue = Number(planned);
-      if (Number.isNaN(plannedValue) || plannedValue < 0 || plannedValue > MAX_STUDY_AMOUNT) {
-        setError(`계획량은 0~${MAX_STUDY_AMOUNT.toLocaleString()} 사이여야 해요.`);
-        return;
-      }
-    }
-    if (!photoFile) {
-      setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
-      return;
-    }
-    if (checkingVision) {
-      setError("사진 판정이 끝날 때까지 잠시 기다려주세요.");
+    if (!note) {
+      setError("배운 점이나 적용할 점을 한 줄로 작성해주세요.");
       return;
     }
     setSaving(true);
     setError(null);
     try {
-      const uploaded = await uploadFile(photoFile);
       const saved = await saveCommonTask({
         taskType: "STUDY",
-        date: todayIso(),
-        studyCompletedAmount: completedValue,
-        studyPlannedAmount: plannedValue,
-        photoUrl: uploaded.url,
-        aiVerified: visionNote?.ok ?? false,
+        date,
+        studyYoutubeUrl: link,
+        studyTakeaway: note,
       });
       setExisting(saved);
       showToast("공부 기록이 저장되었어요");
@@ -353,70 +319,48 @@ function StudySection() {
         <div className="row-between">
           <div>
             <strong>공부</strong>
-            <div className="muted">공통 과제 · 주간 계획량 대비 오늘 완료량</div>
+            <div className="muted">공통 과제 · YouTube 학습 기록</div>
           </div>
           <span className="badge good">완료</span>
         </div>
         <div className="stack" style={{ gap: 10, marginTop: 12 }}>
-          <div className="recorded-field">
-            <span className="muted">오늘 완료량</span>
-            <strong>
-              {existing.studyCompletedAmount}
-              {existing.studyPlannedAmount != null && ` / 계획량 ${existing.studyPlannedAmount}`}
-            </strong>
-          </div>
-          {existing.photoUrl && (
-            <img src={existing.photoUrl} alt="공부 인증 사진" className="photo-preview" />
+          {existing.studyYoutubeUrl ? (
+            <>
+              <div className="recorded-field">
+                <span className="muted">시청한 영상</span>
+                <a href={existing.studyYoutubeUrl} target="_blank" rel="noopener noreferrer">링크 열기</a>
+              </div>
+              <div className="recorded-field"><span className="muted">배운 점 · 적용할 점</span><strong>{existing.studyTakeaway}</strong></div>
+            </>
+          ) : (
+            <div className="recorded-field"><span className="muted">기존 공부 기록</span><strong>{existing.studyCompletedAmount}</strong></div>
           )}
         </div>
       </div>
     );
   }
 
+  if (readOnly) return null;
+
   return (
     <div className="card">
       <div className="row-between">
         <div>
           <strong>공부</strong>
-          <div className="muted">공통 과제 · 측정이 어려우면 시간 기준도 가능해요</div>
+          <div className="muted">공통 과제 · 오늘 본 영상과 배운 점을 남겨주세요</div>
         </div>
       </div>
       <div className="stack" style={{ gap: 10, marginTop: 12 }}>
-        <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-          <input
-            type="number"
-            min={0}
-            max={MAX_STUDY_AMOUNT}
-            placeholder="이번 주 계획량 (선택)"
-            value={planned}
-            onChange={(e) => setPlanned(e.target.value)}
-            style={{ maxWidth: 150 }}
-          />
-          <input
-            type="number"
-            min={0}
-            max={MAX_STUDY_AMOUNT}
-            placeholder="오늘 완료량"
-            value={completed}
-            onChange={(e) => setCompleted(e.target.value)}
-            style={{ maxWidth: 120 }}
-          />
-        </div>
-        <PhotoCaptureField
-          photoFile={photoFile}
-          photoPreviewUrl={photoPreviewUrl}
-          onSelect={handlePhotoSelected}
-          label="사진 인증 (필수 · 카메라 촬영 또는 갤러리에서 선택)"
-        />
-        {checkingVision && <span className="muted">AI가 인증 사진을 확인하고 있어요...</span>}
-        {!checkingVision && visionNote && (
-          <span className="muted" style={{ color: visionNote.ok ? "var(--good)" : "var(--warn)" }}>
-            {visionNote.ok ? "인증 사진 확인 완료 · " : "인증 사진 확인 필요 · "}{visionNote.text}
-          </span>
+        {project?.commonStudyYoutubeTopic && (
+          <div className="recorded-field"><span className="muted">나의 공부 주제</span><strong>{project.commonStudyYoutubeTopic}</strong></div>
         )}
+        <input type="url" placeholder="YouTube 링크" value={youtubeUrl}
+          onChange={(e) => setYoutubeUrl(e.target.value)} maxLength={1000} />
+        <textarea placeholder="배운 점이나 느낀 점, 적용할 점을 한 줄로 작성해주세요"
+          value={takeaway} onChange={(e) => setTakeaway(e.target.value)} maxLength={1000} rows={3} />
         {error && <div className="error-banner">{error}</div>}
-        <button className="primary" onClick={handleSave} disabled={saving || checkingVision}>
-          {saving ? "저장 중..." : checkingVision ? "사진 확인 중..." : "저장"}
+        <button className="primary" onClick={handleSave} disabled={saving}>
+          {saving ? "저장 중..." : "저장"}
         </button>
       </div>
     </div>
@@ -485,6 +429,7 @@ function RetroReadOnlyBlock({ record }: { record: WeeklyRetrospectiveResponse })
 export function WeeklyRetrospectiveSection() {
   const { showToast } = useToast();
   const [history, setHistory] = useState<WeeklyRetrospectiveResponse[]>([]);
+  const [currentRetrospective, setCurrentRetrospective] = useState<WeeklyRetrospectiveResponse | null>(null);
   const [draft, setDraft] = useState<RetroDraft>(EMPTY_RETRO_DRAFT);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState<RetroDraft>(EMPTY_RETRO_DRAFT);
@@ -498,7 +443,10 @@ export function WeeklyRetrospectiveSection() {
       getWeeklyCommonTask(today),
       getWeeklyRetrospectiveHistory(today),
     ])
-      .then(([current, previous]) => setHistory(current ? [current, ...previous] : previous))
+      .then(([current, previous]) => {
+        setCurrentRetrospective(current);
+        setHistory(current ? [current, ...previous] : previous);
+      })
       .catch(() => setError("지난 회고를 불러오지 못했어요."))
       .finally(() => setLoading(false));
   }, []);
@@ -535,11 +483,16 @@ export function WeeklyRetrospectiveSection() {
   });
 
   const handleSave = async () => {
+    if (currentRetrospective) {
+      setError("이번 주 주간 회고는 이미 작성했어요. 기존 회고에서 수정해주세요.");
+      return;
+    }
     if (!validateDraft(draft)) return;
     setSaving(true);
     setError(null);
     try {
       const saved = await saveWeeklyRetrospective(requestFromDraft(draft));
+      setCurrentRetrospective(saved);
       setHistory((records) => [saved, ...records.filter((record) => record.id !== saved.id)]);
       setDraft(EMPTY_RETRO_DRAFT);
       showToast("주간 회고가 저장되었어요");
@@ -577,6 +530,11 @@ export function WeeklyRetrospectiveSection() {
             <div className="muted">한 주에 한 번, 회고와 다음 주 계획을 남겨요</div>
           </div>
         </div>
+        {currentRetrospective ? (
+          <div className="error-banner" style={{ marginTop: 12 }}>
+            이번 주 주간 회고는 이미 작성했어요. 아래 기존 회고에서 수정할 수 있어요.
+          </div>
+        ) : (
         <div className="stack" style={{ gap: 10, marginTop: 12 }}>
             <div className="stack" style={{ gap: 4 }}>
               <label className="muted" style={{ fontSize: 12.5 }}>
@@ -613,6 +571,7 @@ export function WeeklyRetrospectiveSection() {
               </button>
             </div>
           </div>
+        )}
       </div>
 
       {history.map((record) => (
@@ -669,11 +628,15 @@ export function WeeklyRetrospectiveSection() {
 // 주간 회고는 여기 포함하지 않는다 - 주 1회만 쓰면 되는 과제라 매일 도는 이 목록에 있으면 매번
 // 스쳐 지나가기 쉬워서, /weekly-retrospective 전용 화면(WeeklyRetrospectivePage)으로 분리했다
 // (WeeklyRetrospectiveSection을 이 파일에서 직접 export해서 그 페이지가 가져다 쓴다).
-export function CommonTasksCard() {
+export function CommonTasksCard({ project, date, readOnly = false }: {
+  project: ProjectResponse | null;
+  date: string;
+  readOnly?: boolean;
+}) {
   return (
     <>
-      <ReadingSection />
-      <StudySection />
+      <ReadingSection project={project} date={date} readOnly={readOnly} />
+      <StudySection project={project} date={date} readOnly={readOnly} />
     </>
   );
 }

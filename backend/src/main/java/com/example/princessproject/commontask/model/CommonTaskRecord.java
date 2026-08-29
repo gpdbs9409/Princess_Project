@@ -63,6 +63,12 @@ public class CommonTaskRecord {
     @Column(precision = 10, scale = 2)
     private BigDecimal studyCompletedAmount;
 
+    @Column(name = "study_youtube_url", length = 1000)
+    private String studyYoutubeUrl;
+
+    @Column(name = "study_takeaway", length = 1000)
+    private String studyTakeaway;
+
     // 실제 파일은 /api/uploads가 관리하고 여기에는 URL만 저장한다.
     @Column(name = "photo_url", length = 500)
     private String photoUrl;

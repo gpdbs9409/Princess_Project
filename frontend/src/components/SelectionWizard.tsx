@@ -45,13 +45,16 @@ function saveErrorMessage(err: unknown): string {
   return "저장에 실패했어요. 네트워크 상태를 확인하고 다시 시도해주세요.";
 }
 
-const MISSION_TYPE_LABELS: Record<MissionType, string> = {
-  DAILY: "매일",
-  WEEKLY: "매주",
-  TOTAL: "전체 기간",
-};
-
 const CUSTOM_STAT_NAME = "나만의 미션";
+const CUSTOM_STAT_EXAMPLES: Record<GoalTypeCode, string> = {
+  PHYSICAL: "회복 관리",
+  ECONOMY: "투자 관리",
+  CULTURE: "예술 감상",
+  KNOWLEDGE: "복습 관리",
+  LANGUAGE: "회화 연습",
+  PSYCHOLOGY: "감정 관리",
+  SYMBOL: "퍼스널 브랜딩",
+};
 
 interface MissionState {
   missionDefinitionId: number;
@@ -70,6 +73,8 @@ interface CustomMissionState {
   unit: string;
   assignedPoints: number;
   missionType: MissionType;
+  selected: boolean;
+  saved: boolean;
   // null이면 customSectionName으로 묶인 "나만의 세부 항목"에 들어간다. 값이 있으면 그
   // statTypeId를 가진 기존 세부 항목(운동/식단/수면 등) 밑에 바로 얹혀서, 그 항목의 카탈로그
   // 미션들과 나란히 표시된다 (2026-08-26 QA: 세부 항목마다 미션을 추가할 수 있으면 좋겠다는
@@ -116,6 +121,8 @@ function blankCustomMission(): CustomMissionState {
     // 0을 보내고, 컬럼은 하위호환을 위해서만 남아 있다.
     assignedPoints: 0,
     missionType: "DAILY",
+    selected: true,
+    saved: false,
     targetStatTypeId: null,
     customSectionName: CUSTOM_STAT_NAME,
   };
@@ -174,6 +181,8 @@ function buildInitialState(catalog: CatalogGoal[], project?: ProjectResponse): G
           unit: m.unit,
           assignedPoints: m.assignedPoints,
           missionType: m.missionType,
+          selected: true,
+          saved: true,
           targetStatTypeId: null,
           customSectionName: CUSTOM_STAT_NAME,
         })),
@@ -194,6 +203,11 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
   const [goalHuman, setGoalHuman] = useState(initialProject?.goalHuman ?? "");
   const [goalAppearance, setGoalAppearance] = useState(initialProject?.goalAppearance ?? "");
   const [goalEnding, setGoalEnding] = useState(initialProject?.goalEnding ?? "");
+  const [readingBookTitle, setReadingBookTitle] = useState(initialProject?.commonReadingBookTitle ?? "");
+  const [readingTotalPages, setReadingTotalPages] = useState(
+    initialProject?.commonReadingTotalPages?.toString() ?? ""
+  );
+  const [studyYoutubeTopic, setStudyYoutubeTopic] = useState(initialProject?.commonStudyYoutubeTopic ?? "");
   const [goals, setGoals] = useState<GoalState[]>(() => buildInitialState(catalog, initialProject));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -253,14 +267,13 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
   const addCustomMission = (goalTypeCode: GoalTypeCode) => {
     updateGoal(goalTypeCode, (g) => ({
       ...g,
-      customStat: { ...g.customStat, missions: [...g.customStat.missions, blankCustomMission()] },
-    }));
-  };
-
-  const removeCustomMission = (goalTypeCode: GoalTypeCode, key: string) => {
-    updateGoal(goalTypeCode, (g) => ({
-      ...g,
-      customStat: { ...g.customStat, missions: g.customStat.missions.filter((m) => m.key !== key) },
+      customStat: {
+        ...g.customStat,
+        missions: [
+          ...g.customStat.missions,
+          { ...blankCustomMission(), customSectionName: CUSTOM_STAT_EXAMPLES[goalTypeCode] },
+        ],
+      },
     }));
   };
 
@@ -272,6 +285,24 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
         missions: g.customStat.missions.map((m) => (m.key === key ? { ...m, ...patch } : m)),
       },
     }));
+  };
+
+  const saveCustomMission = (goalTypeCode: GoalTypeCode, mission: CustomMissionState) => {
+    if (!mission.name.trim()) {
+      setError("추가할 미션 이름을 입력해주세요.");
+      return;
+    }
+    if (mission.targetStatTypeId == null && !mission.customSectionName.trim()) {
+      setError("새 세부 항목 이름을 입력해주세요.");
+      return;
+    }
+    updateCustomMission(goalTypeCode, mission.key, {
+      name: mission.name.trim(),
+      customSectionName: mission.customSectionName.trim(),
+      saved: true,
+      selected: true,
+    });
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -288,14 +319,14 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
         const customByNewSectionName = new Map<string, { customName: string; targetValue: number; unit: string; assignedPoints: number; missionType: MissionType }[]>();
 
         g.customStat.missions
-          .filter((m) => m.name.trim().length > 0)
+          .filter((m) => m.saved && m.selected && m.name.trim().length > 0)
           .forEach((m) => {
             const entry = {
               customName: m.name.trim(),
               targetValue: m.targetValue,
               unit: m.unit,
               assignedPoints: m.assignedPoints,
-              missionType: m.missionType,
+              missionType: "DAILY" as const,
             };
             if (m.targetStatTypeId != null) {
               const list = customByStatTypeId.get(m.targetStatTypeId) ?? [];
@@ -320,7 +351,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                   targetValue: m.targetValue,
                   unit: m.unit,
                   assignedPoints: m.assignedPoints,
-                  missionType: m.missionType,
+                  missionType: "DAILY" as const,
                 })),
               ...(customByStatTypeId.get(s.statTypeId) ?? []),
             ],
@@ -357,6 +388,15 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
       );
       return;
     }
+    const totalPages = Number(readingTotalPages);
+    if (!readingBookTitle.trim() || !readingTotalPages || !Number.isInteger(totalPages) || totalPages < 1 || totalPages > 100000) {
+      setError("공통자본의 책 제목과 전체 분량(1~100,000쪽)을 입력해주세요.");
+      return;
+    }
+    if (!studyYoutubeTopic.trim()) {
+      setError("공통자본의 공부 목표 YouTube 주제를 입력해주세요.");
+      return;
+    }
 
     if (!window.confirm("아비투스와 미션은 한 번 설정하면 수정할 수 없어요. 이대로 확정할까요?")) return;
     setError(null);
@@ -366,6 +406,9 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
         goalHuman: goalHuman || undefined,
         goalAppearance: goalAppearance || undefined,
         goalEnding: goalEnding || undefined,
+        commonReadingBookTitle: readingBookTitle.trim(),
+        commonReadingTotalPages: totalPages,
+        commonStudyYoutubeTopic: studyYoutubeTopic.trim(),
         goals: selectedGoals,
       });
       showToast("저장되었어요");
@@ -422,22 +465,31 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
         </div>
       </div>
 
-      <div className="card stack" style={{ gap: 8, background: "var(--surface-2)" }}>
-        <strong style={{ fontSize: 14 }}>공통 과제 3종 (전원 필수, 아래 아비투스 선택과 별도예요)</strong>
-        <p className="muted" style={{ margin: 0 }}>
-          독서 · 공부 · 주간 회고는 어떤 아비투스를 고르든 모든 참가자가 함께 수행해요. 그래서 아래
-          목록에는 포함되어 있지 않아요.
-        </p>
-        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: "var(--text-muted)" }}>
-          <li>독서: 시작~종료 페이지를 기록해요. 일일 최소 권장 10p, 주간 달성률 = 독서한 일수 / 7</li>
-          <li>공부: 주간 총 범위를 미리 정해두고, 달성률 = 완료량 / 계획량 (측정이 어려우면 시간 기준도 가능해요)</li>
-          <li>주간 회고: 이번 주 회고 / 다음 주 계획 (주 1회)</li>
-        </ul>
+      <div className="card stack" style={{ gap: 14 }}>
+        <div>
+          <strong>공통자본</strong>
+          <div className="muted">아비투스 선택과 별도로 모든 참가자가 매일 수행해요.</div>
+        </div>
+        <div className="stack" style={{ gap: 8 }}>
+          <strong style={{ fontSize: 14 }}>독서</strong>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <input type="text" value={readingBookTitle} onChange={(e) => setReadingBookTitle(e.target.value)}
+              placeholder="책 제목" maxLength={200} style={{ flex: "1 1 220px" }} />
+            <input type="number" value={readingTotalPages} onChange={(e) => setReadingTotalPages(sanitizeNumberInput(e))}
+              placeholder="책 전체 분량" min={1} max={100000} style={{ flex: "0 1 160px" }} />
+            <span className="muted">쪽</span>
+          </div>
+        </div>
+        <div className="stack" style={{ gap: 8 }}>
+          <strong style={{ fontSize: 14 }}>공부</strong>
+          <input type="text" value={studyYoutubeTopic} onChange={(e) => setStudyYoutubeTopic(e.target.value)}
+            placeholder="나에게 영감을 주는 YouTube 주제 (예: 경제 뉴스 쉽게 이해하기)" maxLength={300} />
+        </div>
       </div>
 
       <p className="muted">
         키우고 싶은 아비투스를 고르고 비중(%)을 입력한 뒤, 그 안에서 행동양식과 구체적인 미션(운동 등)을 선택하세요.
-        목록에 없는 미션은 "나만의 미션"에서 직접 추가할 수 있는데, 이때 기존 세부 항목(운동/식단/수면 등) 밑에
+        목록에 없는 미션은 "미션 직접 추가"에서 만들 수 있는데, 이때 기존 세부 항목(운동/식단/수면 등) 밑에
         바로 넣을지, 이름을 새로 지어 새 세부 항목을 만들지 고를 수 있어요.
       </p>
 
@@ -483,17 +535,6 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                           {mission.name}
                         </label>
                         <span className="row" style={{ gap: 4 }}>
-                          <select
-                            value={mission.missionType}
-                            onChange={(e) =>
-                              updateMission(goal.goalTypeCode, stat.statTypeId, mission.missionDefinitionId, {
-                                missionType: e.target.value as MissionType,
-                              })
-                            }
-                            style={{ fontSize: 12, padding: "4px 6px" }}
-                          >
-                            <option value="DAILY">{MISSION_TYPE_LABELS.DAILY}</option>
-                          </select>
                           <input
                             type="number"
                             min={MIN_MISSION_TARGET}
@@ -510,19 +551,62 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                         </span>
                       </div>
                     ))}
+                    {goal.customStat.missions
+                      .filter((mission) => mission.saved && mission.targetStatTypeId === stat.statTypeId)
+                      .map((mission) => (
+                        <label key={mission.key} className="row" style={{ gap: 6, fontSize: 13 }}>
+                          <input
+                            type="checkbox"
+                            checked={mission.selected}
+                            onChange={() =>
+                              updateCustomMission(goal.goalTypeCode, mission.key, { selected: !mission.selected })
+                            }
+                          />
+                          {mission.name}
+                        </label>
+                      ))}
                   </div>
                 </div>
               ))}
 
-              {/* "나만의 미션" sits as its own section, a sibling of the catalog stats above
-                  (신체 -> 운동/식단/수면/나만의 미션), not nested inside any one of them. */}
+              {Array.from(new Set(
+                goal.customStat.missions
+                  .filter((mission) => mission.saved && mission.targetStatTypeId == null)
+                  .map((mission) => mission.customSectionName)
+              )).map((sectionName) => (
+                <div key={sectionName}>
+                  <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>
+                    {sectionName}
+                  </span>
+                  <div className="stack" style={{ marginTop: 6, gap: 6, paddingLeft: 8 }}>
+                    {goal.customStat.missions
+                      .filter((mission) =>
+                        mission.saved && mission.targetStatTypeId == null && mission.customSectionName === sectionName
+                      )
+                      .map((mission) => (
+                        <label key={mission.key} className="row" style={{ gap: 6, fontSize: 13 }}>
+                          <input
+                            type="checkbox"
+                            checked={mission.selected}
+                            onChange={() =>
+                              updateCustomMission(goal.goalTypeCode, mission.key, { selected: !mission.selected })
+                            }
+                          />
+                          {mission.name}
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* 사용자가 기존 세부 항목에 미션을 붙이거나 새 세부 항목을 만들 수 있는 영역. */}
               <div>
                 <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>
-                  {CUSTOM_STAT_NAME}
+                  미션 직접 추가
                 </span>
 
                 <div className="stack" style={{ marginTop: 6, gap: 10, paddingLeft: 8 }}>
-                  {goal.customStat.missions.map((mission) => (
+                  {goal.customStat.missions.filter((mission) => !mission.saved).map((mission) => (
                       <div key={mission.key} className="stack" style={{ gap: 6, fontSize: 13 }}>
                         {/* 어디에 반영할지: 기존 세부 항목(운동/식단/수면 등) 중 하나를 고르면 그
                             항목 밑에 바로 붙고, "새 세부 항목"을 고르면 아래 이름 입력칸에 적은
@@ -533,13 +617,18 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                             onChange={(e) =>
                               updateCustomMission(goal.goalTypeCode, mission.key, {
                                 targetStatTypeId: e.target.value === "custom" ? null : Number(e.target.value),
+                                customSectionName:
+                                  e.target.value === "custom" && !mission.customSectionName.trim()
+                                    ? CUSTOM_STAT_EXAMPLES[goal.goalTypeCode]
+                                    : mission.customSectionName,
                               })
                             }
-                            style={{ fontSize: 12, padding: "4px 6px", maxWidth: 140 }}
+                            aria-label="미션을 추가할 세부 항목"
+                            style={{ fontSize: 13, maxWidth: 180, height: 40 }}
                           >
                             {goal.stats.map((s) => (
                               <option key={s.statTypeId} value={s.statTypeId}>
-                                {s.name} 밑에 추가
+                                {s.name}
                               </option>
                             ))}
                             <option value="custom">새 세부 항목 만들기</option>
@@ -547,12 +636,13 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                           {mission.targetStatTypeId == null && (
                             <input
                               type="text"
-                              placeholder="세부 항목 이름 (예: 나만의 미션)"
+                              aria-label="새 세부 항목 이름"
+                              placeholder={`세부 항목 (예: ${CUSTOM_STAT_EXAMPLES[goal.goalTypeCode]})`}
                               value={mission.customSectionName}
                               onChange={(e) =>
                                 updateCustomMission(goal.goalTypeCode, mission.key, { customSectionName: e.target.value })
                               }
-                              style={{ maxWidth: 160 }}
+                              style={{ maxWidth: 180, height: 40 }}
                             />
                           )}
                         </div>
@@ -566,42 +656,12 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
                           />
                           <button
                             type="button"
-                            className="ghost"
-                            style={{ padding: "4px 8px" }}
-                            onClick={() => removeCustomMission(goal.goalTypeCode, mission.key)}
+                            className="primary"
+                            style={{ padding: "4px 12px" }}
+                            onClick={() => saveCustomMission(goal.goalTypeCode, mission)}
                           >
-                            삭제
+                            저장
                           </button>
-                        </div>
-                        <div className="row" style={{ gap: 6 }}>
-                          <select
-                            value={mission.missionType}
-                            onChange={(e) =>
-                              updateCustomMission(goal.goalTypeCode, mission.key, { missionType: e.target.value as MissionType })
-                            }
-                            style={{ fontSize: 12, padding: "4px 6px", maxWidth: 90 }}
-                          >
-                            <option value="DAILY">{MISSION_TYPE_LABELS.DAILY}</option>
-                          </select>
-                          <input
-                            type="number"
-                            min={MIN_MISSION_TARGET}
-                            max={MAX_MISSION_TARGET}
-                            value={mission.targetValue}
-                            onChange={(e) =>
-                              updateCustomMission(goal.goalTypeCode, mission.key, {
-                                targetValue: clamp(Number(sanitizeNumberInput(e)) || 0, MIN_MISSION_TARGET, MAX_MISSION_TARGET),
-                              })
-                            }
-                            style={{ maxWidth: 60 }}
-                          />
-                          <input
-                            type="text"
-                            placeholder="단위"
-                            value={mission.unit}
-                            onChange={(e) => updateCustomMission(goal.goalTypeCode, mission.key, { unit: e.target.value })}
-                            style={{ maxWidth: 60 }}
-                          />
                         </div>
                       </div>
                     ))}

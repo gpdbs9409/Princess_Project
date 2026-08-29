@@ -107,6 +107,9 @@ public class UserProjectService {
         project.setGoalHuman(request.goalHuman());
         project.setGoalAppearance(request.goalAppearance());
         project.setGoalEnding(request.goalEnding());
+        project.setCommonReadingBookTitle(request.commonReadingBookTitle());
+        project.setCommonReadingTotalPages(request.commonReadingTotalPages());
+        project.setCommonStudyYoutubeTopic(request.commonStudyYoutubeTopic());
         project.getGoals().clear();
         userProjectRepository.saveAndFlush(project);
 
