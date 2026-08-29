@@ -21,21 +21,10 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
-/**
- * One day's (READING/STUDY) or one week's (WEEKLY_RETROSPECTIVE) entry for a common task.
- * recordDate means "the day" for READING/STUDY and "that week's Monday" for
- * WEEKLY_RETROSPECTIVE - CommonTaskService.normalizeDate is the single place that mapping
- * happens, so callers never have to think about it.
- *
- * One table for all 3 types (rather than 3 separate tables) because they share the same
- * identity shape (one row per user per type per day/week) and the type-specific columns are
- * few enough that nullable columns are simpler than a join.
- */
+/** A daily READING/STUDY record. Weekly retrospectives live in a separate aggregate. */
 @Entity
-@Table(name = "common_task_records")
+@Table(name = "daily_common_task_records")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -57,7 +46,7 @@ public class CommonTaskRecord {
     @Column(name = "task_type", length = 30, nullable = false)
     private CommonTaskType taskType;
 
-    /** The day (READING/STUDY) or that week's Monday (WEEKLY_RETROSPECTIVE). */
+    /** The day on which the task was performed. */
     private LocalDate recordDate;
 
     // ---- READING: 책 제목(선택), 시작~종료 페이지 ----
@@ -74,25 +63,16 @@ public class CommonTaskRecord {
     @Column(precision = 10, scale = 2)
     private BigDecimal studyCompletedAmount;
 
-    // ---- WEEKLY_RETROSPECTIVE: PART1/2/3 ----
-    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
-    private String retroDailyLife;
-
-    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
-    private String retroWeekReview;
-
-    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
-    private String retroNextWeekPlan;
-
-    // READING/STUDY 전용 사진 인증 (2026-08-21: 타 습관 카드와 동일하게 사진인증 추가).
-    // WEEKLY_RETROSPECTIVE에는 쓰이지 않는다 - MissionCard와 마찬가지로 업로드 URL만 들고
-    // 있고, 실제 파일은 /api/uploads가 관리한다.
+    // 실제 파일은 /api/uploads가 관리하고 여기에는 URL만 저장한다.
     @Column(name = "photo_url", length = 500)
     private String photoUrl;
 
     /** Vision API relevance verdict. Null is reserved for legacy records/not-yet-checked photos. */
     @Column(name = "ai_verified")
     private Boolean aiVerified;
+
+    @Column(name = "admin_invalidated", nullable = false)
+    private boolean adminInvalidated;
 
     @Column(length = 1000)
     private String memo;

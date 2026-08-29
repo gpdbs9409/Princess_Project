@@ -575,6 +575,7 @@ CREATE TABLE daily_records (
 
     -- GPT-4o mini 사진 검수 결과 (NULL = 검수 미실행)
     ai_verified BOOLEAN NULL,
+    admin_invalidated BOOLEAN NOT NULL DEFAULT FALSE,
 
     /*
       미션 설정이 나중에 변경되더라도
@@ -857,13 +858,13 @@ CREATE TABLE score_adjustments (
 
 
 -- =========================================================
--- 14. COMMON_TASK_RECORDS
--- 독서/공부/주간회고 "공통 과제 3종" 기록 - 모든 참가자가 선택한 아비투스와 무관하게
+-- 14. DAILY_COMMON_TASK_RECORDS
+-- 매일 수행하는 독서/공부 기록 - 점수와 환급에 반영된다.
 -- 공통으로 수행하므로, 가중치 합계 100% 규칙이 있는 user_goals/user_stats/user_missions
 -- 트리와는 별도로 둔다.
 -- =========================================================
 
-CREATE TABLE common_task_records (
+CREATE TABLE daily_common_task_records (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
     user_id BIGINT NOT NULL,
@@ -871,11 +872,10 @@ CREATE TABLE common_task_records (
 
     task_type ENUM(
         'READING',
-        'STUDY',
-        'WEEKLY_RETROSPECTIVE'
+        'STUDY'
     ) NOT NULL,
 
-    -- READING/STUDY: 그 날짜. WEEKLY_RETROSPECTIVE: 그 주의 월요일.
+    -- 실제 수행 날짜
     record_date DATE NOT NULL,
 
     -- READING (책 제목은 2026-08-26 추가, 선택 입력)
@@ -887,15 +887,11 @@ CREATE TABLE common_task_records (
     study_planned_amount DECIMAL(10, 2) NULL,
     study_completed_amount DECIMAL(10, 2) NULL,
 
-    -- WEEKLY_RETROSPECTIVE (PART1/2/3)
-    retro_daily_life TEXT NULL,
-    retro_week_review TEXT NULL,
-    retro_next_week_plan TEXT NULL,
-
     -- READING/STUDY 전용 사진 인증 (2026-08-21)
     photo_url VARCHAR(500) NULL,
     -- Vision 관련성 판정. false여도 기록 저장은 허용하고 운영진 검토에만 사용한다.
     ai_verified BOOLEAN NULL,
+    admin_invalidated BOOLEAN NOT NULL DEFAULT FALSE,
 
     memo VARCHAR(1000) NULL,
 
@@ -906,7 +902,7 @@ CREATE TABLE common_task_records (
         DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
-    INDEX idx_common_task_records_user_type_date (
+    UNIQUE KEY uk_common_task_records_user_type_date (
             user_id,
             task_type,
             record_date
@@ -951,6 +947,25 @@ CREATE TABLE common_task_records (
             study_completed_amount IS NULL
             OR study_completed_amount >= 0
         )
+) ENGINE = InnoDB;
+
+-- 주간 회고는 선택 기록이며 점수·환급 계산에서 참조하지 않는다.
+CREATE TABLE weekly_retrospectives (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    project_id BIGINT NOT NULL,
+    week_start DATE NOT NULL,
+    retro_daily_life TEXT NULL,
+    retro_week_review TEXT NULL,
+    retro_next_week_plan TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_weekly_retrospectives_user_week (user_id, week_start),
+    INDEX idx_weekly_retrospectives_project (project_id),
+    CONSTRAINT fk_weekly_retrospectives_user FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_weekly_retrospectives_project FOREIGN KEY (project_id) REFERENCES user_projects(id)
+        ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB;
 
 

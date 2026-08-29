@@ -35,6 +35,7 @@ const SAVE_ERROR_MESSAGES: Record<string, string> = {
   MISSION_POINTS_OUT_OF_RANGE: "미션 배점이 올바르지 않아요. 값을 확인해주세요.",
   CONSTRAINT_VIOLATION: "입력한 값이 조건에 맞지 않아서 저장할 수 없어요. 비중(%)과 목표값을 확인해주세요.",
   GOALS_ALREADY_SET: "아비투스와 미션은 이미 설정되어 있어서 다시 저장할 수 없어요. 최초 설정 후에는 수정할 수 없어요.",
+  GOAL_COUNT_INVALID: "아비투스는 3개까지만 선택할 수 있어요.",
 };
 
 function saveErrorMessage(err: unknown): string {
@@ -209,6 +210,13 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
   };
 
   const toggleGoal = (goalTypeCode: GoalTypeCode) => {
+    const selectedCount = goals.filter((goal) => goal.selected).length;
+    const target = goals.find((goal) => goal.goalTypeCode === goalTypeCode);
+    if (target && !target.selected && selectedCount >= 3) {
+      setError("아비투스는 정확히 3개만 선택할 수 있어요.");
+      return;
+    }
+    setError(null);
     updateGoal(goalTypeCode, (g) => {
       const selected = !g.selected;
       return { ...g, selected, weightPercent: selected && g.weightPercent < 1 ? 100 : g.weightPercent };
@@ -334,6 +342,10 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
       setError("최소 하나의 아비투스에서, 행동양식과 미션을 하나 이상 선택해주세요.");
       return;
     }
+    if (selectedGoals.length !== 3) {
+      setError(`아비투스는 정확히 3개를 선택해야 해요. 현재 ${selectedGoals.length}개를 선택했어요.`);
+      return;
+    }
     if (selectedGoals.some((g) => g.weightPercent < 1)) {
       setError("선택한 아비투스의 비중(%)은 1 이상이어야 합니다.");
       return;
@@ -346,6 +358,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
       return;
     }
 
+    if (!window.confirm("아비투스와 미션은 한 번 설정하면 수정할 수 없어요. 이대로 확정할까요?")) return;
     setError(null);
     setSubmitting(true);
     try {

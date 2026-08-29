@@ -136,6 +136,9 @@ public class UserProjectService {
         if (selectedGoals.isEmpty()) {
             return;
         }
+        if (selectedGoals.size() > 3) {
+            throw new ProjectValidationException("GOAL_COUNT_INVALID", "At most 3 goals may be selected");
+        }
 
         long distinctGoalTypes = selectedGoals.stream().map(ProjectSelectionsRequest.GoalSelection::goalTypeCode).distinct().count();
         if (distinctGoalTypes < selectedGoals.size()) {

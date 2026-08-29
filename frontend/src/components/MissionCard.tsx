@@ -113,10 +113,6 @@ export function MissionCard({ mission, date, completed, record, onSaved }: Missi
     } catch (err) {
       if (err instanceof ApiError && err.code === "PHOTO_REQUIRED") {
         setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
-      } else if (err instanceof ApiError && err.code === "PHOTO_NOT_FROM_TODAY") {
-        setError("오늘 찍은 사진이 아니에요. 오늘 찍은 사진으로 바꿔주세요.");
-      } else if (err instanceof ApiError && err.code === "PHOTO_DATE_UNKNOWN") {
-        setError("사진 촬영 날짜를 확인할 수 없어요. 오늘 찍은 사진으로 바꿔주세요.");
       } else if (err instanceof ApiError && err.code === "INPUT_NEGATIVE") {
         setError("입력값은 0보다 커야 해요.");
       } else if (err instanceof ApiError && err.code === "INPUT_TOO_LARGE") {

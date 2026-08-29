@@ -8,6 +8,5 @@ package com.example.princessproject.commontask.model;
  */
 public enum CommonTaskType {
     READING,
-    STUDY,
-    WEEKLY_RETROSPECTIVE
+    STUDY
 }

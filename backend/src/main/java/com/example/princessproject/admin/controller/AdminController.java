@@ -2,6 +2,7 @@ package com.example.princessproject.admin.controller;
 
 import com.example.princessproject.admin.dto.AdjustmentRequest;
 import com.example.princessproject.admin.dto.AdjustmentResponse;
+import com.example.princessproject.admin.dto.ActivityInvalidationRequest;
 import com.example.princessproject.admin.dto.AdminApplicantResponse;
 import com.example.princessproject.admin.dto.AdminActivityResponse;
 import com.example.princessproject.admin.dto.AdminMemberResponse;
@@ -85,6 +86,13 @@ public class AdminController {
     @GetMapping("/activities/review")
     public List<AdminActivityResponse> activitiesForReview(@RequestParam(required = false) String cohort) {
         return adminService.listActivitiesForReview(cohort);
+    }
+
+    @PutMapping("/activities/{activityType}/{recordId}/invalidation")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void setActivityInvalidation(@PathVariable String activityType, @PathVariable Long recordId,
+                                        @RequestBody ActivityInvalidationRequest request) {
+        adminService.setActivityInvalidated(activityType, recordId, request.invalidated());
     }
 
     @PutMapping("/members/{userId}/cohort")

@@ -59,6 +59,8 @@ export function MyPage() {
     } catch (err) {
       if (err instanceof ApiError && err.code === "EMAIL_TAKEN") {
         setEmailError("이미 사용 중인 이메일이에요.");
+      } else if (err instanceof ApiError && err.code === "INVALID_EMAIL") {
+        setEmailError("이메일 형식이 올바르지 않아요. 올바른 이메일 주소를 입력해주세요.");
       } else {
         setEmailError("이메일 저장에 실패했어요. 잠시 후 다시 시도해주세요.");
       }

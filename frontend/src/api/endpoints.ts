@@ -11,6 +11,8 @@ import type {
   CatalogGoal,
   CommonTaskRequest,
   CommonTaskResponse,
+  WeeklyRetrospectiveRequest,
+  WeeklyRetrospectiveResponse,
   DailySummaryResponse,
   LoginResponse,
   AiFeedbackResponse,
@@ -108,15 +110,18 @@ export const getDailyCommonTasks = (date: string) =>
   api.get<CommonTaskResponse[]>(`/api/common-tasks/daily?date=${date}`);
 
 export const getWeeklyCommonTask = (weekStart: string) =>
-  api.get<CommonTaskResponse | null>(`/api/common-tasks/weekly?weekStart=${weekStart}`);
+  api.get<WeeklyRetrospectiveResponse | null>(`/api/weekly-retrospectives?weekStart=${weekStart}`);
 
 // 지난 주간회고 히스토리 (2026-08-27 요청) - 이번 주는 getWeeklyCommonTask로 따로 받고, 그 이전
 // 주들만 최신순으로 받아서 입력란 아래에 스택으로 쌓는다.
 export const getWeeklyRetrospectiveHistory = (weekStart: string) =>
-  api.get<CommonTaskResponse[]>(`/api/common-tasks/weekly/history?weekStart=${weekStart}`);
+  api.get<WeeklyRetrospectiveResponse[]>(`/api/weekly-retrospectives/history?weekStart=${weekStart}`);
 
-export const updateWeeklyRetrospective = (recordId: number, request: CommonTaskRequest) =>
-  api.put<CommonTaskResponse>(`/api/common-tasks/weekly/${recordId}`, request);
+export const saveWeeklyRetrospective = (request: WeeklyRetrospectiveRequest) =>
+  api.post<WeeklyRetrospectiveResponse>("/api/weekly-retrospectives", request);
+
+export const updateWeeklyRetrospective = (recordId: number, request: WeeklyRetrospectiveRequest) =>
+  api.put<WeeklyRetrospectiveResponse>(`/api/weekly-retrospectives/${recordId}`, request);
 
 export const uploadFile = (file: File) => {
   const formData = new FormData();
@@ -150,6 +155,9 @@ export const getAdminActivitiesForReview = (cohort: string | null) => {
   const query = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
   return api.get<AdminActivityResponse[]>(`/api/admin/activities/review${query}`);
 };
+
+export const setAdminActivityInvalidated = (activityType: string, recordId: number, invalidated: boolean) =>
+  api.put<void>(`/api/admin/activities/${activityType}/${recordId}/invalidation`, { invalidated });
 
 export const assignAdminCohort = (userId: number, cohort: string | null) =>
   api.put<AdminMemberResponse>(`/api/admin/members/${userId}/cohort`, { cohort });

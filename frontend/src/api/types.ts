@@ -98,6 +98,7 @@ export interface AdminActivityResponse {
   memo: string | null;
   photoUrl: string | null;
   aiVerified: boolean | null;
+  adminInvalidated: boolean;
   recordedAt: string | null;
 }
 
@@ -337,10 +338,9 @@ export interface VisionAnalysisResponse {
   confidence: string;
 }
 
-// ---- common tasks (독서/공부/주간회고 - mandatory for everyone, tracked separately from the
-// weighted 아비투스/미션 tree so picking capitals never hides or excludes them) ----
+// ---- daily common tasks (독서/공부): score/refund inputs ----
 
-export type CommonTaskType = "READING" | "STUDY" | "WEEKLY_RETROSPECTIVE";
+export type CommonTaskType = "READING" | "STUDY";
 
 export interface CommonTaskRequest {
   taskType: CommonTaskType;
@@ -351,10 +351,7 @@ export interface CommonTaskRequest {
   endPage?: number;
   studyPlannedAmount?: number;
   studyCompletedAmount?: number;
-  retroDailyLife?: string;
-  retroWeekReview?: string;
-  retroNextWeekPlan?: string;
-  // READING/STUDY만 필수 (2026-08-21: 타 습관 카드와 동일하게 사진인증 추가). WEEKLY_RETROSPECTIVE는 없음.
+  // 독서/공부 모두 사진 인증 필수.
   photoUrl?: string;
   // Vision 결과는 저장 차단용이 아니라 운영진 검토용 플래그다.
   aiVerified?: boolean;
@@ -370,11 +367,24 @@ export interface CommonTaskResponse {
   endPage: number | null;
   studyPlannedAmount: number | null;
   studyCompletedAmount: number | null;
-  retroDailyLife: string | null;
-  retroWeekReview: string | null;
-  retroNextWeekPlan: string | null;
   photoUrl: string | null;
   aiVerified: boolean | null;
   memo: string | null;
+  createdAt: string;
+}
+
+export interface WeeklyRetrospectiveRequest {
+  date: string;
+  retroDailyLife?: string;
+  retroWeekReview?: string;
+  retroNextWeekPlan?: string;
+}
+
+export interface WeeklyRetrospectiveResponse {
+  id: number;
+  recordDate: string;
+  retroDailyLife: string | null;
+  retroWeekReview: string | null;
+  retroNextWeekPlan: string | null;
   createdAt: string;
 }

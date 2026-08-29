@@ -182,9 +182,9 @@
 
 ## 9. 첫 인증 실습
 
-실제 인증 로직(`MissionCard.tsx`, `CameraCapture.tsx`)은 이미 완성되어 있어요: 카메라 실시간
-촬영만 허용(갤러리 업로드 불가 — 사진 재사용 방지), 촬영 즉시 `analyzeVisionPhoto`로 AI 검증,
-`PHOTO_NOT_FROM_TODAY`/`PHOTO_DATE_UNKNOWN` 같은 에러 코드까지 갖춰져 있어요.
+실제 인증 로직(`MissionCard.tsx`, `CameraCapture.tsx`)은 이미 완성되어 있어요: 카메라 촬영과
+갤러리 선택을 모두 허용하고, 선택 즉시 `analyzeVisionPhoto`로 AI 검증합니다. EXIF 촬영 날짜는
+검사하지 않습니다.
 
 | 단계 | 화면/동작 |
 |---|---|

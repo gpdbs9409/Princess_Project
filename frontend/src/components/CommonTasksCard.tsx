@@ -3,18 +3,20 @@ import { ApiError } from "../api/client";
 import {
   analyzeVisionPhoto,
   getDailyCommonTasks,
+  getWeeklyCommonTask,
   getWeeklyRetrospectiveHistory,
   saveCommonTask,
+  saveWeeklyRetrospective,
   updateWeeklyRetrospective,
   uploadFile,
 } from "../api/endpoints";
-import type { CommonTaskResponse } from "../api/types";
+import type { CommonTaskResponse, WeeklyRetrospectiveResponse } from "../api/types";
 import { PhotoCaptureField } from "./PhotoCaptureField";
 import { useToast } from "./ToastProvider";
 
 // A "field to write these in" was missing from the whole app even though the setup wizard's
-// notice above the goal list calls 독서/공부/주간회고 mandatory for every participant (전원
-// 필수) - this card is that field. It's rendered on RecordPage alongside the regular mission
+// notice above the goal list calls 독서/공부 daily tasks and 주간회고 an optional task - this
+// card is that field. It's rendered on RecordPage alongside the regular mission
 // list, but intentionally isn't a UserMission: these apply no matter which 아비투스/capitals
 // someone picked, so they can't live inside the weighted goal/stat tree without either
 // force-attaching a goal nobody chose or being invisible to anyone who skipped 지식.
@@ -429,7 +431,7 @@ type RetroDraft = {
 
 const EMPTY_RETRO_DRAFT: RetroDraft = { dailyLife: "", weekReview: "", nextWeekPlan: "" };
 
-function draftFromRecord(record: CommonTaskResponse | null): RetroDraft {
+function draftFromRecord(record: WeeklyRetrospectiveResponse | null): RetroDraft {
   if (!record) return EMPTY_RETRO_DRAFT;
   return {
     dailyLife: record.retroDailyLife ?? "",
@@ -451,7 +453,7 @@ function formatWeekLabel(weekStartIso: string): string {
 
 // 저장된 회고를 읽기 전용으로 보여주는 블록 - 내용이 있는 항목만 표시한다 (RETROSPECTIVE_EMPTY 검증이
 // "최소 하나"만 요구하므로 나머지 둘은 비어있을 수 있다).
-function RetroReadOnlyBlock({ record }: { record: CommonTaskResponse }) {
+function RetroReadOnlyBlock({ record }: { record: WeeklyRetrospectiveResponse }) {
   const parts = [
         { label: "이번 주 회고", value: record.retroWeekReview },
     { label: "다음 주 계획", value: record.retroNextWeekPlan },
@@ -482,7 +484,7 @@ function RetroReadOnlyBlock({ record }: { record: CommonTaskResponse }) {
 // 로직(saveCommonTask가 항상 todayIso() 기준으로 그 주에 upsert) 특성상 열람 전용으로만 둔다.
 export function WeeklyRetrospectiveSection() {
   const { showToast } = useToast();
-  const [history, setHistory] = useState<CommonTaskResponse[]>([]);
+  const [history, setHistory] = useState<WeeklyRetrospectiveResponse[]>([]);
   const [draft, setDraft] = useState<RetroDraft>(EMPTY_RETRO_DRAFT);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState<RetroDraft>(EMPTY_RETRO_DRAFT);
@@ -491,13 +493,17 @@ export function WeeklyRetrospectiveSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getWeeklyRetrospectiveHistory(todayIso())
-      .then(setHistory)
+    const today = todayIso();
+    Promise.all([
+      getWeeklyCommonTask(today),
+      getWeeklyRetrospectiveHistory(today),
+    ])
+      .then(([current, previous]) => setHistory(current ? [current, ...previous] : previous))
       .catch(() => setError("지난 회고를 불러오지 못했어요."))
       .finally(() => setLoading(false));
   }, []);
 
-  const startEditing = (record: CommonTaskResponse) => {
+  const startEditing = (record: WeeklyRetrospectiveResponse) => {
     setEditingId(record.id);
     setEditDraft(draftFromRecord(record));
     setError(null);
@@ -522,7 +528,6 @@ export function WeeklyRetrospectiveSection() {
   };
 
   const requestFromDraft = (value: RetroDraft) => ({
-    taskType: "WEEKLY_RETROSPECTIVE" as const,
     date: todayIso(),
     retroDailyLife: value.dailyLife.trim() || undefined,
     retroWeekReview: value.weekReview.trim() || undefined,
@@ -534,8 +539,8 @@ export function WeeklyRetrospectiveSection() {
     setSaving(true);
     setError(null);
     try {
-      const saved = await saveCommonTask(requestFromDraft(draft));
-      setHistory((records) => [saved, ...records]);
+      const saved = await saveWeeklyRetrospective(requestFromDraft(draft));
+      setHistory((records) => [saved, ...records.filter((record) => record.id !== saved.id)]);
       setDraft(EMPTY_RETRO_DRAFT);
       showToast("주간 회고가 저장되었어요");
     } catch (err) {

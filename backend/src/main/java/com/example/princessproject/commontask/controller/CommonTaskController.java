@@ -2,81 +2,32 @@ package com.example.princessproject.commontask.controller;
 
 import com.example.princessproject.commontask.dto.CommonTaskRequest;
 import com.example.princessproject.commontask.dto.CommonTaskResponse;
-import com.example.princessproject.commontask.model.CommonTaskRecord;
 import com.example.princessproject.commontask.service.CommonTaskService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Ownership is derived from the JWT principal, same pattern as DailyRecordController/
- * ProjectController - never a client-supplied userId.
- */
 @RestController
 public class CommonTaskController {
+    private final CommonTaskService service;
 
-    private final CommonTaskService commonTaskService;
-
-    public CommonTaskController(CommonTaskService commonTaskService) {
-        this.commonTaskService = commonTaskService;
-    }
+    public CommonTaskController(CommonTaskService service) { this.service = service; }
 
     @PostMapping("/api/common-tasks")
-    public CommonTaskResponse save(Authentication authentication, @Valid @RequestBody CommonTaskRequest request) {
-        Long userId = (Long) authentication.getPrincipal();
-        CommonTaskRecord record = commonTaskService.save(userId, request);
-        return CommonTaskResponse.from(record);
+    public CommonTaskResponse save(Authentication auth, @Valid @RequestBody CommonTaskRequest request) {
+        return CommonTaskResponse.from(service.save((Long) auth.getPrincipal(), request));
     }
 
     @GetMapping("/api/common-tasks/daily")
-    public List<CommonTaskResponse> getDaily(
-            Authentication authentication,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
-    ) {
-        Long userId = (Long) authentication.getPrincipal();
-        return commonTaskService.getDaily(userId, date).stream().map(CommonTaskResponse::from).toList();
-    }
-
-    @GetMapping("/api/common-tasks/weekly")
-    public ResponseEntity<CommonTaskResponse> getWeekly(
-            Authentication authentication,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart
-    ) {
-        Long userId = (Long) authentication.getPrincipal();
-        CommonTaskRecord record = commonTaskService.getWeekly(userId, weekStart);
-        if (record == null) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(CommonTaskResponse.from(record));
-    }
-
-    // 지난 주간회고 목록 (2026-08-27 요청) - 작성 화면 입력란 아래에 최신순으로 쌓아 보여주기 위한 것.
-    @GetMapping("/api/common-tasks/weekly/history")
-    public List<CommonTaskResponse> getWeeklyHistory(
-            Authentication authentication,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart
-    ) {
-        Long userId = (Long) authentication.getPrincipal();
-        return commonTaskService.getWeeklyHistory(userId, weekStart).stream().map(CommonTaskResponse::from).toList();
-    }
-
-    @PutMapping("/api/common-tasks/weekly/{recordId}")
-    public CommonTaskResponse updateWeekly(
-            Authentication authentication,
-            @PathVariable Long recordId,
-            @Valid @RequestBody CommonTaskRequest request
-    ) {
-        Long userId = (Long) authentication.getPrincipal();
-        return CommonTaskResponse.from(commonTaskService.updateWeeklyRetrospective(userId, recordId, request));
+    public List<CommonTaskResponse> getDaily(Authentication auth,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return service.getDaily((Long) auth.getPrincipal(), date).stream().map(CommonTaskResponse::from).toList();
     }
 }

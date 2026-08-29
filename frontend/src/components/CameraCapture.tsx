@@ -11,8 +11,7 @@ interface CameraCaptureModalProps {
  *
  * 2026-08-21 정책 변경: 갤러리 업로드도 다시 허용됐다 - 다만 그건 이 모달이 아니라
  * PhotoCaptureField의 "갤러리에서 선택" 버튼(별도 <input type="file">)을 통해서다. 이 모달
- * 자체는 여전히 실시간 촬영 전용이고, 백엔드 PhotoDateVerifier가 EXIF 촬영일로 오늘 것만
- * 통과시켜서 예전 사진 재사용을 막는다.
+ * 자체는 여전히 실시간 촬영 전용이다. 업로드 단계에서는 촬영 날짜를 검사하지 않는다.
  */
 export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);

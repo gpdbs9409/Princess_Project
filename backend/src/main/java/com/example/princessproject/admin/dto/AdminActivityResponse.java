@@ -21,6 +21,7 @@ public record AdminActivityResponse(
         String memo,
         String photoUrl,
         Boolean aiVerified,
+        boolean adminInvalidated,
         LocalDateTime recordedAt
 ) {
 }

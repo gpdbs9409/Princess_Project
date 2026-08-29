@@ -160,8 +160,9 @@ public class DailyRecordService {
 
         LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         List<DailyRecord> records = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, date);
-        List<CommonTaskRecord> commonRecords = commonTaskRecordRepository
-                .findByUserIdAndRecordDateBetweenAndTaskTypeIn(userId, weekStart, date, List.of(CommonTaskType.values()));
+        List<CommonTaskRecord> commonRecords = latestCommonRecords(commonTaskRecordRepository
+                .findByUserIdAndRecordDateBetweenAndTaskTypeIn(
+                        userId, weekStart, date, List.of(CommonTaskType.values())));
 
         return computeProgress(activeMissions, records, commonRecords, weekStart, date);
     }
@@ -192,8 +193,9 @@ public class DailyRecordService {
         LocalDate weekEnd = weekStart.plusDays(6);
 
         List<DailyRecord> weekRecords = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd);
-        List<CommonTaskRecord> commonRecords = commonTaskRecordRepository
-                .findByUserIdAndRecordDateBetweenAndTaskTypeIn(userId, weekStart, weekEnd, List.of(CommonTaskType.values()));
+        List<CommonTaskRecord> commonRecords = latestCommonRecords(commonTaskRecordRepository
+                .findByUserIdAndRecordDateBetweenAndTaskTypeIn(
+                        userId, weekStart, weekEnd, List.of(CommonTaskType.values())));
 
         List<MissionProgress> result = new ArrayList<>(7);
         for (LocalDate date = weekStart; !date.isAfter(weekEnd); date = date.plusDays(1)) {
@@ -212,6 +214,7 @@ public class DailyRecordService {
         Map<Long, DailyRecord> todaysRecordByMissionId = new LinkedHashMap<>();
         Map<Long, BigDecimal> weekToDateInputByMissionId = new LinkedHashMap<>();
         for (DailyRecord record : recordsInRange) {
+            if (record.isAdminInvalidated()) continue;
             LocalDate recordDate = record.getRecordDate();
             if (recordDate.isBefore(weekStart) || recordDate.isAfter(date)) {
                 continue;
@@ -302,8 +305,9 @@ public class DailyRecordService {
         LocalDate weekEnd = weekStart.plusDays(6);
 
         List<DailyRecord> records = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd);
-        List<CommonTaskRecord> commonRecords = commonTaskRecordRepository
-                .findByUserIdAndRecordDateBetweenAndTaskTypeIn(userId, weekStart, weekEnd, List.of(CommonTaskType.values()));
+        List<CommonTaskRecord> commonRecords = latestCommonRecords(commonTaskRecordRepository
+                .findByUserIdAndRecordDateBetweenAndTaskTypeIn(
+                        userId, weekStart, weekEnd, List.of(CommonTaskType.values())));
         Map<Long, List<DailyRecord>> recordsByMissionId = new LinkedHashMap<>();
         for (DailyRecord record : records) {
             recordsByMissionId.computeIfAbsent(record.getUserMission().getId(), k -> new ArrayList<>()).add(record);
@@ -323,6 +327,7 @@ public class DailyRecordService {
             // 하루치 달성률 × 그 미션의 배점을 7일간 더한다. 저장된 earnedScore는 옛 배점
             // 기준이라 쓰지 않고, 달성률만 꺼내 현재 비중으로 다시 계산한다.
             BigDecimal earnedScore = missionRecords.stream()
+                    .filter(record -> !record.isAdminInvalidated())
                     .map(record -> scoringService.earnedScore(points, record.getAchievementRate()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -335,10 +340,8 @@ public class DailyRecordService {
                 .multiply(BigDecimal.valueOf(7));
 
 
-        // 주간 회고는 점수 대상이 아니다 (2026-08 결정): 작성 여부와 무관하게 총점·만점 어디에도
-        // 반영하지 않는다. 점수가 붙는 공통과제는 독서·공부 둘뿐이다.
+        // 이 저장소에는 점수가 붙는 일일 독서·공부만 존재한다. 주간 회고는 별도 저장소다.
         for (CommonTaskRecord record : commonRecords) {
-            if (record.getTaskType() == CommonTaskType.WEEKLY_RETROSPECTIVE) continue;
             CommonMissionScore score = scoreDailyCommonTask(record);
             totalScore = totalScore.add(score.earnedScore());
         }
@@ -355,11 +358,22 @@ public class DailyRecordService {
             UserMission mission, String goalTypeCode, MissionType missionType, int goalWeightPercent) {
     }
 
+    /** unique 제약이 없던 배포에서 생긴 같은 날짜·타입 중복은 가장 최신 id 한 건만 채점한다. */
+    private List<CommonTaskRecord> latestCommonRecords(List<CommonTaskRecord> records) {
+        Map<String, CommonTaskRecord> latestByDateAndType = new LinkedHashMap<>();
+        for (CommonTaskRecord record : records) {
+            if (record.isAdminInvalidated()) continue;
+            String key = record.getRecordDate() + ":" + record.getTaskType();
+            latestByDateAndType.merge(key, record,
+                    (left, right) -> left.getId() >= right.getId() ? left : right);
+        }
+        return new ArrayList<>(latestByDateAndType.values());
+    }
+
     private List<CommonMissionScore> commonMissionScores(List<CommonTaskRecord> records, LocalDate date) {
         List<CommonMissionScore> scores = new ArrayList<>();
         records.stream()
                 .filter(record -> record.getRecordDate().equals(date))
-                .filter(record -> record.getTaskType() != CommonTaskType.WEEKLY_RETROSPECTIVE)
                 .map(this::scoreDailyCommonTask)
                 .forEach(scores::add);
 

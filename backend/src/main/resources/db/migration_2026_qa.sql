@@ -18,3 +18,5 @@ ALTER TABLE users
 --    (목표값은 그대로 남으므로 "주 3회"였던 미션은 "하루 3회"가 된다 - 참가자에게 안내 필요)
 UPDATE user_missions SET mission_type = 'DAILY' WHERE mission_type = 'WEEKLY';
 UPDATE mission_definitions SET mission_type = 'DAILY' WHERE mission_type = 'WEEKLY';
+
+-- 공통과제 구조 분리는 migration_2026_split_common_tasks.sql에서 수행한다.

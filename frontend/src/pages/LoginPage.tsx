@@ -90,6 +90,8 @@ export function LoginPage() {
     } catch (err) {
       if (err instanceof ApiError && err.code === "EMAIL_TAKEN") {
         setVerifyError("이미 사용 중인 이메일이에요. 다른 이메일을 입력해주세요.");
+      } else if (err instanceof ApiError && err.code === "INVALID_EMAIL") {
+        setVerifyError("이메일 형식이 올바르지 않아요. 올바른 이메일 주소를 입력해주세요.");
       } else {
         setVerifyError("인증 코드 발송에 실패했습니다. 이메일 주소를 확인하고 다시 시도해주세요.");
       }
@@ -162,6 +164,8 @@ export function LoginPage() {
       } else if (err instanceof ApiError && mode === "signup" && err.code === "EMAIL_NOT_VERIFIED") {
         setError("이메일 인증이 만료됐어요. 인증을 다시 진행해주세요.");
         resetVerification();
+      } else if (err instanceof ApiError && mode === "signup" && err.code === "INVALID_EMAIL") {
+        setError("이메일 형식이 올바르지 않아요. 올바른 이메일 주소를 입력해주세요.");
       } else {
         setError(mode === "signup" ? "회원가입에 실패했습니다. 잠시 후 다시 시도해주세요." : "로그인에 실패했습니다. 잠시 후 다시 시도해주세요.");
       }

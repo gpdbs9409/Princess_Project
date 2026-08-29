@@ -68,6 +68,10 @@ public class DailyRecord {
     @Column(name = "ai_verified")
     private Boolean aiVerified;
 
+    /** 운영자가 최종적으로 인증 무효 처리했는지 여부. AI 판정과 별개다. */
+    @Column(name = "admin_invalidated", nullable = false)
+    private boolean adminInvalidated;
+
     @Column(precision = 10, scale = 2)
     private BigDecimal targetValueSnapshot;
 

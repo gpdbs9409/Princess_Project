@@ -13,6 +13,7 @@ import {
   getAdminParticipants,
   getRecruitmentApplicants,
   setAdminMvp,
+  setAdminActivityInvalidated,
   setAdminRefundPaid,
   updateRecruitmentApplicant,
 } from "../api/endpoints";
@@ -338,6 +339,22 @@ export function AdminPage() {
   const handleTogglePaid = async (member: AdminMemberWeekResponse) => {
     const updated = await setAdminRefundPaid(member.userId, weekStartIso, !member.paid);
     setParticipants((prev) => prev.map((p) => (p.userId === updated.userId ? updated : p)));
+  };
+
+  const handleActivityInvalidation = async (activity: AdminActivityResponse) => {
+    const invalidated = !activity.adminInvalidated;
+    await setAdminActivityInvalidated(activity.activityType, activity.id, invalidated);
+    setReviewActivities((items) => items.map((item) =>
+      item.id === activity.id && item.activityType === activity.activityType
+        ? { ...item, adminInvalidated: invalidated }
+        : item
+    ));
+    setActivities((items) => items.map((item) =>
+      item.id === activity.id && item.activityType === activity.activityType
+        ? { ...item, adminInvalidated: invalidated }
+        : item
+    ));
+    await loadParticipants();
   };
 
   const handleToggleMvp = async (member: AdminMemberWeekResponse) => {
@@ -848,6 +865,7 @@ export function AdminPage() {
                         사진 판정 {activity.aiVerified ? "적합" : "검토 필요"}
                       </span>
                     )}
+                    {activity.adminInvalidated && <span className="badge danger">인증 무효</span>}
                   </div>
                   <div className="stack" style={{ gap: 6, marginTop: 10 }}>
                     {activity.actualValue != null && (
@@ -891,11 +909,20 @@ export function AdminPage() {
                       <strong>{activity.nickname} · {activity.name}</strong>
                       <div className="muted">{activity.recordDate} · {activity.activityType === "PERSONAL" ? "개인 미션" : "공통 과제"}</div>
                     </div>
-                    <span className="badge warn">검토 필요</span>
+                    <span className={`badge ${activity.adminInvalidated ? "danger" : "warn"}`}>
+                      {activity.adminInvalidated ? "인증 무효" : "검토 필요"}
+                    </span>
                   </div>
                   {activity.photoUrl && <img src={activity.photoUrl} alt={`${activity.nickname} ${activity.name} 인증 사진`} className="photo-preview" />}
                   {activity.detail && <p>{activity.detail}</p>}
                   {activity.memo && <p className="muted">메모 · {activity.memo}</p>}
+                  <button
+                    type="button"
+                    className={activity.adminInvalidated ? "ghost" : "danger"}
+                    onClick={() => handleActivityInvalidation(activity)}
+                  >
+                    {activity.adminInvalidated ? "무효 처리 취소" : "인증 무효 처리"}
+                  </button>
                 </article>
               ))}
             </div>

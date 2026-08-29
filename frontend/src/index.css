@@ -230,6 +230,10 @@ button.ghost {
 button.ghost:hover {
   background: var(--surface-2);
 }
+button.danger {
+  background: var(--danger);
+  color: white;
+}
 
 a.link {
   color: var(--accent);
@@ -270,6 +274,10 @@ a.link:hover {
 .badge.warn {
   background: var(--warn-soft);
   color: var(--warn);
+}
+.badge.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .error-banner {
@@ -744,6 +752,10 @@ a.link:hover {
   font-style: italic;
   font-weight: 600;
   color: var(--accent-strong);
+}
+.dashboard-greeting {
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .capital-grid {

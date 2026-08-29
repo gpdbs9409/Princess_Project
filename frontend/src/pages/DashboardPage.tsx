@@ -111,8 +111,8 @@ export function DashboardPage() {
 
   if (!user) return null;
 
-  const today = report?.dailyBreakdown[report.dailyBreakdown.length - 1] ?? null;
   const todayIso = isoDate(new Date());
+  const today = report?.dailyBreakdown.find((day) => day.date === todayIso) ?? null;
 
   const dailyMax = dailyMaxByGoal(project);
   const weeklyMax = weeklyMaxByGoal(project);
@@ -124,7 +124,7 @@ export function DashboardPage() {
 
       <div className="stack" style={{ marginBottom: 20 }}>
         <span className="eyebrow">My Dashboard</span>
-        <h1 style={{ fontSize: 28 }}>{user.nickname}님, {greeting}</h1>
+        <h1 className="dashboard-greeting" style={{ fontSize: 28 }}>{user.nickname}님, {greeting}</h1>
         <div className="hub-header-band">
           “{project?.goalHuman || "오늘의 한 걸음이 내일의 나를 만듭니다"}”
         </div>

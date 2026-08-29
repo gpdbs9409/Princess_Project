@@ -22,6 +22,8 @@ import com.example.princessproject.record.model.DailyRecord;
 import com.example.princessproject.record.repository.DailyRecordRepository;
 import com.example.princessproject.record.service.DailyRecordService;
 import com.example.princessproject.record.service.MissionProgress;
+import com.example.princessproject.retrospective.model.WeeklyRetrospective;
+import com.example.princessproject.retrospective.repository.WeeklyRetrospectiveRepository;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
 import java.math.BigDecimal;
@@ -52,6 +54,7 @@ public class AdminService {
     private final DailyRecordService dailyRecordService;
     private final DailyRecordRepository dailyRecordRepository;
     private final CommonTaskRecordRepository commonTaskRecordRepository;
+    private final WeeklyRetrospectiveRepository weeklyRetrospectiveRepository;
 
     public AdminService(
             UserRepository userRepository,
@@ -61,7 +64,8 @@ public class AdminService {
             RecruitmentApplicantRepository recruitmentApplicantRepository,
             DailyRecordService dailyRecordService,
             DailyRecordRepository dailyRecordRepository,
-            CommonTaskRecordRepository commonTaskRecordRepository
+            CommonTaskRecordRepository commonTaskRecordRepository,
+            WeeklyRetrospectiveRepository weeklyRetrospectiveRepository
     ) {
         this.userRepository = userRepository;
         this.weeklyRefundRepository = weeklyRefundRepository;
@@ -71,6 +75,7 @@ public class AdminService {
         this.dailyRecordService = dailyRecordService;
         this.dailyRecordRepository = dailyRecordRepository;
         this.commonTaskRecordRepository = commonTaskRecordRepository;
+        this.weeklyRetrospectiveRepository = weeklyRetrospectiveRepository;
     }
 
     // ---- recruitment applicants (internal-only, decoupled from users) ----
@@ -153,7 +158,7 @@ public class AdminService {
                     "PERSONAL", record.getUserMission().displayName(), record.getRecordDate(),
                     record.getInputValue(), record.getTargetValueSnapshot(), record.getUserMission().getUnit(),
                     record.getEarnedScore(), record.getAchievementRate(), null, record.getMemo(), record.getPhotoUrl(),
-                    record.getAiVerified(), record.getCreatedAt()));
+                    record.getAiVerified(), record.isAdminInvalidated(), record.getCreatedAt()));
         }
         for (CommonTaskRecord record : commonTaskRecordRepository.findByUserIdOrderByRecordDateDescCreatedAtDesc(userId)) {
             String detail = switch (record.getTaskType()) {
@@ -161,18 +166,23 @@ public class AdminService {
                         + record.getStartPage() + "p~" + record.getEndPage() + "p";
                 case STUDY -> "완료 " + record.getStudyCompletedAmount()
                         + (record.getStudyPlannedAmount() == null ? "" : " / 계획 " + record.getStudyPlannedAmount());
-                case WEEKLY_RETROSPECTIVE -> String.join(" / ", List.of(
-                        nullToEmpty(record.getRetroDailyLife()), nullToEmpty(record.getRetroWeekReview()),
-                        nullToEmpty(record.getRetroNextWeekPlan()))).replaceAll("(?: / )+$", "");
             };
             result.add(new AdminActivityResponse(
                     record.getId(), record.getUser().getId(), record.getUser().getNickname(),
                     record.getTaskType().name(), switch (record.getTaskType()) {
                         case READING -> "독서";
                         case STUDY -> "공부";
-                        case WEEKLY_RETROSPECTIVE -> "주간 회고";
                     }, record.getRecordDate(), null, null, null, null, null, detail, record.getMemo(),
-                    record.getPhotoUrl(), record.getAiVerified(), record.getCreatedAt()));
+                    record.getPhotoUrl(), record.getAiVerified(), record.isAdminInvalidated(), record.getCreatedAt()));
+        }
+        for (WeeklyRetrospective record : weeklyRetrospectiveRepository.findByUserIdOrderByWeekStartDescCreatedAtDesc(userId)) {
+            String detail = String.join(" / ", List.of(
+                    nullToEmpty(record.getRetroDailyLife()), nullToEmpty(record.getRetroWeekReview()),
+                    nullToEmpty(record.getRetroNextWeekPlan()))).replaceAll("(?: / )+$", "");
+            result.add(new AdminActivityResponse(
+                    record.getId(), record.getUser().getId(), record.getUser().getNickname(),
+                    "WEEKLY_RETROSPECTIVE", "주간 회고", record.getWeekStart(), null, null, null,
+                    null, null, detail, null, null, null, false, record.getCreatedAt()));
         }
         result.sort(Comparator.comparing(AdminActivityResponse::recordDate).reversed()
                 .thenComparing(AdminActivityResponse::recordedAt, Comparator.nullsLast(Comparator.reverseOrder())));
@@ -189,7 +199,7 @@ public class AdminService {
                     "PERSONAL", record.getUserMission().displayName(), record.getRecordDate(),
                     record.getInputValue(), record.getTargetValueSnapshot(), record.getUserMission().getUnit(),
                     record.getEarnedScore(), record.getAchievementRate(), null, record.getMemo(), record.getPhotoUrl(),
-                    false, record.getCreatedAt()));
+                    false, record.isAdminInvalidated(), record.getCreatedAt()));
         }
         for (CommonTaskRecord record : commonTaskRecordRepository.findByAiVerifiedFalseOrderByRecordDateDescCreatedAtDesc()) {
             if (!matchesCohort(record.getUser(), cohort)) continue;
@@ -198,13 +208,12 @@ public class AdminService {
                         + record.getStartPage() + "p~" + record.getEndPage() + "p";
                 case STUDY -> "완료 " + record.getStudyCompletedAmount()
                         + (record.getStudyPlannedAmount() == null ? "" : " / 계획 " + record.getStudyPlannedAmount());
-                case WEEKLY_RETROSPECTIVE -> "";
             };
             result.add(new AdminActivityResponse(
                     record.getId(), record.getUser().getId(), record.getUser().getNickname(),
                     record.getTaskType().name(), record.getTaskType() == com.example.princessproject.commontask.model.CommonTaskType.READING ? "독서" : "공부",
                     record.getRecordDate(), null, null, null, null, null, detail, record.getMemo(), record.getPhotoUrl(),
-                    false, record.getCreatedAt()));
+                    false, record.isAdminInvalidated(), record.getCreatedAt()));
         }
         result.sort(Comparator.comparing(AdminActivityResponse::recordDate).reversed()
                 .thenComparing(AdminActivityResponse::recordedAt, Comparator.nullsLast(Comparator.reverseOrder())));
@@ -213,6 +222,28 @@ public class AdminService {
 
     private boolean matchesCohort(User user, String cohort) {
         return cohort == null || cohort.isBlank() || CohortNames.aliases(cohort).contains(user.getCohort());
+    }
+
+    @Transactional
+    public void setActivityInvalidated(String activityType, Long recordId, boolean invalidated) {
+        if ("PERSONAL".equals(activityType)) {
+            DailyRecord record = dailyRecordRepository.findById(recordId)
+                    .orElseThrow(() -> new IllegalArgumentException("Daily record not found: " + recordId));
+            record.setAdminInvalidated(invalidated);
+            dailyRecordRepository.save(record);
+            return;
+        }
+        if ("READING".equals(activityType) || "STUDY".equals(activityType)) {
+            CommonTaskRecord record = commonTaskRecordRepository.findById(recordId)
+                    .orElseThrow(() -> new IllegalArgumentException("Common task record not found: " + recordId));
+            if (!record.getTaskType().name().equals(activityType)) {
+                throw new IllegalArgumentException("Activity type does not match record");
+            }
+            record.setAdminInvalidated(invalidated);
+            commonTaskRecordRepository.save(record);
+            return;
+        }
+        throw new AdminValidationException("INVALID_ACTIVITY_TYPE", "Unsupported activity type");
     }
 
     private String nullToEmpty(String value) {
