@@ -39,7 +39,6 @@ public class DailyRecordService {
     // inside it, and the score itself is already capped at 100% by ScoringService regardless.
     private static final BigDecimal MAX_INPUT_MULTIPLE_OF_TARGET = BigDecimal.valueOf(50);
     private static final BigDecimal COMMON_TASK_POINTS = BigDecimal.valueOf(20);
-    private static final BigDecimal READING_DAILY_TARGET_PAGES = BigDecimal.TEN;
 
     private final DailyRecordRepository dailyRecordRepository;
     private final UserMissionRepository userMissionRepository;
@@ -425,25 +424,41 @@ public class DailyRecordService {
         return scores;
     }
 
+    /**
+     * 독서는 수행 여부(T/F)로만 채점한다.
+     *
+     * 기획의 독서 지표는 "주간 달성률 = 독서일 / 7"인데, 이건 주 단위 값이라 하루 점수에
+     * 섞을 수가 없다. 넣는 순간 월요일에 아무리 열심히 해도 최대 1/7(약 14%)이 되어
+     * 하루 100점이 구조적으로 불가능해지기 때문이다. 그래서 하루 단위에서는 "오늘 읽었는가"만
+     * 보고, 주간 달성률은 별도 지표로 다룬다.
+     *
+     * 공부는 그날의 계획 대비 완료(완료/계획)라 그 자체가 일 단위 비율이므로 비례 채점을
+     * 유지한다.
+     */
     private CommonMissionScore scoreDailyCommonTask(CommonTaskRecord record) {
-        BigDecimal actual;
         if (record.getTaskType() == CommonTaskType.READING) {
             int pages = Math.max(0, (record.getEndPage() == null ? 0 : record.getEndPage())
                     - (record.getStartPage() == null ? 0 : record.getStartPage()));
-            actual = BigDecimal.valueOf(pages);
-        } else {
-            actual = record.getStudyCompletedAmount() == null ? BigDecimal.ZERO : record.getStudyCompletedAmount();
+            // 기록을 남겼으면 완료. 페이지 수는 참고용으로만 실적에 담는다.
+            boolean done = record.getStartPage() != null || record.getEndPage() != null;
+            BigDecimal rate = done ? BigDecimal.ONE : BigDecimal.ZERO;
+            return new CommonMissionScore(CommonTaskType.READING, "독서", "common", MissionType.DAILY,
+                    BigDecimal.ONE, BigDecimal.valueOf(pages),
+                    scoringService.earnedScore(COMMON_TASK_POINTS, rate), rate, done);
         }
+
+        BigDecimal actual = record.getStudyCompletedAmount() == null
+                ? BigDecimal.ZERO : record.getStudyCompletedAmount();
         BigDecimal target = commonTarget(record.getTaskType(), record);
         BigDecimal rate = scoringService.achievementRate(actual, target);
-        return new CommonMissionScore(record.getTaskType(),
-                record.getTaskType() == CommonTaskType.READING ? "독서" : "공부", "common", MissionType.DAILY,
+        return new CommonMissionScore(record.getTaskType(), "공부", "common", MissionType.DAILY,
                 target, actual, scoringService.earnedScore(COMMON_TASK_POINTS, rate), rate,
                 actual.compareTo(target) >= 0);
     }
 
     private BigDecimal commonTarget(CommonTaskType type, CommonTaskRecord record) {
-        if (type == CommonTaskType.READING) return READING_DAILY_TARGET_PAGES;
+        // 독서는 T/F라 목표가 1(= 했다)이다. 페이지 수는 채점에 쓰지 않는다.
+        if (type == CommonTaskType.READING) return BigDecimal.ONE;
         if (record != null && record.getStudyPlannedAmount() != null && record.getStudyPlannedAmount().signum() > 0) {
             return record.getStudyPlannedAmount();
         }
