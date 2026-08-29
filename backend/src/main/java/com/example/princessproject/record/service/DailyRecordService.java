@@ -139,10 +139,10 @@ public class DailyRecordService {
     }
 
     /**
-     * Progress "as of" a given day. DAILY missions compare that day's own record to their
-     * target. WEEKLY missions compare the week-to-date sum (Monday..date) of their inputs to
-     * their target, so the weekly goal fills in gradually across the week rather than expecting
-     * the full weekly amount in a single day's record.
+     * Progress "as of" a given day - 그날의 DAILY 미션 기록과 목표를 비교한다.
+     *
+     * WEEKLY 미션은 점수에 포함하지 않는다 (flattenScoredMissions 주석 참고). 환급 조건에서만
+     * getWeeklyMissionStatus로 주 단위 판정한다.
      */
     // Not readOnly: getOrCreateActive() inserts a new project on a user's very first call, and a
     // readOnly transaction puts the JDBC connection itself in read-only mode, which fails that
@@ -150,7 +150,7 @@ public class DailyRecordService {
     @Transactional
     public MissionProgress getMissionProgress(Long userId, LocalDate date) {
         UserProject project = userProjectService.getOrCreateActive(userId);
-        List<ActiveMission> activeMissions = flattenActiveMissions(project);
+        List<ActiveMission> activeMissions = flattenScoredMissions(project);
 
         LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         List<DailyRecord> records = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, date);
@@ -171,14 +171,14 @@ public class DailyRecordService {
      */
     @Transactional
     public List<MissionProgress> getWeekDailyProgress(Long userId, LocalDate weekStart) {
-        return getWeekDailyProgress(userId, weekStart, false);
+        return getWeekDailyProgressInternal(userId, weekStart);
     }
 
     /** Daily-only snapshots for refund attendance. WEEKLY goals must not make later or future
      * days look completed merely because their cumulative target was reached earlier. */
     @Transactional
     public List<MissionProgress> getWeekDailyRefundProgress(Long userId, LocalDate weekStart) {
-        return getWeekDailyProgress(userId, weekStart, true);
+        return getWeekDailyProgressInternal(userId, weekStart);
     }
 
     /**
@@ -186,8 +186,8 @@ public class DailyRecordService {
      *
      * 환급 심사에서 WEEKLY를 일별 성공일수에 섞으면 두 방향으로 다 틀어진다. 목표를 채우기
      * 전(주 초반)에는 아직 못 채웠다는 이유로 매일 감점되고, 채운 뒤(주 후반)에는 아무것도
-     * 하지 않아도 누적값 덕분에 매일 완료로 잡힌다. 그래서 일별 판정에서는 빼고(dailyOnly),
-     * 대신 "주간 미션을 전부 달성했는가"를 환급의 별도 조건으로 쓴다.
+     * 하지 않아도 누적값 덕분에 매일 완료로 잡힌다. 그래서 일별 판정에서는 빼고, 대신
+     * "주간 미션을 전부 달성했는가"를 환급의 별도 조건으로 쓴다.
      */
     @Transactional
     public WeeklyMissionStatus getWeeklyMissionStatus(Long userId, LocalDate weekStart) {
@@ -223,14 +223,9 @@ public class DailyRecordService {
         }
     }
 
-    private List<MissionProgress> getWeekDailyProgress(Long userId, LocalDate weekStart, boolean dailyOnly) {
+    private List<MissionProgress> getWeekDailyProgressInternal(Long userId, LocalDate weekStart) {
         UserProject project = userProjectService.getOrCreateActive(userId);
-        List<ActiveMission> activeMissions = flattenActiveMissions(project);
-        if (dailyOnly) {
-            activeMissions = activeMissions.stream()
-                    .filter(active -> active.missionType() == MissionType.DAILY)
-                    .toList();
-        }
+        List<ActiveMission> activeMissions = flattenScoredMissions(project);
         LocalDate weekEnd = weekStart.plusDays(6);
 
         List<DailyRecord> weekRecords = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd);
@@ -281,6 +276,8 @@ public class DailyRecordService {
             BigDecimal actualValue;
             BigDecimal achievementRate;
 
+            // 현재 activeMissions는 DAILY만 담기므로 이 분기는 실행되지 않는다. 정책이 다시
+            // 바뀌어 WEEKLY를 점수에 넣게 될 때를 대비해 계산식만 남겨둔다.
             if (active.missionType() == MissionType.WEEKLY) {
                 BigDecimal weekToDateInput = weekToDateInputByMissionId.getOrDefault(mission.getId(), BigDecimal.ZERO);
                 actualValue = weekToDateInput;
@@ -346,7 +343,7 @@ public class DailyRecordService {
     @Transactional
     public MissionProgress getWeekTotalProgress(Long userId, LocalDate weekStart) {
         UserProject project = userProjectService.getOrCreateActive(userId);
-        List<ActiveMission> activeMissions = flattenActiveMissions(project);
+        List<ActiveMission> activeMissions = flattenScoredMissions(project);
         LocalDate weekEnd = weekStart.plusDays(6);
 
         List<DailyRecord> records = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd);
@@ -474,6 +471,21 @@ public class DailyRecordService {
             return new MissionProgressDetail(name, goalTypeCode, missionType, target, actual,
                     COMMON_TASK_POINTS, earnedScore, achievementRate, completed);
         }
+    }
+
+    /**
+     * 점수 계산에 쓰이는 미션 = DAILY만.
+     *
+     * WEEKLY 미션은 2026-08-29부터 점수 체인(오늘/주간/최종)에서 완전히 제외한다. 누적
+     * 방식이라 하루 점수에 넣으면 실제로 수행하지 않은 날에도 점수가 그대로 들어가고
+     * (목표를 채운 뒤에는 남은 요일이 자동 만점), 7일치를 더한 값과 주간 계산값이 서로
+     * 달라져서 "오늘 × 7 = 주간 × 4 = 최종"이라는 구조 자체가 성립하지 않기 때문이다.
+     * WEEKLY는 환급 조건에서만 쓴다 (getWeeklyMissionStatus).
+     */
+    private List<ActiveMission> flattenScoredMissions(UserProject project) {
+        return flattenActiveMissions(project).stream()
+                .filter(active -> active.missionType() == MissionType.DAILY)
+                .toList();
     }
 
     private List<ActiveMission> flattenActiveMissions(UserProject project) {
