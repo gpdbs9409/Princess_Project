@@ -2,6 +2,7 @@ package com.example.princessproject.auth.service;
 
 import com.example.princessproject.auth.model.EmailVerification;
 import com.example.princessproject.auth.repository.EmailVerificationRepository;
+import com.example.princessproject.user.repository.UserRepository;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -25,17 +26,27 @@ public class EmailVerificationService {
     private static final int TOKEN_BYTES = 24;
 
     private final EmailVerificationRepository repository;
+    private final UserRepository userRepository;
     private final MailService mailService;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public EmailVerificationService(EmailVerificationRepository repository, MailService mailService) {
+    public EmailVerificationService(
+            EmailVerificationRepository repository,
+            UserRepository userRepository,
+            MailService mailService
+    ) {
         this.repository = repository;
+        this.userRepository = userRepository;
         this.mailService = mailService;
     }
 
     @Transactional
     public void requestCode(String email) {
         String normalizedEmail = normalizeEmail(email);
+        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new AuthValidationException(
+                    "EMAIL_TAKEN", "Email already registered: " + normalizedEmail);
+        }
         repository.deleteByEmail(normalizedEmail);
 
         String code = generateCode();

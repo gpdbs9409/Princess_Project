@@ -86,8 +86,12 @@ export function LoginPage() {
       await requestEmailVerification(email.trim());
       setVerifyStep("sent");
       setVerifyInfo("인증 코드를 보냈어요. 메일함(스팸함 포함)을 확인해주세요.");
-    } catch {
-      setVerifyError("인증 코드 발송에 실패했습니다. 이메일 주소를 확인하고 다시 시도해주세요.");
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "EMAIL_TAKEN") {
+        setVerifyError("이미 사용 중인 이메일이에요. 다른 이메일을 입력해주세요.");
+      } else {
+        setVerifyError("인증 코드 발송에 실패했습니다. 이메일 주소를 확인하고 다시 시도해주세요.");
+      }
     } finally {
       setVerifySending(false);
     }
@@ -272,6 +276,9 @@ export function LoginPage() {
             {verifyInfo && <p className="muted">{verifyInfo}</p>}
             {verifyError && <div className="error-banner">{verifyError}</div>}
           </div>
+        )}
+        {mode === "signup" && verifyStep === "none" && verifyError && (
+          <div className="error-banner">{verifyError}</div>
         )}
         {mode === "signup" && verifyStep === "verified" && (
           <p className="muted">이메일 인증을 완료했어요.</p>
