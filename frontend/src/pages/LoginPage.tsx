@@ -228,7 +228,7 @@ export function LoginPage() {
         {mode === "signup" && (
           <div className="stack" style={{ gap: 6 }}>
             <label htmlFor="email">이메일</label>
-            <div className="row" style={{ gap: 8 }}>
+            <div className="row verification-input-row" style={{ gap: 8 }}>
               <input
                 id="email"
                 type="email"
@@ -258,7 +258,7 @@ export function LoginPage() {
         {mode === "signup" && verifyStep === "sent" && (
           <div className="stack" style={{ gap: 6 }}>
             <label htmlFor="verifyCode">인증 코드</label>
-            <div className="row" style={{ gap: 8 }}>
+            <div className="row verification-input-row" style={{ gap: 8 }}>
               <input
                 id="verifyCode"
                 type="text"

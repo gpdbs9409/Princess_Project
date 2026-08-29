@@ -175,6 +175,9 @@ label {
 input[type="text"],
 input[type="password"],
 input[type="number"],
+input[type="email"],
+input[type="url"],
+input[type="search"],
 select,
 textarea {
   font: inherit;
@@ -183,7 +186,22 @@ textarea {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 9px 11px;
+  min-height: 42px;
   width: 100%;
+}
+
+/* 이메일 인증처럼 입력창과 동작 버튼이 나란히 놓이는 행은 타입별 브라우저 기본 높이에
+   흔들리지 않도록 같은 높이와 줄바꿈 규칙을 사용한다. */
+.verification-input-row > input,
+.verification-input-row > button {
+  min-height: 42px;
+}
+.verification-input-row > input {
+  min-width: 0;
+}
+.verification-input-row > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 textarea {
@@ -942,6 +960,15 @@ a.link:hover {
   color: var(--text);
   font-weight: 600;
 }
+.participant-instagram-link {
+  color: var(--accent-strong);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.participant-instagram-link:hover {
+  color: var(--accent);
+}
 
 @media (max-width: 560px) {
   .participant-modal {
@@ -1271,13 +1298,14 @@ a.link:hover {
 }
 
 .admin-summary-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
-.admin-summary-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); color: inherit; cursor: pointer; text-align: left; }
-.admin-summary-card span { color: var(--text-muted); font-size: 13px; }
+.admin-summary-card { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 8px; min-height: 112px; padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); color: inherit; cursor: pointer; text-align: left; }
+.admin-summary-card span { color: var(--text-muted); font-size: 12px; line-height: 1.2; white-space: nowrap; }
 .admin-summary-card strong { font-size: 24px; }
 .admin-summary-card.good { background: var(--good-soft); border-color: var(--good); }
 .admin-summary-card.warn { background: var(--warn-soft); border-color: var(--warn); }
 .admin-summary-card.accent { background: var(--accent-soft); border-color: var(--accent); }
 .admin-summary-card.danger { background: var(--danger-soft); border-color: var(--danger); }
+.admin-review-tag { padding: 2px 6px; font-size: 10px; }
 .admin-monitor-tools { display: flex; gap: 12px; margin-top: 14px; align-items: center; flex-wrap: wrap; }
 .admin-monitor-tools input { width: 220px; }
 .admin-filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }

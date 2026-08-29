@@ -687,10 +687,10 @@ export function AdminPage() {
           <div className="admin-summary-grid" aria-label="주간 운영 현황">
             <button type="button" className="admin-summary-card" onClick={() => setParticipantFilter("ALL")}><span>전체 참가자</span><strong>{participantSummary.total}명</strong></button>
             <button type="button" className="admin-summary-card good" onClick={() => setParticipantFilter("ELIGIBLE")}><span>환급 대상</span><strong>{participantSummary.eligible}명</strong></button>
-            <button type="button" className="admin-summary-card warn" onClick={() => setParticipantFilter("NEEDS_ATTENTION")}><span>이행 확인 필요</span><strong>{participantSummary.needsAttention}명</strong></button>
-            <button type="button" className="admin-summary-card accent" onClick={() => setParticipantFilter("UNPAID")}><span>환급 지급 대기</span><strong>{participantSummary.unpaid}명</strong></button>
+            <button type="button" className="admin-summary-card warn" onClick={() => setParticipantFilter("NEEDS_ATTENTION")}><span>미이행</span><strong>{participantSummary.needsAttention}명</strong></button>
+            <button type="button" className="admin-summary-card accent" onClick={() => setParticipantFilter("UNPAID")}><span>지급 대기</span><strong>{participantSummary.unpaid}명</strong></button>
             <button type="button" className="admin-summary-card" onClick={() => setParticipantFilter("PAID")}><span>지급 완료</span><strong>{participantSummary.paid}명</strong></button>
-            <button type="button" className="admin-summary-card danger" onClick={() => setReviewOpen(true)}><span>사진 검토 필요</span><strong>{reviewActivities.length}건</strong></button>
+            <button type="button" className="admin-summary-card danger" onClick={() => setReviewOpen(true)}><span>사진 검토</span><strong>{reviewActivities.length}건</strong></button>
           </div>
           <div className="card">
             <div className="row-between" style={{ flexWrap: "wrap", gap: 12 }}>
@@ -720,7 +720,7 @@ export function AdminPage() {
             <div className="admin-monitor-tools">
               <input type="search" value={participantSearch} onChange={(e) => setParticipantSearch(e.target.value)} placeholder="닉네임 검색" aria-label="참가자 닉네임 검색" />
               <div className="admin-filter-pills" aria-label="참가자 상태 필터">
-                {([["ALL", "전체"], ["NEEDS_ATTENTION", "확인 필요"], ["ELIGIBLE", "환급 대상"], ["UNPAID", "지급 대기"], ["PAID", "지급 완료"]] as [ParticipantFilter, string][]).map(([value, label]) => (
+                {([["ALL", "전체"], ["NEEDS_ATTENTION", "미이행"], ["ELIGIBLE", "환급 대상"], ["UNPAID", "지급 대기"], ["PAID", "지급 완료"]] as [ParticipantFilter, string][]).map(([value, label]) => (
                   <button key={value} type="button" className={participantFilter === value ? "active" : ""} onClick={() => setParticipantFilter(value)}>{label}</button>
                 ))}
               </div>
@@ -794,7 +794,7 @@ export function AdminPage() {
                         </td>
                         <td>
                           <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-                            {photoReviewUserIds.has(p.userId) && <span className="role-tag">사진검토 필요</span>}
+                            {photoReviewUserIds.has(p.userId) && <span className="role-tag admin-review-tag">사진 검토</span>}
                             {p.role === "ADMIN" && <span className="role-tag">관리자</span>}
                           </div>
                         </td>

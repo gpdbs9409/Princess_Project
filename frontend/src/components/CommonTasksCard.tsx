@@ -353,8 +353,7 @@ function StudySection({ project, date, readOnly }: { project: ProjectResponse | 
           <div className="recorded-field"><span className="muted">나의 공부 주제</span><strong>{project.commonStudyYoutubeTopic}</strong></div>
         )}
         <input type="url" placeholder="YouTube 링크" value={youtubeUrl}
-          onChange={(e) => setYoutubeUrl(e.target.value)} maxLength={1000}
-          style={{ minHeight: 64, padding: "14px 16px" }} />
+          onChange={(e) => setYoutubeUrl(e.target.value)} maxLength={1000} />
         <textarea placeholder="배운 점이나 느낀 점, 적용할 점을 한 줄로 작성해주세요"
           value={takeaway} onChange={(e) => setTakeaway(e.target.value)} maxLength={1000} rows={3} />
         {error && <div className="error-banner">{error}</div>}

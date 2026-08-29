@@ -42,7 +42,6 @@ export function ParticipantListModal({ onClose }: { onClose: () => void }) {
                 p.goalAppearance && { label: "추구미", value: p.goalAppearance },
                 p.goalHuman && { label: "이상향", value: p.goalHuman },
                 p.goalEnding && { label: "행동양식", value: p.goalEnding },
-                p.instagram && { label: "인스타", value: `@${p.instagram}` },
               ].filter((line): line is { label: string; value: string } => Boolean(line));
               return (
                 <li key={p.id} className="participant-list-item">
@@ -60,6 +59,20 @@ export function ParticipantListModal({ onClose }: { onClose: () => void }) {
                         <strong>{line.label}</strong> · {line.value}
                       </span>
                     ))}
+                    {p.instagram && (
+                      <span className="participant-list-goal muted">
+                        <strong>인스타</strong> ·{" "}
+                        <a
+                          className="participant-instagram-link"
+                          href={`https://www.instagram.com/${encodeURIComponent(p.instagram)}/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${p.nickname}님의 Instagram 프로필 열기`}
+                        >
+                          @{p.instagram} ↗
+                        </a>
+                      </span>
+                    )}
                   </div>
                 </li>
               );
