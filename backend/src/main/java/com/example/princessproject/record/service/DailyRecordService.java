@@ -43,10 +43,10 @@ public class DailyRecordService {
     // 자본 비중(%)은 점수에 전혀 쓰이지 않았다. 그래서 "신체 70%"를 준 사람이 그 자본에 미션을
     // 하나만 걸면 실제로는 경제가 3배 중요해지는, 설정과 정반대인 결과가 나왔다.
     private static final BigDecimal DAILY_MAX_POINTS = BigDecimal.valueOf(100);
-    private static final BigDecimal COMMON_TASK_TOTAL_POINTS = BigDecimal.valueOf(30);
-    private static final BigDecimal MISSION_TOTAL_POINTS = BigDecimal.valueOf(70);
-    /** 독서·공부 각각의 배점 (30점을 둘로 나눔). */
-    private static final BigDecimal COMMON_TASK_POINTS = BigDecimal.valueOf(15);
+    private static final BigDecimal COMMON_TASK_TOTAL_POINTS = BigDecimal.valueOf(20);
+    private static final BigDecimal MISSION_TOTAL_POINTS = BigDecimal.valueOf(80);
+    /** 독서·공부 각각의 배점 (20점을 둘로 나눔). */
+    private static final BigDecimal COMMON_TASK_POINTS = BigDecimal.valueOf(10);
 
     private final DailyRecordRepository dailyRecordRepository;
     private final UserMissionRepository userMissionRepository;
@@ -180,8 +180,7 @@ public class DailyRecordService {
         return getWeekDailyProgressInternal(userId, weekStart);
     }
 
-    /** Daily-only snapshots for refund attendance. WEEKLY goals must not make later or future
-     * days look completed merely because their cumulative target was reached earlier. */
+    /** 환급 출석용 일별 스냅샷. DAILY 개인 미션과 그날의 독서·공부만 포함한다. */
     @Transactional
     public List<MissionProgress> getWeekDailyRefundProgress(Long userId, LocalDate weekStart) {
         return getWeekDailyProgressInternal(userId, weekStart);
@@ -273,8 +272,8 @@ public class DailyRecordService {
             missionDetails.add(common.toDetail());
         }
 
-        // 만점은 항상 100점 (개인 미션 70 + 공통과제 30). 미션을 아직 설정하지 않았다면
-        // 개인 미션 몫은 배분할 곳이 없으므로 공통과제 30점만 만점이 된다.
+        // 만점은 항상 100점 (개인 미션 80 + 공통과제 20). 미션을 아직 설정하지 않았다면
+        // 개인 미션 몫은 배분할 곳이 없으므로 공통과제 20점만 만점이 된다.
         BigDecimal maxPossible = activeMissions.isEmpty()
                 ? COMMON_TASK_TOTAL_POINTS
                 : DAILY_MAX_POINTS;
@@ -294,12 +293,7 @@ public class DailyRecordService {
                 missionDetails, maxPossible);
     }
 
-    /**
-     * The whole week's total, counting each WEEKLY mission's contribution exactly once (its
-     * full-week sum vs target) instead of once per day - summing {@link #getMissionProgress}
-     * across all 7 days would multiply-count WEEKLY missions since their week-to-date score
-     * only grows across the week.
-     */
+    /** 일별 개인 미션과 독서·공부 점수를 7일간 합산한 주간 총점. 회고는 제외한다. */
     // Not readOnly: same reason as getMissionProgress above.
     @Transactional
     public MissionProgress getWeekTotalProgress(Long userId, LocalDate weekStart) {
@@ -444,10 +438,10 @@ public class DailyRecordService {
     /**
      * 미션별 배점을 자본 비중에서 산출한다.
      *
-     *   개인 미션 70점  →  자본 비중(%)대로 배분  →  자본 안에서 미션끼리 균등 분배
+     *   개인 미션 80점  →  자본 비중(%)대로 배분  →  자본 안에서 미션끼리 균등 분배
      *
      * 미션이 하나도 없는 자본은 몫을 쓸 수 없으므로, 미션이 있는 자본들의 비중으로 다시
-     * 정규화해서 70점이 남김없이 배분되게 한다. 그래야 만점이 항상 100점으로 유지된다.
+     * 정규화해서 80점이 남김없이 배분되게 한다. 그래야 만점이 항상 100점으로 유지된다.
      */
     private Map<Long, BigDecimal> missionPoints(List<ActiveMission> activeMissions) {
         Map<String, List<ActiveMission>> byGoal = new LinkedHashMap<>();

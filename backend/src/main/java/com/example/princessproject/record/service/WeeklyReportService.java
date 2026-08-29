@@ -39,11 +39,8 @@ public class WeeklyReportService {
 
     /**
      * totalScore/statScoreTotals/averageProgress come from the pre-computed {@code weekTotal}
-     * (see DailyRecordService#getWeekTotalProgress), NOT from summing dailyBreakdown - a WEEKLY
-     * mission's week-to-date score grows every day, so naively summing 7 days would
-     * multiply-count it. missionCompletionCounts still comes from the day-by-day breakdown
-     * (a WEEKLY mission can show as "completed" on more than one day once its weekly target is
-     * met - a known simplification for this secondary metric).
+     * (see DailyRecordService#getWeekTotalProgress). 개인 미션과 독서·공부만 일 단위로 합산하며,
+     * 선택 과제인 주간 회고는 총점과 완료 횟수 양쪽에서 제외한다.
      */
     WeeklyReportResult aggregate(
             LocalDate weekStart, LocalDate weekEnd, MissionProgress weekTotal, List<WeeklyReportResult.DailyEntry> dailyBreakdown

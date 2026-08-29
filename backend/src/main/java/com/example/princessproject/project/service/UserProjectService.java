@@ -2,6 +2,7 @@ package com.example.princessproject.project.service;
 
 import com.example.princessproject.catalog.model.GoalType;
 import com.example.princessproject.catalog.model.MissionDefinition;
+import com.example.princessproject.catalog.model.MissionType;
 import com.example.princessproject.catalog.model.StatType;
 import com.example.princessproject.catalog.repository.GoalTypeRepository;
 import com.example.princessproject.catalog.repository.MissionDefinitionRepository;
@@ -163,6 +164,10 @@ public class UserProjectService {
     }
 
     private void validateMissionSelection(ProjectSelectionsRequest.MissionSelection missionSelection) {
+        if (missionSelection.missionType() != MissionType.DAILY) {
+            throw new ProjectValidationException(
+                    "MISSION_TYPE_UNSUPPORTED", "Only DAILY missions are supported");
+        }
         BigDecimal targetValue = missionSelection.targetValue();
         if (targetValue == null
                 || targetValue.compareTo(MIN_MISSION_TARGET) < 0

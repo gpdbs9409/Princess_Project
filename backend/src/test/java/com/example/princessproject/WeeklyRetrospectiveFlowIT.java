@@ -7,6 +7,7 @@ import com.example.princessproject.auth.repository.EmailVerificationRepository;
 import com.example.princessproject.commontask.dto.CommonTaskRequest;
 import com.example.princessproject.commontask.dto.CommonTaskResponse;
 import com.example.princessproject.commontask.model.CommonTaskType;
+import com.example.princessproject.record.dto.WeeklyReportResponse;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
@@ -96,6 +97,18 @@ class WeeklyRetrospectiveFlowIT {
                 .containsExactly("지난주 회고", "가장 오래된 회고");
         assertThat(List.of(history).stream().map(CommonTaskResponse::id).toList())
                 .doesNotContain(secondCurrent.id());
+
+        // 주간 회고는 선택 과제다. 여러 번 작성·수정해도 주간 점수에는 들어가지 않는다.
+        WeeklyReportResponse report = client.get()
+                .uri("/api/projects/active/weekly-report?weekStart={weekStart}", currentMonday)
+                .header("Authorization", auth)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(WeeklyReportResponse.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(report.totalScore()).isEqualByComparingTo("0");
+        assertThat(report.missionCompletionCounts()).doesNotContainKey("주간 회고");
     }
 
     private CommonTaskResponse save(LocalDate date, String weekReview) {

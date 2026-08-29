@@ -352,8 +352,7 @@ public class AdminService {
     private AdminMemberWeekResponse buildWeekResponse(User user, LocalDate weekStart, Long mvpUserId, WeeklyRefund refund) {
         List<Double> dailyCredits = computeDailyCredits(user.getId(), weekStart);
         double successDays = dailyCredits.stream().filter(credit -> credit > 0).mapToDouble(Double::doubleValue).sum();
-        // The terms explicitly allow the weekly refund when six attendance days are met even
-        // without the Sunday retrospective. Retrospective is scored separately, not a refund gate.
+        // 회고는 선택 과제라 작성 여부가 환급과 점수 어느 쪽에도 영향을 주지 않는다.
         //
         // WEEKLY 미션은 2026-08-29에 스펙아웃되어 환급 조건에서도 빠졌다. 환급 기준은
         // "출석 6일 이상" 하나뿐이다.
@@ -384,7 +383,7 @@ public class AdminService {
      * DailyRecordService already computes for the daily/weekly report views - there's no
      * separately-tracked "day success" concept in the schema, so this is derived, not stored.
      *
-     * Uses DailyRecordService#getWeekDailyProgress, which fetches the whole week's records in
+     * Uses DailyRecordService#getWeekDailyRefundProgress, which fetches the whole week's records in
      * ONE query instead of one growing-range query per day - this used to be 7 DB round trips
      * per participant (49+ per admin page load for a 7-person cohort), which is what made the
      * admin weekly view noticeably heavy.

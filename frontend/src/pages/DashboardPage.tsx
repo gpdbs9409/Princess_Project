@@ -65,27 +65,23 @@ function isoDate(d: Date): string {
  */
 function dailyMaxByGoal(project: ProjectResponse | null): Record<string, number> {
   const result: Record<string, number> = {};
-  for (const goal of project?.goals ?? []) {
-    result[goal.goalTypeCode.toLowerCase()] = goal.stats.reduce(
-      (sum, stat) => sum + stat.missions.reduce((ms, m) => ms + m.assignedPoints, 0),
-      0
-    );
+  const goalsWithMissions = (project?.goals ?? []).filter((goal) =>
+    goal.stats.some((stat) => stat.missions.length > 0)
+  );
+  const weightSum = goalsWithMissions.reduce((sum, goal) => sum + goal.weightPercent, 0);
+  for (const goal of goalsWithMissions) {
+    result[goal.goalTypeCode.toLowerCase()] = weightSum > 0
+      ? 80 * goal.weightPercent / weightSum
+      : 80 / goalsWithMissions.length;
   }
   return result;
 }
 
-/** Weekly ceiling: DAILY missions can earn their points once per day (x7), WEEKLY
- * missions only once for the whole week - mirrors getWeekTotalProgress's no-double-count rule. */
+/** 주간 자본별 만점 = 하루 자본별 몫 × 7. */
 function weeklyMaxByGoal(project: ProjectResponse | null): Record<string, number> {
-  const result: Record<string, number> = {};
-  for (const goal of project?.goals ?? []) {
-    result[goal.goalTypeCode.toLowerCase()] = goal.stats.reduce(
-      (sum, stat) =>
-        sum + stat.missions.reduce((ms, m) => ms + (m.missionType === "DAILY" ? m.assignedPoints * 7 : m.assignedPoints), 0),
-      0
-    );
-  }
-  return result;
+  return Object.fromEntries(
+    Object.entries(dailyMaxByGoal(project)).map(([goal, max]) => [goal, max * 7])
+  );
 }
 
 export function DashboardPage() {
