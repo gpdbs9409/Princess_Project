@@ -159,6 +159,9 @@ export const getAdminActivitiesForReview = (cohort: string | null) => {
 export const setAdminActivityInvalidated = (activityType: string, recordId: number, invalidated: boolean) =>
   api.put<void>(`/api/admin/activities/${activityType}/${recordId}/invalidation`, { invalidated });
 
+export const reviewAdminActivity = (activityType: string, recordId: number, valid: boolean) =>
+  api.put<void>(`/api/admin/activities/${activityType}/${recordId}/review`, { valid });
+
 export const assignAdminCohort = (userId: number, cohort: string | null) =>
   api.put<AdminMemberResponse>(`/api/admin/members/${userId}/cohort`, { cohort });
 

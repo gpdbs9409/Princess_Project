@@ -194,7 +194,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<AdminActivityResponse> listActivitiesForReview(String cohort) {
         List<AdminActivityResponse> result = new ArrayList<>();
-        for (DailyRecord record : dailyRecordRepository.findByAiVerifiedFalseOrderByRecordDateDescCreatedAtDesc()) {
+        for (DailyRecord record : dailyRecordRepository.findByAiVerifiedFalseAndAdminInvalidatedFalseOrderByRecordDateDescCreatedAtDesc()) {
             if (!matchesCohort(record.getUser(), cohort)) continue;
             result.add(new AdminActivityResponse(
                     record.getId(), record.getUser().getId(), record.getUser().getNickname(),
@@ -203,7 +203,7 @@ public class AdminService {
                     record.getEarnedScore(), record.getAchievementRate(), null, record.getMemo(), record.getPhotoUrl(),
                     false, record.isAdminInvalidated(), record.getCreatedAt()));
         }
-        for (CommonTaskRecord record : commonTaskRecordRepository.findByAiVerifiedFalseOrderByRecordDateDescCreatedAtDesc()) {
+        for (CommonTaskRecord record : commonTaskRecordRepository.findByAiVerifiedFalseAndAdminInvalidatedFalseOrderByRecordDateDescCreatedAtDesc()) {
             if (!matchesCohort(record.getUser(), cohort)) continue;
             String detail = switch (record.getTaskType()) {
                 case READING -> (record.getBookTitle() == null ? "" : record.getBookTitle() + " · ")
@@ -244,6 +244,31 @@ public class AdminService {
                 throw new IllegalArgumentException("Activity type does not match record");
             }
             record.setAdminInvalidated(invalidated);
+            commonTaskRecordRepository.save(record);
+            return;
+        }
+        throw new AdminValidationException("INVALID_ACTIVITY_TYPE", "Unsupported activity type");
+    }
+
+    /** 운영진 사진 검토의 최종 판정. 처리된 기록은 검토 대기 목록에서 즉시 제외된다. */
+    @Transactional
+    public void reviewActivity(String activityType, Long recordId, boolean valid) {
+        if ("PERSONAL".equals(activityType)) {
+            DailyRecord record = dailyRecordRepository.findById(recordId)
+                    .orElseThrow(() -> new IllegalArgumentException("Daily record not found: " + recordId));
+            record.setAiVerified(valid);
+            record.setAdminInvalidated(!valid);
+            dailyRecordRepository.save(record);
+            return;
+        }
+        if ("READING".equals(activityType) || "STUDY".equals(activityType)) {
+            CommonTaskRecord record = commonTaskRecordRepository.findById(recordId)
+                    .orElseThrow(() -> new IllegalArgumentException("Common task record not found: " + recordId));
+            if (!record.getTaskType().name().equals(activityType)) {
+                throw new IllegalArgumentException("Activity type does not match record");
+            }
+            record.setAiVerified(valid);
+            record.setAdminInvalidated(!valid);
             commonTaskRecordRepository.save(record);
             return;
         }

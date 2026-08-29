@@ -1122,6 +1122,35 @@ a.link:hover {
   box-shadow: var(--shadow);
   animation: toast-in 0.2s ease;
 }
+.save-progress-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  background: rgba(250, 247, 243, 0.42);
+  backdrop-filter: blur(2px);
+}
+.save-progress-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow);
+  font-weight: 700;
+}
+.save-progress-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--accent-soft);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: save-spin 0.7s linear infinite;
+}
+@keyframes save-spin { to { transform: rotate(360deg); } }
 @keyframes toast-in {
   from {
     opacity: 0;

@@ -16,5 +16,7 @@ public interface DailyRecordRepository extends JpaRepository<DailyRecord, Long> 
 
     List<DailyRecord> findByAiVerifiedFalseOrderByRecordDateDescCreatedAtDesc();
 
+    List<DailyRecord> findByAiVerifiedFalseAndAdminInvalidatedFalseOrderByRecordDateDescCreatedAtDesc();
+
     long countByUserId(Long userId);
 }

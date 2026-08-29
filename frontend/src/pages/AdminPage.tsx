@@ -13,7 +13,7 @@ import {
   getAdminParticipants,
   getRecruitmentApplicants,
   setAdminMvp,
-  setAdminActivityInvalidated,
+  reviewAdminActivity,
   setAdminRefundPaid,
   updateRecruitmentApplicant,
 } from "../api/endpoints";
@@ -25,6 +25,7 @@ import type {
   RecruitmentApplicantResponse,
   RecruitmentStatus,
 } from "../api/types";
+import { useToast } from "../components/ToastProvider";
 import { parseRecruitmentCsv } from "../lib/parseRecruitmentCsv";
 
 type Tab = "participants" | "unassigned" | "recruitment";
@@ -88,6 +89,7 @@ function downloadCsv(filename: string, rows: (string | number)[][]) {
 }
 
 export function AdminPage() {
+  const { showToast } = useToast();
   const [tab, setTab] = useState<Tab>("participants");
   const [cohorts, setCohorts] = useState<string[]>([]);
   const [selectedCohort, setSelectedCohort] = useState<string>("");
@@ -111,6 +113,7 @@ export function AdminPage() {
   const NEW_COHORT_OPTION = "__new__";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savingState, setSavingState] = useState<string | null>(null);
   const [recruitmentApplicants, setRecruitmentApplicants] = useState<RecruitmentApplicantResponse[]>([]);
   const [recruitmentForm, setRecruitmentForm] = useState(blankRecruitmentForm());
   const [csvUploading, setCsvUploading] = useState(false);
@@ -229,8 +232,13 @@ export function AdminPage() {
 
   const handleAssignCohort = async (userId: number, cohort: string) => {
     if (!cohort.trim()) return;
-    await assignAdminCohort(userId, cohort.trim());
-    await Promise.all([loadCohorts(), loadApplicants()]);
+    if (!window.confirm(`${cohort.trim()}로 기수를 배정하시겠습니까?`)) return;
+    setSavingState("기수 정보를 저장하고 있어요");
+    try {
+      await assignAdminCohort(userId, cohort.trim());
+      await Promise.all([loadCohorts(), loadApplicants()]);
+      showToast("기수 배정이 저장되었어요");
+    } finally { setSavingState(null); }
   };
 
   const openActivities = async (member: AdminMemberWeekResponse) => {
@@ -326,44 +334,63 @@ export function AdminPage() {
   };
 
   const handleRecruitmentStatusChange = async (applicant: RecruitmentApplicantResponse, status: RecruitmentStatus) => {
-    const updated = await updateRecruitmentApplicant(applicant.id, {
-      name: applicant.name,
-      contact: applicant.contact ?? undefined,
-      note: applicant.note ?? undefined,
-      status,
-      appliedAt: applicant.appliedAt ?? undefined,
-    });
-    setRecruitmentApplicants((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    if (status === applicant.status) return;
+    if (!window.confirm(`${applicant.name}님의 상태를 '${RECRUITMENT_STATUS_LABELS[status]}'(으)로 변경하시겠습니까?`)) return;
+    setSavingState("지원서 상태를 저장하고 있어요");
+    try {
+      await updateRecruitmentApplicant(applicant.id, {
+        name: applicant.name, contact: applicant.contact ?? undefined,
+        note: applicant.note ?? undefined, status, appliedAt: applicant.appliedAt ?? undefined,
+      });
+      await loadRecruitmentApplicants();
+      showToast("지원서 상태가 저장되었어요");
+    } finally { setSavingState(null); }
   };
 
   const handleDeleteRecruitmentApplicant = async (id: number) => {
-    await deleteRecruitmentApplicant(id);
-    setRecruitmentApplicants((prev) => prev.filter((a) => a.id !== id));
+    if (!window.confirm("이 지원서 기록을 삭제하시겠습니까?")) return;
+    setSavingState("삭제 내용을 반영하고 있어요");
+    try {
+      await deleteRecruitmentApplicant(id);
+      await loadRecruitmentApplicants();
+      showToast("지원서 기록을 삭제했어요");
+    } finally { setSavingState(null); }
   };
 
   const handleTogglePaid = async (member: AdminMemberWeekResponse) => {
-    const updated = await setAdminRefundPaid(member.userId, weekStartIso, !member.paid);
-    setParticipants((prev) => prev.map((p) => (p.userId === updated.userId ? updated : p)));
+    const nextPaid = !member.paid;
+    if (!window.confirm(`${member.nickname}님을 '${nextPaid ? "지급 완료" : "미지급"}' 상태로 변경하시겠습니까?`)) return;
+    setSavingState("지급 상태를 저장하고 있어요");
+    try {
+      await setAdminRefundPaid(member.userId, weekStartIso, nextPaid);
+      await loadParticipants();
+      showToast("지급 상태가 저장되었어요");
+    } finally { setSavingState(null); }
   };
 
-  const handleActivityInvalidation = async (activity: AdminActivityResponse) => {
-    const invalidated = !activity.adminInvalidated;
-    await setAdminActivityInvalidated(activity.activityType, activity.id, invalidated);
-    setReviewActivities((items) => items.map((item) =>
-      item.id === activity.id && item.activityType === activity.activityType
-        ? { ...item, adminInvalidated: invalidated }
-        : item
+  const handleActivityReview = async (activity: AdminActivityResponse, valid: boolean) => {
+    const action = valid ? "유효한 인증으로 승인" : "인증 무효 처리";
+    if (!window.confirm(`${activity.nickname}님의 ${activity.name} 사진을 ${action}하시겠습니까?`)) return;
+    setSavingState("사진 검토 결과를 저장하고 있어요");
+    try {
+      await reviewAdminActivity(activity.activityType, activity.id, valid);
+    setReviewActivities((items) => items.filter((item) =>
+      !(item.id === activity.id && item.activityType === activity.activityType)
     ));
     setActivities((items) => items.map((item) =>
       item.id === activity.id && item.activityType === activity.activityType
-        ? { ...item, adminInvalidated: invalidated }
+        ? { ...item, aiVerified: valid, adminInvalidated: !valid }
         : item
     ));
-    await loadParticipants();
+      await loadParticipants();
+      showToast(valid ? "유효 인증으로 저장되었어요" : "인증 무효로 저장되었어요");
+    } finally { setSavingState(null); }
   };
 
   const handleToggleMvp = async (member: AdminMemberWeekResponse) => {
     if (!member.cohort) return;
+    if (!window.confirm(`${member.nickname}님의 MVP 상태를 ${member.isMvp ? "해제" : "지정"}하시겠습니까?`)) return;
+    setSavingState("MVP 상태를 저장하고 있어요");
     try {
       if (member.isMvp) {
         await clearAdminMvp(member.cohort, weekStartIso);
@@ -371,10 +398,11 @@ export function AdminPage() {
         await setAdminMvp(member.userId, weekStartIso);
       }
       await loadParticipants();
+      showToast(member.isMvp ? "MVP 지정을 해제했어요" : "MVP로 지정했어요");
     } catch (err) {
       // 1인 1회 제한 위반 등 - 서버가 이유를 메시지로 내려줌 (주간 MVP 정책 v1.0, 2026-08-20)
       alert(err instanceof ApiError ? err.message : "MVP 지정에 실패했습니다.");
-    }
+    } finally { setSavingState(null); }
   };
 
 
@@ -404,6 +432,11 @@ export function AdminPage() {
 
   return (
     <div className="container">
+      {savingState && (
+        <div className="save-progress-overlay" role="status" aria-live="polite">
+          <div className="save-progress-card"><span className="save-progress-spinner" />{savingState}</div>
+        </div>
+      )}
       <div className="stack" style={{ marginBottom: 20 }}>
         <span className="eyebrow">Admin</span>
         <h1 style={{ fontSize: 26 }}>회원 관리</h1>
@@ -909,20 +942,19 @@ export function AdminPage() {
                       <strong>{activity.nickname} · {activity.name}</strong>
                       <div className="muted">{activity.recordDate} · {activity.activityType === "PERSONAL" ? "개인 미션" : "공통 과제"}</div>
                     </div>
-                    <span className={`badge ${activity.adminInvalidated ? "danger" : "warn"}`}>
-                      {activity.adminInvalidated ? "인증 무효" : "검토 필요"}
-                    </span>
+                    <span className="badge warn">검토 필요</span>
                   </div>
                   {activity.photoUrl && <img src={activity.photoUrl} alt={`${activity.nickname} ${activity.name} 인증 사진`} className="photo-preview" />}
                   {activity.detail && <p>{activity.detail}</p>}
                   {activity.memo && <p className="muted">메모 · {activity.memo}</p>}
-                  <button
-                    type="button"
-                    className={activity.adminInvalidated ? "ghost" : "danger"}
-                    onClick={() => handleActivityInvalidation(activity)}
-                  >
-                    {activity.adminInvalidated ? "무효 처리 취소" : "인증 무효 처리"}
-                  </button>
+                  <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                    <button type="button" className="primary" onClick={() => handleActivityReview(activity, true)}>
+                      유효 인증
+                    </button>
+                    <button type="button" className="danger" onClick={() => handleActivityReview(activity, false)}>
+                      인증 무효
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
