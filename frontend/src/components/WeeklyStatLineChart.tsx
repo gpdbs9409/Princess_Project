@@ -15,6 +15,7 @@ const CHART_HEIGHT = 130;
 const PAD_X = 8;
 const PAD_Y = 20;
 const AXIS_TICKS = [100, 70, 50, 30, 0];
+const DAYS_IN_WEEK = 7;
 
 function axisTop(tick: number): number {
   return PAD_Y + (100 - PAD_Y * 2) * (1 - tick / 100);
@@ -23,11 +24,10 @@ function axisTop(tick: number): number {
 export function WeeklyStatLineChart({ scores, goalCodes }: WeeklyStatLineChartProps) {
   const points = goalCodes.map((code, i) => {
     const key = code.toLowerCase();
-    const value = scores[key] ?? 0;
-    // This chart shows each capital's weighted score contribution, not its
-    // completion rate against its own weekly maximum. Dividing every capital by
-    // its weighted maximum makes fully completed goals all look identical (14%
-    // after one day), which hides the configured 32/24/24/20 weighting.
+    const rawTotal = scores[key] ?? 0;
+    // Convert the seven-day cumulative total back to its weighted contribution
+    // on a 100-point scale. A perfect week therefore ends at 32/24/24/20 = 100.
+    const value = rawTotal / DAYS_IN_WEEK;
     const plottedValue = Math.max(0, Math.min(100, value));
     const xPct = goalCodes.length === 1 ? 50 : PAD_X + (i * (100 - PAD_X * 2)) / (goalCodes.length - 1);
     const yPct = PAD_Y + (100 - PAD_Y * 2) * (1 - plottedValue / 100);
@@ -75,7 +75,7 @@ export function WeeklyStatLineChart({ scores, goalCodes }: WeeklyStatLineChartPr
                   whiteSpace: "nowrap",
                 }}
               >
-                {Math.round(p.value)}점
+                {Number.isInteger(p.value) ? p.value : p.value.toFixed(1)}점
               </span>
               <span
                 style={{

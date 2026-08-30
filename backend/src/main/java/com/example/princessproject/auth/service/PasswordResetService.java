@@ -36,7 +36,7 @@ public class PasswordResetService {
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.mailService = mailService;
-        this.frontendUrl = frontendUrl;
+        this.frontendUrl = frontendUrl.replaceAll("/+$", "");
     }
 
     /**
