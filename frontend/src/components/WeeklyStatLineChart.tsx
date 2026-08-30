@@ -2,7 +2,6 @@ import { GOAL_TYPE_CODES, GOAL_TYPE_LABELS } from "../api/types";
 
 interface WeeklyStatLineChartProps {
   scores: Partial<Record<string, number>>;
-  maxByGoal: Record<string, number>;
   goalCodes: string[];
 }
 
@@ -21,15 +20,18 @@ function axisTop(tick: number): number {
   return PAD_Y + (100 - PAD_Y * 2) * (1 - tick / 100);
 }
 
-export function WeeklyStatLineChart({ scores, maxByGoal, goalCodes }: WeeklyStatLineChartProps) {
+export function WeeklyStatLineChart({ scores, goalCodes }: WeeklyStatLineChartProps) {
   const points = goalCodes.map((code, i) => {
     const key = code.toLowerCase();
     const value = scores[key] ?? 0;
-    const max = maxByGoal[key] || 1;
-    const pct = Math.max(0, Math.min(100, (value / max) * 100));
+    // This chart shows each capital's weighted score contribution, not its
+    // completion rate against its own weekly maximum. Dividing every capital by
+    // its weighted maximum makes fully completed goals all look identical (14%
+    // after one day), which hides the configured 32/24/24/20 weighting.
+    const plottedValue = Math.max(0, Math.min(100, value));
     const xPct = goalCodes.length === 1 ? 50 : PAD_X + (i * (100 - PAD_X * 2)) / (goalCodes.length - 1);
-    const yPct = PAD_Y + (100 - PAD_Y * 2) * (1 - pct / 100);
-    return { code, value, pct, xPct, yPct };
+    const yPct = PAD_Y + (100 - PAD_Y * 2) * (1 - plottedValue / 100);
+    return { code, value, xPct, yPct };
   });
 
   const linePoints = points.map((p) => `${p.xPct},${p.yPct}`).join(" ");
@@ -57,7 +59,7 @@ export function WeeklyStatLineChart({ scores, maxByGoal, goalCodes }: WeeklyStat
           <line x1={PAD_X} y1={baselineYPct} x2={100 - PAD_X} y2={baselineYPct} stroke="var(--border)" strokeWidth={0.3} />
           <polyline points={linePoints} fill="none" stroke="var(--accent)" strokeWidth={0.5} vectorEffect="non-scaling-stroke" />
         </svg>
-        <div role="img" aria-label="이번 주 스탯 누적 달성률" style={{ position: "absolute", inset: 0 }}>
+          <div role="img" aria-label="이번 주 스탯 누적 점수" style={{ position: "absolute", inset: 0 }}>
           {points.map((p) => (
             <div key={p.code} style={{ position: "absolute", left: `${p.xPct}%`, top: `${p.yPct}%`, transform: "translate(-50%, -50%)" }}>
               <span
@@ -73,7 +75,7 @@ export function WeeklyStatLineChart({ scores, maxByGoal, goalCodes }: WeeklyStat
                   whiteSpace: "nowrap",
                 }}
               >
-                {Math.round(p.pct)}%
+                {Math.round(p.value)}점
               </span>
               <span
                 style={{

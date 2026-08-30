@@ -77,13 +77,6 @@ function dailyMaxByGoal(project: ProjectResponse | null): Record<string, number>
   return result;
 }
 
-/** 주간 자본별 만점 = 하루 자본별 몫 × 7. */
-function weeklyMaxByGoal(project: ProjectResponse | null): Record<string, number> {
-  return Object.fromEntries(
-    Object.entries(dailyMaxByGoal(project)).map(([goal, max]) => [goal, max * 7])
-  );
-}
-
 export function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -116,8 +109,6 @@ export function DashboardPage() {
 
   const dailyMax = dailyMaxByGoal(project);
   dailyMax.common = 20;
-  const weeklyMax = weeklyMaxByGoal(project);
-  weeklyMax.common = 140;
   const selectedGoalCodes = GOAL_TYPE_CODES.filter((code) =>
     project?.goals.some((goal) => goal.goalTypeCode === code)
   );
@@ -229,7 +220,6 @@ export function DashboardPage() {
           <div className="card">
             <WeeklyStatLineChart
               scores={report.statScoreTotals}
-              maxByGoal={weeklyMax}
               goalCodes={[...selectedGoalCodes, "common"]}
             />
           </div>
