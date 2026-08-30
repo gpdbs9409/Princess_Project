@@ -147,9 +147,12 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public ProfileStatsResponse getProfileStats(Long userId) {
+        User user = getById(userId);
         long recordCount = dailyRecordRepository.countByUserId(userId);
-        long totalUsers = userRepository.count();
-        return new ProfileStatsResponse(recordCount, totalUsers, weeklyMvpRepository.existsByUserId(userId));
+        long cohortParticipantCount = user.getCohort() == null
+                ? 0
+                : Math.max(0, userRepository.countByCohortIn(CohortNames.aliases(user.getCohort())) - 1);
+        return new ProfileStatsResponse(recordCount, cohortParticipantCount, weeklyMvpRepository.existsByUserId(userId));
     }
 
     /**
