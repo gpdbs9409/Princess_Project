@@ -70,7 +70,6 @@ export function ButlerChatPage() {
       {!error && entries !== null && entries.length > 0 && (
         <div className="card butler-chat-scene">
           <div className="butler-feedback-header">
-            <img src="/butler/butler.jpg" alt="" className="butler-avatar" />
             <div className="butler-name-block">
               <span className="butler-name-eyebrow">AI 집사</span>
               <span className="butler-name">레오 집사</span>
