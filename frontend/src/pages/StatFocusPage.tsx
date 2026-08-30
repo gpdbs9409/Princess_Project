@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { getActiveProject, getCatalog, replaceSelections } from "../api/endpoints";
 import { SelectionWizard } from "../components/SelectionWizard";
 import { ProjectReadOnlyView } from "../components/ProjectReadOnlyView";
@@ -23,6 +23,8 @@ export function StatFocusPage() {
   }, []);
 
   const alreadySet = !!project && project.goals.length > 0;
+
+  if (alreadySet) return <Navigate to="/my-page" replace />;
 
   return (
     <div className="container">

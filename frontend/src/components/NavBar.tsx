@@ -32,9 +32,6 @@ export function NavBar() {
           <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "link active" : "link")}>
             대시보드
           </NavLink>
-          <NavLink to="/stat-focus" className={({ isActive }) => (isActive ? "link active" : "link")}>
-            나의 아비투스
-          </NavLink>
           <NavLink to="/my-page" className={({ isActive }) => (isActive ? "link active" : "link")}>
             마이페이지
           </NavLink>

@@ -828,6 +828,39 @@ a.link:hover {
   color: var(--text);
 }
 
+.habitus-readonly-card {
+  position: relative;
+  min-height: 150px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.habitus-readonly-image {
+  position: absolute;
+  right: -14px;
+  bottom: -18px;
+  width: min(34%, 190px);
+  height: 130%;
+  object-fit: contain;
+  object-position: right bottom;
+  opacity: 0.2;
+  filter: saturate(0.8);
+  z-index: -1;
+  pointer-events: none;
+}
+.habitus-readonly-content {
+  position: relative;
+  width: min(76%, 620px);
+}
+@media (max-width: 640px) {
+  .habitus-readonly-image {
+    width: 44%;
+    opacity: 0.14;
+  }
+  .habitus-readonly-content {
+    width: 88%;
+  }
+}
+
 /* record page: each mission is its own card, clearly split between
    "awaiting input" (default .card look) and "already recorded" (below) */
 .recorded-mission-card {

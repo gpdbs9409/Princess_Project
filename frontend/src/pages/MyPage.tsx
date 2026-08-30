@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
-import { getProfileStats, updateEmail, updateInstagram, updateProfileImage } from "../api/endpoints";
-import type { ProfileStatsResponse } from "../api/types";
+import { getActiveProject, getProfileStats, updateEmail, updateInstagram, updateProfileImage } from "../api/endpoints";
+import type { ProfileStatsResponse, ProjectResponse } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../components/ToastProvider";
+import { ProjectReadOnlyView } from "../components/ProjectReadOnlyView";
 
 export function MyPage() {
   const { user, updateUser } = useAuth();
   const { showToast } = useToast();
   const [stats, setStats] = useState<ProfileStatsResponse | null>(null);
+  const [project, setProject] = useState<ProjectResponse | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,8 +25,11 @@ export function MyPage() {
 
   useEffect(() => {
     if (!user) return;
-    getProfileStats(user.id)
-      .then(setStats)
+    Promise.all([getProfileStats(user.id), getActiveProject()])
+      .then(([profileStats, activeProject]) => {
+        setStats(profileStats);
+        setProject(activeProject);
+      })
       .catch(() => setError("정보를 불러오지 못했어요."));
   }, [user]);
 
@@ -232,6 +237,16 @@ export function MyPage() {
           </div>
         )}
       </div>
+
+      {project && project.goals.length > 0 && (
+        <section className="section" style={{ marginTop: 28 }}>
+          <div className="section-band">나의 아비투스</div>
+          <p className="muted" style={{ marginBottom: 14 }}>
+            최초 설정한 아비투스와 미션이에요. 설정 후에는 수정할 수 없어요.
+          </p>
+          <ProjectReadOnlyView project={project} />
+        </section>
+      )}
     </div>
   );
 }

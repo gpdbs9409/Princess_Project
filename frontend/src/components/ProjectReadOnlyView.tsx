@@ -1,4 +1,4 @@
-import { GOAL_TYPE_LABELS, type ProjectResponse } from "../api/types";
+import { GOAL_TYPE_IMAGE, GOAL_TYPE_LABELS, type ProjectResponse } from "../api/types";
 
 export function ProjectReadOnlyView({ project }: { project: ProjectResponse }) {
   return (
@@ -36,12 +36,19 @@ export function ProjectReadOnlyView({ project }: { project: ProjectResponse }) {
       )}
 
       {project.goals.map((goal) => (
-        <div className="card" key={goal.id}>
-          <div className="row-between">
-            <strong>{GOAL_TYPE_LABELS[goal.goalTypeCode]}</strong>
-            <span className="muted">비중 {goal.weightPercent}%</span>
-          </div>
-          <div className="stack" style={{ marginTop: 12, gap: 10, paddingLeft: 8, borderLeft: "2px solid var(--border)" }}>
+        <div className="card habitus-readonly-card" key={goal.id}>
+          <img
+            src={GOAL_TYPE_IMAGE[goal.goalTypeCode]}
+            alt=""
+            className="habitus-readonly-image"
+            aria-hidden="true"
+          />
+          <div className="habitus-readonly-content">
+            <div className="row-between">
+              <strong>{GOAL_TYPE_LABELS[goal.goalTypeCode]}</strong>
+              <span className="muted">비중 {goal.weightPercent}%</span>
+            </div>
+            <div className="stack" style={{ marginTop: 12, gap: 10, paddingLeft: 8, borderLeft: "2px solid var(--border)" }}>
             {goal.stats.map((stat) => (
               <div key={stat.id}>
                 <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>
@@ -60,6 +67,7 @@ export function ProjectReadOnlyView({ project }: { project: ProjectResponse }) {
                 </div>
               </div>
             ))}
+            </div>
           </div>
         </div>
       ))}
