@@ -472,6 +472,7 @@ a.link:hover {
 .week-refund-hearts {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  column-gap: 10px;
   align-items: center;
   min-height: 18px;
   margin-top: 3px;
