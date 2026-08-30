@@ -1307,6 +1307,38 @@ a.link:hover {
   padding: 4px 12px;
   border-radius: 999px;
 }
+.butler-chat-scene {
+  min-height: 680px;
+  padding: 24px;
+  color: #fff;
+  background-image: linear-gradient(rgba(29, 28, 50, 0.5), rgba(29, 28, 50, 0.66)), url("/butler/chat-background.png");
+  background-size: cover;
+  background-position: center top;
+  background-attachment: local;
+}
+.butler-chat-scene .butler-name-eyebrow,
+.butler-chat-scene .butler-chat-date-divider span {
+  color: rgba(255, 255, 255, 0.82);
+}
+.butler-chat-scene .butler-chat-date-divider span {
+  background: rgba(35, 34, 57, 0.72);
+  backdrop-filter: blur(8px);
+}
+.butler-chat-scene .butler-bubble {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(20, 16, 28, 0.16);
+}
+@media (max-width: 640px) {
+  .butler-chat-scene {
+    min-height: 72vh;
+    padding: 18px 14px;
+    background-position: 52% top;
+  }
+  .butler-chat-scene .butler-bubble {
+    max-width: 76%;
+  }
+}
 
 /* admin member table */
 .admin-table {
@@ -1496,11 +1528,10 @@ a.link:hover {
 }
 .onboarding-gallery-image {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: min(58vh, 570px);
   object-fit: contain;
-  background: var(--surface-2);
+  background: transparent;
   border-radius: 8px;
-  padding: 24px;
 }
 .onboarding-gallery-title {
   font-size: 17px;

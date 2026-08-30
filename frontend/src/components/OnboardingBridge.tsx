@@ -7,7 +7,11 @@ import {
   saveOnboardingProgress,
   type OnboardingStep,
 } from "../lib/onboarding";
-import { ONBOARDING_ENDINGS } from "../data/onboardingEndings";
+
+const ONBOARDING_SLIDES = Array.from(
+  { length: 13 },
+  (_, index) => `/endings/ending-${String(index + 1).padStart(2, "0")}.png`,
+);
 
 // 카카오톡/인스타 초대 링크로 들어온 신규 방문자에게 보여주는 스토리텔링 브릿지 팝업.
 // 별도 URL 없이 로그인 화면 위에 오버레이로 뜨고, 닫으면 로그인/회원가입 화면이 그대로 드러난다.
@@ -62,9 +66,9 @@ export function OnboardingBridge() {
     setGalleryIndex(0);
   };
 
-  const lastIndex = ONBOARDING_ENDINGS.length - 1;
+  const lastIndex = ONBOARDING_SLIDES.length - 1;
   const isLastCard = galleryIndex >= lastIndex;
-  const currentEnding = ONBOARDING_ENDINGS[Math.min(galleryIndex, lastIndex)];
+  const currentSlide = ONBOARDING_SLIDES[Math.min(galleryIndex, lastIndex)];
 
   const showPrev = () => setGalleryIndex((i) => Math.max(0, i - 1));
   const showNext = () => setGalleryIndex((i) => Math.min(lastIndex, i + 1));
@@ -134,20 +138,15 @@ export function OnboardingBridge() {
         {step === "gallery" && (
           <div className="onboarding-gallery" onPointerDown={handlePointerDown} onPointerUp={handlePointerUp}>
             <div className="onboarding-gallery-counter">
-              {galleryIndex + 1}/{ONBOARDING_ENDINGS.length}
+              {galleryIndex + 1}/{ONBOARDING_SLIDES.length}
             </div>
-            <h3 className="onboarding-gallery-title">{currentEnding.title}</h3>
-            {/* 자본별 구분자(예: "심리")는 이미지 좌측 상단에 오버레이되는 배지로 배치
-                (2026-08-21 시안: "엔딩 공주 리스트 화면" 요청 반영). */}
             <div className="onboarding-gallery-image-wrap">
-              <span className="badge onboarding-gallery-badge">{currentEnding.capitalLabel}</span>
               <img
                 className="onboarding-gallery-image"
-                src={`/capitals/${currentEnding.capitalKey}.png`}
-                alt={currentEnding.capitalLabel}
+                src={currentSlide}
+                alt={`프린세스 엔딩 ${galleryIndex + 1}`}
               />
             </div>
-            <p className="onboarding-gallery-desc">{currentEnding.description}</p>
 
             {!isLastCard ? (
               <div className="onboarding-gallery-nav">

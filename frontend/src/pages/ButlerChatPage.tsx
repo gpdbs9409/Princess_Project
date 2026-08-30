@@ -68,7 +68,7 @@ export function ButlerChatPage() {
       )}
 
       {!error && entries !== null && entries.length > 0 && (
-        <div className="card">
+        <div className="card butler-chat-scene">
           <div className="butler-feedback-header">
             <img src="/butler/butler.jpg" alt="" className="butler-avatar" />
             <div className="butler-name-block">
