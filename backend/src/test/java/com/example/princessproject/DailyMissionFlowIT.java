@@ -201,6 +201,16 @@ class DailyMissionFlowIT {
                 .findFirst().orElseThrow();
         assertThat(afterReadingAndStudy.dailyCredits().get(todayIndex)).isEqualTo(1.0);
 
+        DailySummaryResponse summaryWithCommonTasks = client.get().uri("/api/projects/active/daily?date={date}", today)
+                .header("Authorization", auth)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(DailySummaryResponse.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(summaryWithCommonTasks.totalScore()).isEqualByComparingTo("100.00");
+        assertThat(summaryWithCommonTasks.statScores().get("common")).isEqualByComparingTo("20.00");
+
         AiFeedbackResponse feedback = client.post().uri("/api/projects/active/ai-feedback?date={date}", today)
                 .header("Authorization", auth)
                 .exchange()

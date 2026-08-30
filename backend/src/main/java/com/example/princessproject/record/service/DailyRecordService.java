@@ -271,6 +271,7 @@ public class DailyRecordService {
 
         for (CommonMissionScore common : commonMissionScores(commonRecords, date)) {
             totalScore = totalScore.add(common.earnedScore());
+            statScores.merge("common", common.earnedScore(), BigDecimal::add);
             (common.completed() ? completed : remaining).add(common.name());
             missionDetails.add(common.toDetail());
         }
@@ -344,6 +345,7 @@ public class DailyRecordService {
         for (CommonTaskRecord record : commonRecords) {
             CommonMissionScore score = scoreDailyCommonTask(record);
             totalScore = totalScore.add(score.earnedScore());
+            statScores.merge("common", score.earnedScore(), BigDecimal::add);
         }
 
         BigDecimal progress = maxPossible.signum() > 0

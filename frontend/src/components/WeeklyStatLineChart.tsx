@@ -3,7 +3,7 @@ import { GOAL_TYPE_CODES, GOAL_TYPE_LABELS } from "../api/types";
 interface WeeklyStatLineChartProps {
   scores: Partial<Record<string, number>>;
   maxByGoal: Record<string, number>;
-  goalCodes: typeof GOAL_TYPE_CODES[number][];
+  goalCodes: string[];
 }
 
 const CHART_HEIGHT = 130;
@@ -90,7 +90,7 @@ export function WeeklyStatLineChart({ scores, maxByGoal, goalCodes }: WeeklyStat
               whiteSpace: "nowrap",
             }}
           >
-            {GOAL_TYPE_LABELS[p.code]}
+            {p.code === "common" ? "공통" : GOAL_TYPE_LABELS[p.code as typeof GOAL_TYPE_CODES[number]]}
           </span>
         ))}
       </div>

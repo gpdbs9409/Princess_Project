@@ -115,7 +115,12 @@ export function DashboardPage() {
   const today = report?.dailyBreakdown.find((day) => day.date === todayIso) ?? null;
 
   const dailyMax = dailyMaxByGoal(project);
+  dailyMax.common = 20;
   const weeklyMax = weeklyMaxByGoal(project);
+  weeklyMax.common = 140;
+  const selectedGoalCodes = GOAL_TYPE_CODES.filter((code) =>
+    project?.goals.some((goal) => goal.goalTypeCode === code)
+  );
 
   return (
     <div className="container">
@@ -177,7 +182,7 @@ export function DashboardPage() {
         <div className="section">
           <div className="section-band">오늘의 스탯</div>
           <div className="card">
-            {GOAL_TYPE_CODES.filter((code) => project?.goals.some((goal) => goal.goalTypeCode === code)).map((s) => (
+            {selectedGoalCodes.map((s) => (
               <StatMeter
                 key={s}
                 label={GOAL_TYPE_LABELS[s]}
@@ -185,6 +190,11 @@ export function DashboardPage() {
                 max={dailyMax[s.toLowerCase()] ?? 1}
               />
             ))}
+            <StatMeter
+              label="공통 (독서 · 공부)"
+              value={today.statScores.common ?? 0}
+              max={dailyMax.common}
+            />
           </div>
         </div>
       )}
@@ -219,7 +229,7 @@ export function DashboardPage() {
             <WeeklyStatLineChart
               scores={report.statScoreTotals}
               maxByGoal={weeklyMax}
-              goalCodes={GOAL_TYPE_CODES.filter((code) => project?.goals.some((goal) => goal.goalTypeCode === code))}
+              goalCodes={[...selectedGoalCodes, "common"]}
             />
           </div>
         </div>
