@@ -84,11 +84,6 @@ public class CommonTaskService {
     }
 
     private void validateStudy(CommonTaskRequest request) {
-        String studyTask = request.studyYoutubeUrl();
-        if (studyTask == null || studyTask.isBlank())
-            throw new CommonTaskValidationException("STUDY_YOUTUBE_URL_REQUIRED", "Study task required");
-        if (studyTask.length() > 1000)
-            throw new CommonTaskValidationException("STUDY_YOUTUBE_URL_TOO_LONG", "Study task too long");
         if (request.studyTakeaway() == null || request.studyTakeaway().isBlank())
             throw new CommonTaskValidationException("STUDY_TAKEAWAY_REQUIRED", "Takeaway required");
         if (request.studyTakeaway().length() > 1000)

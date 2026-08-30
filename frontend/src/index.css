@@ -1412,7 +1412,13 @@ a.link:hover {
   .butler-chat-scene {
     min-height: 72vh;
     padding: 18px 14px;
-    background-position: 52% top;
+    /* 정사각형 원본을 세로로 긴 모바일 채팅창에 cover로 채우면 인물의 양옆이
+       크게 잘려 얼굴과 상체가 과도하게 확대된다. 어두운 오버레이는 채팅창 전체에,
+       인물 사진은 화면 너비에 맞춰 각각 별도 크기로 렌더링한다. */
+    background-color: #1d1c32;
+    background-size: 100% 100%, 100% auto;
+    background-position: center, center top;
+    background-repeat: no-repeat;
   }
   .butler-chat-scene .butler-bubble {
     max-width: 76%;

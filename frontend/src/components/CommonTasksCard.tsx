@@ -46,10 +46,8 @@ function commonTaskErrorMessage(err: unknown, fallback: string): string {
     READING_PAGE_OUT_OF_RANGE: `페이지 번호는 0~${MAX_PAGE_NUMBER.toLocaleString()} 사이여야 해요.`,
     READING_END_BEFORE_START: "종료 페이지가 시작 페이지보다 앞설 수 없어요.",
     READING_RANGE_TOO_LARGE: `하루 독서량이 너무 커요. ${MAX_PAGES_PER_DAY.toLocaleString()}p 이하로 입력해주세요.`,
-    STUDY_YOUTUBE_URL_REQUIRED: "공부 과제를 입력해주세요.",
-    STUDY_YOUTUBE_URL_TOO_LONG: "공부 과제는 1,000자 이하로 작성해주세요.",
-    STUDY_TAKEAWAY_REQUIRED: "오늘의 일지를 입력해주세요.",
-    STUDY_TAKEAWAY_TOO_LONG: "오늘의 일지는 1,000자 이하로 작성해주세요.",
+    STUDY_TAKEAWAY_REQUIRED: "배운 점이나 느낀 점을 입력해주세요.",
+    STUDY_TAKEAWAY_TOO_LONG: "배운 점이나 느낀 점은 1,000자 이하로 작성해주세요.",
     READING_PHOTO_REQUIRED: "사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.",
     STUDY_PHOTO_REQUIRED: "사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.",
     RETROSPECTIVE_EMPTY: "회고 또는 다음 주 계획 중 최소 하나는 입력해주세요.",
@@ -255,7 +253,6 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
 function StudySection({ project, date, readOnly }: { project: ProjectResponse | null; date: string; readOnly: boolean }) {
   const { showToast } = useToast();
   const [existing, setExisting] = useState<CommonTaskResponse | null>(null);
-  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [takeaway, setTakeaway] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -273,14 +270,9 @@ function StudySection({ project, date, readOnly }: { project: ProjectResponse | 
   }, [date]);
 
   const handleSave = async () => {
-    const studyTask = youtubeUrl.trim();
     const note = takeaway.trim();
-    if (!studyTask) {
-      setError("공부 과제를 입력해주세요.");
-      return;
-    }
     if (!note) {
-      setError("오늘의 일지를 입력해주세요.");
+      setError("배운 점이나 느낀 점을 입력해주세요.");
       return;
     }
     setSaving(true);
@@ -289,7 +281,6 @@ function StudySection({ project, date, readOnly }: { project: ProjectResponse | 
       const saved = await saveCommonTask({
         taskType: "STUDY",
         date,
-        studyYoutubeUrl: studyTask,
         studyTakeaway: note,
       });
       setExisting(saved);
@@ -314,11 +305,8 @@ function StudySection({ project, date, readOnly }: { project: ProjectResponse | 
           <span className="badge good">완료</span>
         </div>
         <div className="stack" style={{ gap: 10, marginTop: 12 }}>
-          {existing.studyYoutubeUrl ? (
-            <>
-              <div className="recorded-field"><span className="muted">공부 과제</span><strong>{existing.studyYoutubeUrl}</strong></div>
-              <div className="recorded-field"><span className="muted">오늘의 일지</span><strong>{existing.studyTakeaway}</strong></div>
-            </>
+          {existing.studyTakeaway ? (
+            <div className="recorded-field"><span className="muted">배운 점 · 느낀 점</span><strong>{existing.studyTakeaway}</strong></div>
           ) : (
             <div className="recorded-field"><span className="muted">기존 공부 기록</span><strong>{existing.studyCompletedAmount}</strong></div>
           )}
@@ -334,16 +322,14 @@ function StudySection({ project, date, readOnly }: { project: ProjectResponse | 
       <div className="row-between">
         <div>
           <strong>공부</strong>
-          <div className="muted">공통 과제 · 오늘의 공부를 기록해주세요</div>
+          <div className="muted">공통 과제 · 오늘 배운 점과 느낀 점을 남겨주세요</div>
         </div>
       </div>
       <div className="stack" style={{ gap: 10, marginTop: 12 }}>
         {project?.commonStudyYoutubeTopic && (
           <div className="recorded-field"><span className="muted">나의 공부 주제</span><strong>{project.commonStudyYoutubeTopic}</strong></div>
         )}
-        <input type="text" placeholder="공부 과제" value={youtubeUrl}
-          onChange={(e) => setYoutubeUrl(e.target.value)} maxLength={1000} />
-        <textarea placeholder="오늘의 일지"
+        <textarea placeholder="배운 점이나 느낀 점을 작성해주세요"
           value={takeaway} onChange={(e) => setTakeaway(e.target.value)} maxLength={1000} rows={3} />
         {error && <div className="error-banner">{error}</div>}
         <button className="primary" onClick={handleSave} disabled={saving}>
