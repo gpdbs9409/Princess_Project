@@ -15,6 +15,11 @@ const CHART_HEIGHT = 130;
 // otherwise squash circles into ellipses and distort the glyphs.
 const PAD_X = 8;
 const PAD_Y = 20;
+const AXIS_TICKS = [100, 70, 50, 30, 0];
+
+function axisTop(tick: number): number {
+  return PAD_Y + (100 - PAD_Y * 2) * (1 - tick / 100);
+}
 
 export function WeeklyStatLineChart({ scores, maxByGoal, goalCodes }: WeeklyStatLineChartProps) {
   const points = goalCodes.map((code, i) => {
@@ -31,8 +36,16 @@ export function WeeklyStatLineChart({ scores, maxByGoal, goalCodes }: WeeklyStat
   const baselineYPct = PAD_Y + (100 - PAD_Y * 2);
 
   return (
-    <div>
-      <div style={{ position: "relative", height: CHART_HEIGHT }}>
+    <div className="weekly-stat-chart-wrap">
+      <div className="weekly-stat-chart-axis" aria-hidden="true">
+        {AXIS_TICKS.map((tick) => (
+          <div key={tick} className="weekly-stat-chart-tick" style={{ top: `${axisTop(tick)}%` }}>
+            <span>{tick}</span>
+            <i />
+          </div>
+        ))}
+      </div>
+      <div className="weekly-stat-chart-plot" style={{ position: "relative", height: CHART_HEIGHT }}>
         <svg
           viewBox="0 0 100 100"
           width="100%"

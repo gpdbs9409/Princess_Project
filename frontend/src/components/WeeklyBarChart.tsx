@@ -11,7 +11,7 @@ interface DayPoint {
 
 // 막대 높이는 그날의 달성률(0~100%)이라 눈금도 %로 둔다. 눈금이 없으면 막대끼리 비교만
 // 될 뿐 "오늘이 대략 몇 %인지"를 읽을 수 없어서, 자주 보는 구간 위주로 5개만 그린다.
-const AXIS_TICKS = [100, 80, 50, 30, 0];
+const AXIS_TICKS = [100, 70, 50, 30, 0];
 
 export function WeeklyBarChart({ days }: { days: DayPoint[] }) {
   const [hovered, setHovered] = useState<number | null>(null);

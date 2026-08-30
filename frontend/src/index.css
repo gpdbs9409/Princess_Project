@@ -374,11 +374,51 @@ a.link:hover {
 .stat-meter-fill {
   height: 100%;
   border-radius: 5px;
-  background: var(--accent-strong);
-  transition: width 0.3s ease;
+  background-color: #d48a94;
+  background-image: none;
+  opacity: 1;
 }
 .stat-meter + .stat-meter {
   margin-top: 12px;
+}
+
+/* 주간 스탯 누적도 총점 차트와 같은 0~100 달성률 축을 사용한다. 축 영역을 별도로
+   확보해 첫 번째 자본의 점/라벨과 눈금 숫자가 겹치지 않게 한다. */
+.weekly-stat-chart-wrap {
+  position: relative;
+  padding-left: 28px;
+}
+.weekly-stat-chart-axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 130px;
+  pointer-events: none;
+}
+.weekly-stat-chart-tick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transform: translateY(-50%);
+}
+.weekly-stat-chart-tick span {
+  width: 24px;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1;
+  text-align: right;
+}
+.weekly-stat-chart-tick i {
+  flex: 1;
+  border-top: 1px dashed var(--border);
+  opacity: 0.5;
+}
+.weekly-stat-chart-plot {
+  position: relative;
 }
 
 /* weekly bar chart */
