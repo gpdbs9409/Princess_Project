@@ -51,9 +51,8 @@ public class AiFeedbackService {
 
         AiFeedbackResult result = aiFeedbackClient.generate(context);
 
-        AiFeedback feedback = aiFeedbackRepository
-                .findByUserIdAndProjectIdAndFeedbackDateAndFeedbackType(userId, project.getId(), date, FeedbackType.DAILY)
-                .orElseGet(AiFeedback::new);
+        // 한 날짜에도 집사에게 여러 번 말을 걸 수 있으므로 매 생성 결과를 새 채팅 묶음으로 보존한다.
+        AiFeedback feedback = new AiFeedback();
         feedback.setUser(user);
         feedback.setProject(project);
         feedback.setFeedbackDate(date);
@@ -76,7 +75,8 @@ public class AiFeedbackService {
     public AiFeedbackResult getStoredFeedback(Long userId, LocalDate date) {
         UserProject project = userProjectService.getOrCreateActive(userId);
         return aiFeedbackRepository
-                .findByUserIdAndProjectIdAndFeedbackDateAndFeedbackType(userId, project.getId(), date, FeedbackType.DAILY)
+                .findTopByUserIdAndProjectIdAndFeedbackDateAndFeedbackTypeOrderByCreatedAtDesc(
+                        userId, project.getId(), date, FeedbackType.DAILY)
                 .map(f -> new AiFeedbackResult(f.getSummary(), f.getPraise(), f.getImprovement(), f.getTomorrow(), f.getCheer()))
                 .orElse(null);
     }
@@ -86,7 +86,7 @@ public class AiFeedbackService {
     @Transactional
     public List<AiFeedback> getFeedbackHistory(Long userId) {
         UserProject project = userProjectService.getOrCreateActive(userId);
-        return aiFeedbackRepository.findByUserIdAndProjectIdAndFeedbackTypeOrderByFeedbackDateAsc(
+        return aiFeedbackRepository.findByUserIdAndProjectIdAndFeedbackTypeOrderByFeedbackDateAscCreatedAtAsc(
                 userId, project.getId(), FeedbackType.DAILY);
     }
 

@@ -288,7 +288,9 @@ export interface AiFeedbackResponse {
 // 레오집사 채팅(누적 히스토리) 화면용 - AiFeedbackResponse와 필드는 같지만 날짜(feedbackDate)가
 // 추가로 붙어서, 여러 날짜를 한번에 리스트로 받아 쭉 이어지는 채팅처럼 렌더링할 수 있다.
 export interface AiFeedbackHistoryEntry {
+  id: number;
   feedbackDate: string;
+  createdAt: string;
   summary: string;
   praise: string;
   improvement: string;

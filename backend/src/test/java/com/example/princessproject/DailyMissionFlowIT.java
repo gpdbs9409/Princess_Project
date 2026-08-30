@@ -2,6 +2,7 @@ package com.example.princessproject;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.princessproject.aifeedback.dto.AiFeedbackHistoryEntryResponse;
 import com.example.princessproject.aifeedback.dto.AiFeedbackResponse;
 import com.example.princessproject.admin.dto.AdminMemberWeekResponse;
 import com.example.princessproject.admin.service.AdminService;
@@ -220,6 +221,25 @@ class DailyMissionFlowIT {
                 .getResponseBody();
         assertThat(feedback.summary()).isNotBlank();
         assertThat(feedback.cheer()).isNotBlank();
+
+        client.post().uri("/api/projects/active/ai-feedback?date={date}", today)
+                .header("Authorization", auth)
+                .exchange()
+                .expectStatus().isOk();
+
+        List<AiFeedbackHistoryEntryResponse> feedbackHistory = List.of(client.get()
+                .uri("/api/projects/active/ai-feedback/history")
+                .header("Authorization", auth)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(AiFeedbackHistoryEntryResponse[].class)
+                .returnResult()
+                .getResponseBody());
+        assertThat(feedbackHistory).hasSize(2);
+        assertThat(feedbackHistory).extracting(AiFeedbackHistoryEntryResponse::feedbackDate)
+                .containsOnly(today);
+        assertThat(feedbackHistory).extracting(AiFeedbackHistoryEntryResponse::id)
+                .doesNotHaveDuplicates();
 
         DailySummaryResponse summaryWithFeedback = client.get().uri("/api/projects/active/daily?date={date}", today)
                 .header("Authorization", auth)

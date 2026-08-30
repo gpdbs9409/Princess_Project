@@ -719,12 +719,12 @@ CREATE TABLE ai_feedbacks (
         DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT uk_ai_feedbacks_project_date_type
-        UNIQUE (
+    INDEX idx_ai_feedbacks_conversation (
             user_id,
             project_id,
             feedback_date,
-            feedback_type
+            feedback_type,
+            created_at
         ),
 
     INDEX idx_ai_feedbacks_project (

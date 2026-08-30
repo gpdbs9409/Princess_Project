@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { generateAiFeedback, getAiFeedbackHistory } from "../api/endpoints";
 import type { AiFeedbackHistoryEntry } from "../api/types";
 
@@ -9,6 +9,7 @@ export function ButlerChatPage() {
   const [entries, setEntries] = useState<AiFeedbackHistoryEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const chatSceneRef = useRef<HTMLDivElement | null>(null);
 
   const todayIso = () => {
     const now = new Date();
@@ -26,6 +27,11 @@ export function ButlerChatPage() {
   useEffect(() => {
     loadHistory();
   }, []);
+
+  useEffect(() => {
+    if (!entries?.length || !chatSceneRef.current) return;
+    chatSceneRef.current.scrollTop = chatSceneRef.current.scrollHeight;
+  }, [entries]);
 
   const handleGenerateFeedback = async () => {
     setGenerating(true);
@@ -68,7 +74,7 @@ export function ButlerChatPage() {
       )}
 
       {!error && entries !== null && entries.length > 0 && (
-        <div className="card butler-chat-scene">
+        <div className="card butler-chat-scene" ref={chatSceneRef}>
           <div className="butler-feedback-header">
             <div className="butler-name-block">
               <span className="butler-name-eyebrow">AI 집사</span>
@@ -77,11 +83,13 @@ export function ButlerChatPage() {
           </div>
 
           <div className="stack" style={{ gap: 18 }}>
-            {entries.map((entry) => (
-              <div key={entry.feedbackDate}>
-                <div className="butler-chat-date-divider">
-                  <span>{entry.feedbackDate}</span>
-                </div>
+            {entries.map((entry, index) => (
+              <div key={entry.id}>
+                {(index === 0 || entries[index - 1].feedbackDate !== entry.feedbackDate) && (
+                  <div className="butler-chat-date-divider">
+                    <span>{entry.feedbackDate}</span>
+                  </div>
+                )}
                 <div className="butler-bubbles">
                   {[entry.summary, entry.praise, entry.improvement, entry.tomorrow, entry.cheer]
                     .filter(Boolean)
