@@ -1347,13 +1347,13 @@ a.link:hover {
 .admin-day-strip .missed { color: #a84755; background: #f7d7dc; }
 .admin-day-strip .future { color: #aaa19d; background: #f0ecea; }
 .admin-needed-days { display: block; margin-top: 5px; color: #a84755; white-space: nowrap; }
-.admin-review-modal { width: min(980px, calc(100vw - 32px)); max-height: 88vh; overflow-y: auto; }
-.admin-review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.admin-review-grid .photo-preview { width: 100%; max-height: 280px; margin-top: 12px; object-fit: contain; }
+.admin-review-modal { width: min(760px, calc(100vw - 32px)); max-height: 88vh; overflow-y: auto; }
+.admin-review-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.admin-review-card { width: 100%; }
+.admin-review-grid .photo-preview { width: 100%; max-width: none; max-height: 420px; margin-top: 12px; object-fit: contain; background: var(--surface-2); }
 
 @media (max-width: 900px) {
   .admin-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .admin-review-grid { grid-template-columns: 1fr; }
   .admin-table { min-width: 1060px; }
 }
 

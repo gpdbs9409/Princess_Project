@@ -936,7 +936,7 @@ export function AdminPage() {
             {reviewActivities.length === 0 && <p className="muted">현재 검토할 사진이 없어요.</p>}
             <div className="admin-review-grid">
               {reviewActivities.map((activity) => (
-                <article className="card" key={`${activity.activityType}-${activity.id}`}>
+                <article className="card admin-review-card" key={`${activity.activityType}-${activity.id}`}>
                   <div className="row-between" style={{ alignItems: "flex-start", gap: 8 }}>
                     <div>
                       <strong>{activity.nickname} · {activity.name}</strong>
