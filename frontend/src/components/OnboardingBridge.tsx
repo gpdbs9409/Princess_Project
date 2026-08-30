@@ -121,9 +121,6 @@ export function OnboardingBridge() {
           <div className="onboarding-climax">
             <div className="onboarding-climax-image" aria-hidden="true" />
             <p className="onboarding-climax-countdown">D-30 · 봄의 무도회</p>
-            <p className="onboarding-climax-copy">
-              거울 속 나를 바라본다. 흐트러진 머리를 깔끔하게 묶어 올리며, 화면을 정면으로 응시한다.
-            </p>
             <div className="onboarding-climax-actions">
               <button type="button" className="ghost" onClick={goBackToVideo}>
                 NO · 현실 복귀

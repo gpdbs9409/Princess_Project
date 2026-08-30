@@ -1476,7 +1476,7 @@ a.link:hover {
   width: 100%;
   aspect-ratio: 9 / 12;
   border-radius: 8px;
-  background: radial-gradient(circle at 50% 30%, #3a2530, #14100f 80%);
+  background: #21161c url("/onboarding/climax-freeze.png") center / cover no-repeat;
 }
 .onboarding-climax-countdown {
   font-weight: 800;
