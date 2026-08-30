@@ -34,6 +34,14 @@ function App() {
     trackPageView(location.pathname + location.search);
   }, [location]);
 
+  // React Router keeps the document's scroll position between routes. The butler history is
+  // intentionally scrollable and can leave the document far below the top; without resetting,
+  // the next page (and especially a modal opened there) appears displaced relative to the user's
+  // viewport. Each app screen should start from its own original top-aligned layout.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname]);
+
   return (
     <div className="app-shell">
       <BubbleEffect />

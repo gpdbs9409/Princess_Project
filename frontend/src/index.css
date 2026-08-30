@@ -1391,9 +1391,10 @@ a.link:hover {
   font-variant-numeric: tabular-nums;
 }
 .butler-chat-scene {
-  min-height: 680px;
-  max-height: min(76vh, 820px);
+  height: min(68dvh, 680px);
+  min-height: 420px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 24px;
   color: #fff;
   background-image: linear-gradient(rgba(29, 28, 50, 0.5), rgba(29, 28, 50, 0.66)), url("/butler/chat-background.png");
@@ -1416,7 +1417,8 @@ a.link:hover {
 }
 @media (max-width: 640px) {
   .butler-chat-scene {
-    min-height: 72vh;
+    height: min(62dvh, 560px);
+    min-height: 360px;
     padding: 18px 14px;
     /* 정사각형 원본을 세로로 긴 모바일 채팅창에 cover로 채우면 인물의 양옆이
        크게 잘려 얼굴과 상체가 과도하게 확대된다. 어두운 오버레이는 채팅창 전체에,
