@@ -37,37 +37,32 @@ export function ProjectReadOnlyView({ project }: { project: ProjectResponse }) {
 
       {project.goals.map((goal) => (
         <div className="card habitus-readonly-card" key={goal.id}>
-          <img
-            src={GOAL_TYPE_IMAGE[goal.goalTypeCode]}
-            alt=""
-            className="habitus-readonly-image"
-            aria-hidden="true"
-          />
-          <div className="habitus-readonly-content">
-            <div className="row-between">
-              <strong>{GOAL_TYPE_LABELS[goal.goalTypeCode]}</strong>
-              <span className="muted">비중 {goal.weightPercent}%</span>
+          <div className="habitus-readonly-header">
+            <img
+              src={GOAL_TYPE_IMAGE[goal.goalTypeCode]}
+              alt=""
+              className="habitus-readonly-image"
+              aria-hidden="true"
+            />
+            <div>
+              <strong className="habitus-readonly-title">{GOAL_TYPE_LABELS[goal.goalTypeCode]}</strong>
+              <div className="muted habitus-readonly-weight">비중 {goal.weightPercent}%</div>
             </div>
-            <div className="stack" style={{ marginTop: 12, gap: 10, paddingLeft: 8, borderLeft: "2px solid var(--border)" }}>
+          </div>
+          <div className="habitus-readonly-missions">
             {goal.stats.map((stat) => (
-              <div key={stat.id}>
-                <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>
-                  {stat.name}
-                </span>
-                <div className="stack" style={{ marginTop: 6, gap: 6, paddingLeft: 8 }}>
+              <div className="habitus-readonly-stat" key={stat.id}>
+                <span className="muted habitus-readonly-stat-name">{stat.name}</span>
+                <div className="habitus-readonly-mission-list">
                   {stat.missions.map((mission) => (
-                    <div key={mission.id} className="row-between" style={{ fontSize: 13 }}>
-                      <span>{mission.name}</span>
-                      <span className="muted">
-                        목표 {mission.targetValue}
-                        {mission.unit}
-                      </span>
+                    <div key={mission.id} className="habitus-readonly-mission">
+                      <strong>{mission.name}</strong>
+                      <span className="muted">목표 {mission.targetValue}{mission.unit}</span>
                     </div>
                   ))}
                 </div>
               </div>
             ))}
-            </div>
           </div>
         </div>
       ))}
