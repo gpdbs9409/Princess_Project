@@ -2,12 +2,10 @@ package com.example.princessproject.user.controller;
 
 import com.example.princessproject.upload.service.FileStorageClient;
 import com.example.princessproject.user.dto.ParticipantResponse;
-import com.example.princessproject.user.dto.UpdateEmailRequest;
 import com.example.princessproject.user.dto.UpdateInstagramRequest;
 import com.example.princessproject.user.service.UserService;
 import com.example.princessproject.user.dto.ProfileStatsResponse;
 import com.example.princessproject.user.dto.UserResponse;
-import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,13 +48,6 @@ public class UserController {
         }
         String url = fileStorageClient.store(file);
         return UserResponse.from(userService.updateProfileImage(id, url));
-    }
-
-    // "비밀번호 찾기"를 쓰려면 이메일이 등록돼 있어야 하는데, 회원가입 때 건너뛴 사람도 여기서 나중에 추가할 수 있다.
-    @PutMapping("/{id}/email")
-    @PreAuthorize("#id == authentication.principal")
-    public UserResponse updateEmail(@PathVariable Long id, @Valid @RequestBody UpdateEmailRequest request) {
-        return UserResponse.from(userService.updateEmail(id, request.email()));
     }
 
     @PutMapping("/{id}/instagram")

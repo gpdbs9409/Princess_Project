@@ -133,19 +133,6 @@ public class UserService {
     }
 
     @Transactional
-    public User updateEmail(Long userId, String email) {
-        User user = getById(userId);
-        String normalizedEmail = normalizeEmail(email);
-        userRepository.findByEmail(normalizedEmail)
-                .filter(existing -> !existing.getId().equals(userId))
-                .ifPresent(existing -> {
-                    throw new AuthValidationException("EMAIL_TAKEN", "Email already registered: " + normalizedEmail);
-                });
-        user.setEmail(normalizedEmail);
-        return userRepository.save(user);
-    }
-
-    @Transactional
     public User updateInstagram(Long userId, String instagram) {
         User user = getById(userId);
         user.setInstagram(normalizeInstagram(instagram));

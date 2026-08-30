@@ -64,9 +64,6 @@ export const resetPassword = (token: string, newPassword: string) =>
 
 export const getUser = (userId: number) => api.get<UserResponse>(`/api/users/${userId}`);
 
-export const updateEmail = (userId: number, email: string) =>
-  api.put<UserResponse>(`/api/users/${userId}/email`, { email });
-
 export const updateInstagram = (userId: number, instagram: string) =>
   api.put<UserResponse>(`/api/users/${userId}/instagram`, { instagram });
 
