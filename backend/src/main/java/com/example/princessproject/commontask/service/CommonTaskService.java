@@ -8,7 +8,6 @@ import com.example.princessproject.project.model.UserProject;
 import com.example.princessproject.project.service.UserProjectService;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
-import java.net.URI;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
@@ -85,19 +84,11 @@ public class CommonTaskService {
     }
 
     private void validateStudy(CommonTaskRequest request) {
-        String url = request.studyYoutubeUrl();
-        if (url == null || url.isBlank())
-            throw new CommonTaskValidationException("STUDY_YOUTUBE_URL_REQUIRED", "YouTube URL required");
-        try {
-            URI uri = URI.create(url.trim());
-            if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
-                    || uri.getHost() == null)
-                throw new IllegalArgumentException();
-        } catch (IllegalArgumentException ex) {
-            throw new CommonTaskValidationException("STUDY_YOUTUBE_URL_INVALID", "Invalid URL");
-        }
-        if (url.length() > 1000)
-            throw new CommonTaskValidationException("STUDY_YOUTUBE_URL_TOO_LONG", "URL too long");
+        String studyTask = request.studyYoutubeUrl();
+        if (studyTask == null || studyTask.isBlank())
+            throw new CommonTaskValidationException("STUDY_YOUTUBE_URL_REQUIRED", "Study task required");
+        if (studyTask.length() > 1000)
+            throw new CommonTaskValidationException("STUDY_YOUTUBE_URL_TOO_LONG", "Study task too long");
         if (request.studyTakeaway() == null || request.studyTakeaway().isBlank())
             throw new CommonTaskValidationException("STUDY_TAKEAWAY_REQUIRED", "Takeaway required");
         if (request.studyTakeaway().length() > 1000)
