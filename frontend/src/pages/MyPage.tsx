@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
-import { getProfileStats, updateEmail, updateProfileImage } from "../api/endpoints";
+import { getProfileStats, updateEmail, updateInstagram, updateProfileImage } from "../api/endpoints";
 import type { ProfileStatsResponse } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
+import { useToast } from "../components/ToastProvider";
 
 export function MyPage() {
   const { user, updateUser } = useAuth();
+  const { showToast } = useToast();
   const [stats, setStats] = useState<ProfileStatsResponse | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -14,6 +16,10 @@ export function MyPage() {
   const [emailInput, setEmailInput] = useState("");
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [editingInstagram, setEditingInstagram] = useState(false);
+  const [instagramInput, setInstagramInput] = useState("");
+  const [instagramSaving, setInstagramSaving] = useState(false);
+  const [instagramError, setInstagramError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -66,6 +72,27 @@ export function MyPage() {
       }
     } finally {
       setEmailSaving(false);
+    }
+  };
+
+  const startEditingInstagram = () => {
+    setInstagramInput(user.instagram ?? "");
+    setInstagramError(null);
+    setEditingInstagram(true);
+  };
+
+  const handleInstagramSave = async () => {
+    setInstagramSaving(true);
+    setInstagramError(null);
+    try {
+      const updated = await updateInstagram(user.id, instagramInput);
+      updateUser(updated);
+      setEditingInstagram(false);
+      showToast(updated.instagram ? "인스타그램이 저장되었어요" : "인스타그램 등록을 해제했어요");
+    } catch {
+      setInstagramError("인스타그램 저장에 실패했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setInstagramSaving(false);
     }
   };
 
@@ -155,6 +182,50 @@ export function MyPage() {
                 {emailSaving ? "저장 중..." : "저장"}
               </button>
               <button type="button" className="ghost" onClick={() => setEditingEmail(false)} disabled={emailSaving}>
+                취소
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="card stack" style={{ gap: 10, marginTop: 16 }}>
+        <div className="row-between">
+          <strong>인스타그램</strong>
+          {!editingInstagram && (
+            <button type="button" className="ghost" onClick={startEditingInstagram}>
+              {user.instagram ? "수정" : "등록"}
+            </button>
+          )}
+        </div>
+        <p className="muted" style={{ margin: 0 }}>
+          함께하는 참가자가 프로필에서 바로 방문할 수 있어요.
+        </p>
+
+        {!editingInstagram && (
+          user.instagram ? (
+            <a href={`https://instagram.com/${user.instagram}`} target="_blank" rel="noreferrer">
+              @{user.instagram}
+            </a>
+          ) : <p style={{ margin: 0 }}>등록된 인스타그램이 없어요.</p>
+        )}
+
+        {editingInstagram && (
+          <div className="stack" style={{ gap: 8 }}>
+            <input
+              type="text"
+              value={instagramInput}
+              onChange={(e) => setInstagramInput(e.target.value)}
+              placeholder="@username 또는 인스타그램 주소"
+              maxLength={100}
+            />
+            <p className="muted" style={{ margin: 0 }}>비워서 저장하면 등록이 해제돼요.</p>
+            {instagramError && <div className="error-banner">{instagramError}</div>}
+            <div className="row" style={{ gap: 8 }}>
+              <button type="button" className="primary" onClick={handleInstagramSave} disabled={instagramSaving}>
+                {instagramSaving ? "저장 중..." : "저장"}
+              </button>
+              <button type="button" className="ghost" onClick={() => setEditingInstagram(false)} disabled={instagramSaving}>
                 취소
               </button>
             </div>

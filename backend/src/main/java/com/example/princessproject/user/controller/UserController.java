@@ -3,6 +3,7 @@ package com.example.princessproject.user.controller;
 import com.example.princessproject.upload.service.FileStorageClient;
 import com.example.princessproject.user.dto.ParticipantResponse;
 import com.example.princessproject.user.dto.UpdateEmailRequest;
+import com.example.princessproject.user.dto.UpdateInstagramRequest;
 import com.example.princessproject.user.service.UserService;
 import com.example.princessproject.user.dto.ProfileStatsResponse;
 import com.example.princessproject.user.dto.UserResponse;
@@ -56,6 +57,12 @@ public class UserController {
     @PreAuthorize("#id == authentication.principal")
     public UserResponse updateEmail(@PathVariable Long id, @Valid @RequestBody UpdateEmailRequest request) {
         return UserResponse.from(userService.updateEmail(id, request.email()));
+    }
+
+    @PutMapping("/{id}/instagram")
+    @PreAuthorize("#id == authentication.principal")
+    public UserResponse updateInstagram(@PathVariable Long id, @RequestBody UpdateInstagramRequest request) {
+        return UserResponse.from(userService.updateInstagram(id, request.instagram()));
     }
 
     @GetMapping("/{id}/profile-stats")

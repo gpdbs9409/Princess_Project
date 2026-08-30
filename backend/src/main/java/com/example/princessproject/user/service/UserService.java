@@ -145,6 +145,13 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    @Transactional
+    public User updateInstagram(Long userId, String instagram) {
+        User user = getById(userId);
+        user.setInstagram(normalizeInstagram(instagram));
+        return userRepository.save(user);
+    }
+
     @Transactional(readOnly = true)
     public ProfileStatsResponse getProfileStats(Long userId) {
         User user = getById(userId);

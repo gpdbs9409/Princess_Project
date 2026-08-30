@@ -67,6 +67,9 @@ export const getUser = (userId: number) => api.get<UserResponse>(`/api/users/${u
 export const updateEmail = (userId: number, email: string) =>
   api.put<UserResponse>(`/api/users/${userId}/email`, { email });
 
+export const updateInstagram = (userId: number, instagram: string) =>
+  api.put<UserResponse>(`/api/users/${userId}/instagram`, { instagram });
+
 export const getProfileStats = (userId: number) =>
   api.get<ProfileStatsResponse>(`/api/users/${userId}/profile-stats`);
 
