@@ -412,8 +412,7 @@ public class DailyRecordService {
                     scoringService.earnedScore(COMMON_TASK_POINTS, rate), rate, done);
         }
 
-        boolean done = (record.getStudyYoutubeUrl() != null && !record.getStudyYoutubeUrl().isBlank()
-                && record.getStudyTakeaway() != null && !record.getStudyTakeaway().isBlank())
+        boolean done = (record.getStudyTakeaway() != null && !record.getStudyTakeaway().isBlank())
                 // 배포 전 기존 공부 기록도 갑자기 0점이 되지 않도록 인정한다.
                 || (record.getStudyCompletedAmount() != null && record.getStudyCompletedAmount().signum() > 0);
         BigDecimal actual = done ? BigDecimal.ONE : BigDecimal.ZERO;

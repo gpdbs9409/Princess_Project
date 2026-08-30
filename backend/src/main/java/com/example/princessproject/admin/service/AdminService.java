@@ -458,20 +458,7 @@ public class AdminService {
                 credits.add(-1.0); // Future day: visually distinct from a missed day in the admin UI.
                 continue;
             }
-            int completed = progress.completedMissions().size();
-            int remaining = progress.remainingMissions().size();
-            int activeCount = completed + remaining;
-            if (activeCount == 0) {
-                credits.add(0.0);
-                continue;
-            }
-            if (remaining == 0) {
-                credits.add(1.0);
-            } else if (completed > 0) {
-                credits.add(0.5);
-            } else {
-                credits.add(0.0);
-            }
+            credits.add(progress.refundCredit().doubleValue());
         }
         while (credits.size() < 7) credits.add(-1.0);
         return credits;

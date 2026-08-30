@@ -469,6 +469,49 @@ a.link:hover {
 .week-chart-wrap .week-bar-labels {
   padding-left: 0;
 }
+.week-refund-hearts {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: center;
+  min-height: 18px;
+  margin-top: 3px;
+}
+.week-refund-heart-slot {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+}
+.week-refund-heart {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 14px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.week-refund-heart img {
+  display: block;
+  width: 18px;
+  height: 14px;
+  object-fit: fill;
+}
+.week-refund-heart.is-half {
+  width: 9px;
+  margin-right: 9px;
+}
+.week-refund-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 10.5px;
+}
+.week-refund-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 .week-bar-col {
   flex: 1;
   display: flex;

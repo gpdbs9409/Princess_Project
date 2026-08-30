@@ -214,6 +214,7 @@ export function DashboardPage() {
                   label: WEEKDAY_LABELS[dow],
                   value: d.totalScore,
                   progress: d.progress,
+                  refundCredit: d.refundCredit,
                   isToday: d.date === todayIso,
                 };
               })}

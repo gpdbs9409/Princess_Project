@@ -6,6 +6,7 @@ interface DayPoint {
   value: number;
   /** achievement rate against that day's own max possible score, 0-1 */
   progress: number;
+  refundCredit: number;
   isToday: boolean;
 }
 
@@ -55,6 +56,26 @@ export function WeeklyBarChart({ days }: { days: DayPoint[] }) {
             {day.label}
           </span>
         ))}
+      </div>
+      <div className="week-refund-hearts" aria-label="요일별 환급 조건 달성 여부">
+        {days.map((day) => {
+          const full = day.refundCredit >= 1;
+          const half = day.refundCredit > 0 && day.refundCredit < 1;
+          const label = full ? "모든 미션 수행" : half ? "일부 미션 수행" : "수행 기록 없음";
+          return (
+            <span key={day.date} className="week-refund-heart-slot" title={`${day.label}요일 · ${label}`}>
+              {(full || half) && (
+                <span className={`week-refund-heart ${half ? "is-half" : ""}`} aria-label={label}>
+                  <img src="/cursor/cursor.png" alt="" />
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </div>
+      <div className="week-refund-legend">
+        <span><span className="week-refund-heart"><img src="/cursor/cursor.png" alt="" /></span> 전체 수행</span>
+        <span><span className="week-refund-heart is-half"><img src="/cursor/cursor.png" alt="" /></span> 일부 수행</span>
       </div>
     </div>
   );

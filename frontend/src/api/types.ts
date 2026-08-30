@@ -312,6 +312,8 @@ export interface DailySummaryResponse {
   maxPossible: number;
   progress: number;
   statScores: Partial<Record<string, number>>;
+  /** 환급용 일일 수행 상태: 미수행 0, 일부 수행 0.5, 전체 수행 1 */
+  refundCredit: number;
   completedMissions: string[];
   remainingMissions: string[];
   todayRecords: Partial<Record<number, TodayRecordEntry>>;
