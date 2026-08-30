@@ -39,9 +39,9 @@ export function ParticipantListModal({ onClose }: { onClose: () => void }) {
           <ul className="participant-list">
             {participants.map((p) => {
               const profileLines = [
-                p.goalAppearance && { label: "추구미", value: p.goalAppearance },
-                p.goalHuman && { label: "이상향", value: p.goalHuman },
-                p.goalEnding && { label: "행동양식", value: p.goalEnding },
+                p.goalHuman && { label: "내가 되고 싶은 인간상", value: p.goalHuman },
+                p.goalAppearance && { label: "외적 페르소나", value: p.goalAppearance },
+                p.goalEnding && { label: "내가 살고 싶은 삶", value: p.goalEnding },
               ].filter((line): line is { label: string; value: string } => Boolean(line));
               return (
                 <li key={p.id} className="participant-list-item">
