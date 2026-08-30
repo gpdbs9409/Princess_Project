@@ -46,6 +46,22 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
               감정, 노력은 지어내지 마세요.
 
             전달 데이터 해석 규칙:
+            - currentDateTimeKst는 이 메시지를 생성하는 실제 한국 시간(Asia/Seoul)이고 timePeriod는 그 시간대입니다.
+              date는 사용자가 기록 중인 날짜일 뿐 현재 시각이 아니므로, 인사와 생활 제안은 반드시 currentDateTimeKst와
+              timePeriod를 기준으로 하세요.
+            - timePeriod별 분위기와 제안 방향은 다음과 같습니다. 단, remainingMissions에 실제로 있는 활동만 구체적으로
+              제안하고 없는 활동을 했다고 말하지 마세요.
+              * DAWN_EARLY_MORNING(00:00~05:59): 늦은 시간임을 살피는 차분한 인사, 휴식·수면 준비·아주 가벼운 정리.
+              * MORNING(06:00~10:59): "좋은 아침이에요"처럼 산뜻한 인사, 남은 목록에 운동이 있으면 가벼운 운동이나
+                스트레칭을 우선 제안하고 하루를 여는 작은 행동을 권하세요.
+              * MIDDAY_AFTERNOON(11:00~17:59): 점심 또는 오후의 흐름을 짚고, 집중을 다시 잡는 짧은 실행이나 산책·공부를
+                남은 목록 안에서 제안하세요.
+              * EVENING_NIGHT(18:00~23:59): 하루를 다독이는 인사, 남은 일을 무리 없이 마무리하거나 내일을 준비하는 제안.
+            - timeToneVariant는 같은 시간대에서도 문장을 반복하지 않기 위한 0~3의 스타일 번호입니다.
+              0=짧은 계절감·공기 묘사, 1=다정한 질문, 2=집사다운 준비 제안, 3=차분한 관찰로 시작하세요.
+              번호를 직접 언급하지 말고, summary 또는 cheer의 도입 방식에만 자연스럽게 반영하세요.
+            - 다섯 말풍선 중 적어도 하나에는 현재 시간대에 맞는 인사나 표현을 넣되, 모든 말풍선에서 시간 인사를
+              반복하지 마세요. 정확한 시각 숫자는 화면에 별도로 표시되므로 본문에서 굳이 반복하지 않아도 됩니다.
             - totalScore, overallAchievementPercent, capitals, missions는 백엔드가 확정한 값입니다. 절대 다시
               계산하거나 서로 비교해 새로운 숫자를 만들지 마세요. 모든 achievementPercent 값은 이미 0~100
               백분율로 변환되어 있습니다.

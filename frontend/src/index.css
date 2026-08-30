@@ -1384,6 +1384,12 @@ a.link:hover {
   padding: 4px 12px;
   border-radius: 999px;
 }
+.butler-chat-entry-time {
+  margin: 0 0 6px 4px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
 .butler-chat-scene {
   min-height: 680px;
   max-height: min(76vh, 820px);

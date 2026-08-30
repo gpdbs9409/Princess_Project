@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { generateAiFeedback, getAiFeedbackHistory } from "../api/endpoints";
 import type { AiFeedbackHistoryEntry } from "../api/types";
 
+function feedbackTime(createdAt: string): string {
+  const time = createdAt.match(/T(\d{2}):(\d{2})/);
+  return time ? `${time[1]}:${time[2]}` : "";
+}
+
 // 레오집사가 지금까지 보내준 코멘트를 전부 이어서 보여주는 채팅 화면 (2026-08-26 요청).
 // 피드백 생성과 누적 대화를 모두 이 전용 화면에서 처리한다. 오늘 기록 화면에는 중복된 레오집사
 // 섹션을 두지 않는다.
@@ -90,6 +95,7 @@ export function ButlerChatPage() {
                     <span>{entry.feedbackDate}</span>
                   </div>
                 )}
+                <div className="butler-chat-entry-time">{feedbackTime(entry.createdAt)}</div>
                 <div className="butler-bubbles">
                   {[entry.summary, entry.praise, entry.improvement, entry.tomorrow, entry.cheer]
                     .filter(Boolean)

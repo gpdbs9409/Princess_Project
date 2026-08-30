@@ -11,6 +11,8 @@ import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AiFeedbackService {
+
+    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
     private final AiFeedbackClient aiFeedbackClient;
     private final AiFeedbackRepository aiFeedbackRepository;
@@ -47,7 +51,7 @@ public class AiFeedbackService {
         UserProject project = userProjectService.getOrCreateActive(userId);
 
         MissionProgress progress = dailyRecordService.getMissionProgress(userId, date);
-        AiFeedbackContext context = toContext(progress, date);
+        AiFeedbackContext context = toContext(progress, date, LocalDateTime.now(SEOUL_ZONE));
 
         AiFeedbackResult result = aiFeedbackClient.generate(context);
 
@@ -90,7 +94,7 @@ public class AiFeedbackService {
                 userId, project.getId(), FeedbackType.DAILY);
     }
 
-    private AiFeedbackContext toContext(MissionProgress progress, LocalDate date) {
+    private AiFeedbackContext toContext(MissionProgress progress, LocalDate date, LocalDateTime currentDateTimeKst) {
         Map<String, BigDecimal> possibleByCapital = new LinkedHashMap<>();
         progress.missionDetails().stream()
                 .filter(detail -> !detail.goalTypeCode().equalsIgnoreCase("common"))
@@ -116,6 +120,9 @@ public class AiFeedbackService {
                 .toList();
         return new AiFeedbackContext(
                 date,
+                currentDateTimeKst,
+                timePeriod(currentDateTimeKst.getHour()),
+                currentDateTimeKst.getMinute() % 4,
                 progress.totalScore().doubleValue(),
                 progress.progress().doubleValue() * 100,
                 capitals,
@@ -123,5 +130,12 @@ public class AiFeedbackService {
                 progress.completedMissions(),
                 progress.remainingMissions()
         );
+    }
+
+    static String timePeriod(int hour) {
+        if (hour < 6) return "DAWN_EARLY_MORNING";
+        if (hour < 11) return "MORNING";
+        if (hour < 18) return "MIDDAY_AFTERNOON";
+        return "EVENING_NIGHT";
     }
 }
