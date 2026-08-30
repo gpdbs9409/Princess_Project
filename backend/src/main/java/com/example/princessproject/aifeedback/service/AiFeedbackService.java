@@ -16,6 +16,7 @@ import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,7 +52,15 @@ public class AiFeedbackService {
         UserProject project = userProjectService.getOrCreateActive(userId);
 
         MissionProgress progress = dailyRecordService.getMissionProgress(userId, date);
-        AiFeedbackContext context = toContext(progress, date, LocalDateTime.now(SEOUL_ZONE));
+        AiFeedbackContext.PreviousFeedback previousFeedback = aiFeedbackRepository
+                .findTopByUserIdAndProjectIdAndFeedbackDateAndFeedbackTypeOrderByCreatedAtDesc(
+                        userId, project.getId(), date, FeedbackType.DAILY)
+                .map(f -> new AiFeedbackContext.PreviousFeedback(
+                        f.getSummary(), f.getPraise(), f.getImprovement(), f.getTomorrow(), f.getCheer()))
+                .orElse(null);
+        String responseTemplate = responseTemplate(ThreadLocalRandom.current().nextInt(4));
+        AiFeedbackContext context = toContext(
+                progress, date, LocalDateTime.now(SEOUL_ZONE), responseTemplate, previousFeedback);
 
         AiFeedbackResult result = aiFeedbackClient.generate(context);
 
@@ -94,7 +103,13 @@ public class AiFeedbackService {
                 userId, project.getId(), FeedbackType.DAILY);
     }
 
-    private AiFeedbackContext toContext(MissionProgress progress, LocalDate date, LocalDateTime currentDateTimeKst) {
+    private AiFeedbackContext toContext(
+            MissionProgress progress,
+            LocalDate date,
+            LocalDateTime currentDateTimeKst,
+            String responseTemplate,
+            AiFeedbackContext.PreviousFeedback previousFeedback
+    ) {
         Map<String, BigDecimal> possibleByCapital = new LinkedHashMap<>();
         progress.missionDetails().stream()
                 .filter(detail -> !detail.goalTypeCode().equalsIgnoreCase("common"))
@@ -122,7 +137,8 @@ public class AiFeedbackService {
                 date,
                 currentDateTimeKst,
                 timePeriod(currentDateTimeKst.getHour()),
-                currentDateTimeKst.getMinute() % 4,
+                responseTemplate,
+                previousFeedback,
                 progress.totalScore().doubleValue(),
                 progress.progress().doubleValue() * 100,
                 capitals,
@@ -137,5 +153,15 @@ public class AiFeedbackService {
         if (hour < 11) return "MORNING";
         if (hour < 18) return "MIDDAY_AFTERNOON";
         return "EVENING_NIGHT";
+    }
+
+    static String responseTemplate(int variant) {
+        return switch (variant) {
+            case 0 -> "WARM_GREETING";
+            case 1 -> "QUIET_OBSERVATION";
+            case 2 -> "GENTLE_QUESTION";
+            case 3 -> "BUTLER_ACTION_PLAN";
+            default -> throw new IllegalArgumentException("Unknown response template: " + variant);
+        };
     }
 }

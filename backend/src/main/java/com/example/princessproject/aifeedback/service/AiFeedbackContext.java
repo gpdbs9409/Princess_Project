@@ -13,7 +13,8 @@ public record AiFeedbackContext(
         LocalDate date,
         LocalDateTime currentDateTimeKst,
         String timePeriod,
-        int timeToneVariant,
+        String responseTemplate,
+        PreviousFeedback previousFeedback,
         double totalScore,
         double overallAchievementPercent,
         Map<String, CapitalSummary> capitals,
@@ -21,6 +22,8 @@ public record AiFeedbackContext(
         List<String> completedMissions,
         List<String> remainingMissions
 ) {
+    public record PreviousFeedback(String summary, String praise, String improvement, String tomorrow, String cheer) {}
+
     public record CapitalSummary(double earnedScore, double possibleScore, double achievementPercent) {}
 
     public record MissionSummary(

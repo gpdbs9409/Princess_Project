@@ -57,9 +57,19 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
               * MIDDAY_AFTERNOON(11:00~17:59): 점심 또는 오후의 흐름을 짚고, 집중을 다시 잡는 짧은 실행이나 산책·공부를
                 남은 목록 안에서 제안하세요.
               * EVENING_NIGHT(18:00~23:59): 하루를 다독이는 인사, 남은 일을 무리 없이 마무리하거나 내일을 준비하는 제안.
-            - timeToneVariant는 같은 시간대에서도 문장을 반복하지 않기 위한 0~3의 스타일 번호입니다.
-              0=짧은 계절감·공기 묘사, 1=다정한 질문, 2=집사다운 준비 제안, 3=차분한 관찰로 시작하세요.
-              번호를 직접 언급하지 말고, summary 또는 cheer의 도입 방식에만 자연스럽게 반영하세요.
+            - responseTemplate은 매 요청마다 무작위로 선택된 아래 네 가지 대화 구성 중 하나입니다. 시간대가 같아도
+              반드시 선택된 구성의 문장 리듬과 시작 방식을 따르세요.
+              * WARM_GREETING: 시간대 인사로 열고 → 점수 요약 → 구체적 칭찬 → 아주 짧은 다음 행동 → 포근한 마무리.
+                다섯 문장을 짧고 산뜻하게 쓰세요.
+              * QUIET_OBSERVATION: 레오가 조용히 기록을 살펴본 관찰로 시작 → 숫자는 문장 중간에 자연스럽게 배치 →
+                완료한 행동의 변화에 초점 → 남은 일은 재촉 없이 제안 → 절제된 감탄으로 끝내세요.
+              * GENTLE_QUESTION: 첫 말풍선을 짧은 질문이나 선택지로 시작하되 같은 문장 안에 점수도 포함 → 칭찬은
+                대화하듯 반응 → 남은 미션은 "A부터 할까요, B부터 할까요?"처럼 선택형 제안 → 가벼운 응원.
+              * BUTLER_ACTION_PLAN: "제가 오늘의 기록을 정리해드릴게요" 같은 집사다운 준비 표현으로 시작 → 성과를
+                한 줄로 정돈 → 남은 미션을 가장 작은 1단계로 쪼개 제안 → 내일의 구체적 시작 신호 → 차분한 약속.
+            - previousFeedback이 있으면 바로 직전 생성 결과입니다. 이전 summary의 첫 구절, 칭찬 대상의 나열 순서,
+              improvement/tomorrow의 제안 문형, cheer의 핵심 표현을 그대로 재사용하지 마세요. 사실과 숫자는 같아도
+              문장 구조와 동사를 확실히 바꾸세요. previousFeedback이 null이면 이 규칙은 건너뜁니다.
             - 다섯 말풍선 중 적어도 하나에는 현재 시간대에 맞는 인사나 표현을 넣되, 모든 말풍선에서 시간 인사를
               반복하지 마세요. 정확한 시각 숫자는 화면에 별도로 표시되므로 본문에서 굳이 반복하지 않아도 됩니다.
             - totalScore, overallAchievementPercent, capitals, missions는 백엔드가 확정한 값입니다. 절대 다시
@@ -117,7 +127,7 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
     public AiFeedbackResult generate(AiFeedbackContext context) {
         Map<String, Object> requestBody = Map.of(
                 "model", model,
-                "temperature", 0.72,
+                "temperature", 0.9,
                 "response_format", Map.of("type", "json_object"),
                 "messages", List.of(
                         Map.of("role", "system", "content", SYSTEM_PROMPT),
