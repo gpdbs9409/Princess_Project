@@ -30,7 +30,7 @@ export function ProjectReadOnlyView({ project }: { project: ProjectResponse }) {
             <div><span className="muted">독서</span><div>{project.commonReadingBookTitle} · {project.commonReadingTotalPages}쪽</div></div>
           )}
           {project.commonStudyYoutubeTopic && (
-            <div><span className="muted">공부 YouTube 주제</span><div>{project.commonStudyYoutubeTopic}</div></div>
+            <div><span className="muted">공부 주제</span><div>{project.commonStudyYoutubeTopic}</div></div>
           )}
         </div>
       )}

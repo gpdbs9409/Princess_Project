@@ -394,7 +394,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
       return;
     }
     if (!studyYoutubeTopic.trim()) {
-      setError("공통자본의 공부 목표 YouTube 주제를 입력해주세요.");
+      setError("공통자본의 공부 주제를 입력해주세요.");
       return;
     }
 
@@ -483,7 +483,7 @@ export function SelectionWizard({ catalog, initialProject, submitLabel, onSubmit
         <div className="stack" style={{ gap: 8 }}>
           <strong style={{ fontSize: 14 }}>공부</strong>
           <input type="text" value={studyYoutubeTopic} onChange={(e) => setStudyYoutubeTopic(e.target.value)}
-            placeholder="나에게 영감을 주는 YouTube 주제 (예: 경제 뉴스 쉽게 이해하기)" maxLength={300} />
+            placeholder="공부하고 싶은 주제 (예: 동양화 공부)" maxLength={300} />
         </div>
       </div>
 
