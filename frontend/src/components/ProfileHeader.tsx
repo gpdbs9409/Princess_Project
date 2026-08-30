@@ -47,10 +47,14 @@ export function ProfileHeader() {
         </div>
 
         <div className="profile-header-stats">
-          <div className="profile-header-stat">
+          <button
+            type="button"
+            className="profile-header-stat profile-header-stat-btn"
+            onClick={() => navigate("/record")}
+          >
             <strong>{recordCount}</strong>
             <span className="muted">게시물</span>
-          </div>
+          </button>
           <button
             type="button"
             className="profile-header-stat profile-header-stat-btn"
