@@ -11,10 +11,12 @@ import com.example.princessproject.admin.dto.AdminMemberWeekResponse;
 import com.example.princessproject.admin.dto.CohortRequest;
 import com.example.princessproject.admin.dto.MvpRequest;
 import com.example.princessproject.admin.dto.MvpResponse;
+import com.example.princessproject.admin.dto.PaybackSheetSyncResponse;
 import com.example.princessproject.admin.dto.RecruitmentApplicantRequest;
 import com.example.princessproject.admin.dto.RecruitmentApplicantResponse;
 import com.example.princessproject.admin.dto.RefundRequest;
 import com.example.princessproject.admin.service.AdminService;
+import com.example.princessproject.admin.service.PaybackSheetService;
 import com.example.princessproject.project.dto.ProjectResponse;
 import com.example.princessproject.user.dto.UserResponse;
 import com.example.princessproject.user.model.Role;
@@ -22,6 +24,8 @@ import com.example.princessproject.user.service.UserService;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -46,10 +50,12 @@ public class AdminController {
 
     private final AdminService adminService;
     private final UserService userService;
+    private final PaybackSheetService paybackSheetService;
 
-    public AdminController(AdminService adminService, UserService userService) {
+    public AdminController(AdminService adminService, UserService userService, PaybackSheetService paybackSheetService) {
         this.adminService = adminService;
         this.userService = userService;
+        this.paybackSheetService = paybackSheetService;
     }
 
     /** 운영진 승격/강등. users.role이 기준이라 로그인해도 덮어써지지 않는다. */
@@ -76,6 +82,13 @@ public class AdminController {
             @RequestParam(required = false) LocalDate weekStart
     ) {
         return adminService.listParticipantsForWeek(cohort, resolveWeekStart(weekStart));
+    }
+
+    /** 관리자 수동 재실행용. 기존 값은 덮어쓰지 않으므로 같은 주차를 다시 호출해도 안전하다. */
+    @PostMapping("/payback-sheet/sync")
+    public PaybackSheetSyncResponse syncPaybackSheet(@RequestParam LocalDate weekStart)
+            throws IOException, GeneralSecurityException {
+        return paybackSheetService.sync(resolveWeekStart(weekStart));
     }
 
     /** 참가자 닉네임 클릭 시 보는 개인 미션·공통과제 전체 수행 이력. */
