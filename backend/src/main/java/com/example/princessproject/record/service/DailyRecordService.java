@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -354,6 +355,43 @@ public class DailyRecordService {
 
         return new MissionProgress(totalScore, progress, statScores, List.of(), List.of(), Map.of(),
                 List.of(), maxPossible);
+    }
+
+    /**
+     * 관리자 수행내역도 사용자 대시보드와 똑같이 현재 자본 비중으로 점수를 보여주기 위한 계산값.
+     * daily_records.earned_score는 기록 당시의 감사용 스냅샷이라, 배점 정책을 0점 placeholder로
+     * 바꾼 뒤 생성된 기록은 그 값을 화면에 직접 쓰면 전부 0점으로 보인다.
+     */
+    @Transactional
+    public CurrentActivityScores currentActivityScores(
+            Long userId, List<DailyRecord> personalRecords, List<CommonTaskRecord> commonRecords
+    ) {
+        UserProject project = userProjectService.getOrCreateActive(userId);
+        Map<Long, BigDecimal> pointsByMissionId = missionPoints(flattenScoredMissions(project));
+        Map<Long, ActivityScoreSnapshot> personalScores = new LinkedHashMap<>();
+
+        for (DailyRecord record : personalRecords) {
+            BigDecimal rate = record.isAdminInvalidated() ? BigDecimal.ZERO : record.getAchievementRate();
+            if (rate == null) rate = BigDecimal.ZERO;
+            BigDecimal points = pointsByMissionId.getOrDefault(record.getUserMission().getId(), BigDecimal.ZERO);
+            personalScores.put(record.getId(), new ActivityScoreSnapshot(
+                    scoringService.earnedScore(points, rate), rate));
+        }
+
+        // 중복 레코드가 있던 옛 배포 데이터는 사용자 대시보드와 동일하게 날짜·종류별 최신 1건만 채점한다.
+        Set<Long> scoredCommonIds = latestCommonRecords(commonRecords).stream()
+                .map(CommonTaskRecord::getId)
+                .collect(java.util.stream.Collectors.toSet());
+        Map<Long, ActivityScoreSnapshot> commonScores = new LinkedHashMap<>();
+        for (CommonTaskRecord record : commonRecords) {
+            if (!scoredCommonIds.contains(record.getId()) || record.isAdminInvalidated()) {
+                commonScores.put(record.getId(), new ActivityScoreSnapshot(BigDecimal.ZERO, BigDecimal.ZERO));
+                continue;
+            }
+            CommonMissionScore score = scoreDailyCommonTask(record);
+            commonScores.put(record.getId(), new ActivityScoreSnapshot(score.earnedScore(), score.achievementRate()));
+        }
+        return new CurrentActivityScores(Map.copyOf(personalScores), Map.copyOf(commonScores));
     }
 
     private record ActiveMission(

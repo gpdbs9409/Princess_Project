@@ -21,6 +21,8 @@ import com.example.princessproject.commontask.repository.CommonTaskRecordReposit
 import com.example.princessproject.record.model.DailyRecord;
 import com.example.princessproject.record.repository.DailyRecordRepository;
 import com.example.princessproject.record.service.DailyRecordService;
+import com.example.princessproject.record.service.ActivityScoreSnapshot;
+import com.example.princessproject.record.service.CurrentActivityScores;
 import com.example.princessproject.record.service.MissionProgress;
 import com.example.princessproject.project.dto.ProjectResponse;
 import com.example.princessproject.project.model.UserProject;
@@ -157,16 +159,25 @@ public class AdminService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
+        List<DailyRecord> personalRecords = dailyRecordRepository
+                .findByUserIdOrderByRecordDateDescCreatedAtDesc(userId);
+        List<CommonTaskRecord> commonRecords = commonTaskRecordRepository
+                .findByUserIdOrderByRecordDateDescCreatedAtDesc(userId);
+        CurrentActivityScores currentScores = dailyRecordService
+                .currentActivityScores(userId, personalRecords, commonRecords);
+
         List<AdminActivityResponse> result = new ArrayList<>();
-        for (DailyRecord record : dailyRecordRepository.findByUserIdOrderByRecordDateDescCreatedAtDesc(userId)) {
+        for (DailyRecord record : personalRecords) {
+            ActivityScoreSnapshot score = currentScores.personal().get(record.getId());
             result.add(new AdminActivityResponse(
                     record.getId(), record.getUser().getId(), record.getUser().getNickname(),
                     "PERSONAL", record.getUserMission().displayName(), record.getRecordDate(),
                     record.getInputValue(), record.getTargetValueSnapshot(), record.getUserMission().getUnit(),
-                    record.getEarnedScore(), record.getAchievementRate(), null, record.getMemo(), record.getPhotoUrl(),
+                    score.earnedScore(), score.achievementRate(), null, record.getMemo(), record.getPhotoUrl(),
                     record.getAiVerified(), record.isAdminInvalidated(), record.getCreatedAt()));
         }
-        for (CommonTaskRecord record : commonTaskRecordRepository.findByUserIdOrderByRecordDateDescCreatedAtDesc(userId)) {
+        for (CommonTaskRecord record : commonRecords) {
+            ActivityScoreSnapshot score = currentScores.common().get(record.getId());
             String detail = switch (record.getTaskType()) {
                 case READING -> (record.getBookTitle() == null ? "" : record.getBookTitle() + " · ")
                         + record.getStartPage() + "p~" + record.getEndPage() + "p";
@@ -180,7 +191,7 @@ public class AdminService {
                     record.getTaskType().name(), switch (record.getTaskType()) {
                         case READING -> "독서";
                         case STUDY -> "공부";
-                    }, record.getRecordDate(), null, null, null, null, null, detail, record.getMemo(),
+                    }, record.getRecordDate(), null, null, null, score.earnedScore(), score.achievementRate(), detail, record.getMemo(),
                     record.getPhotoUrl(), record.getAiVerified(), record.isAdminInvalidated(), record.getCreatedAt()));
         }
         for (WeeklyRetrospective record : weeklyRetrospectiveRepository.findByUserIdOrderByWeekStartDescCreatedAtDesc(userId)) {
