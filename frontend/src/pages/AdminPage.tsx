@@ -10,6 +10,7 @@ import {
   getAdminApplicants,
   getAdminCohorts,
   getAdminMemberActivities,
+  getAdminMemberProjectSelections,
   getAdminParticipants,
   getRecruitmentApplicants,
   setAdminMvp,
@@ -21,6 +22,7 @@ import type {
   AdminActivityResponse,
   AdminApplicantResponse,
   AdminMemberWeekResponse,
+  ProjectResponse,
   RecruitmentApplicantRequest,
   RecruitmentApplicantResponse,
   RecruitmentStatus,
@@ -103,6 +105,10 @@ export function AdminPage() {
   const [activities, setActivities] = useState<AdminActivityResponse[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
+  const [selectionMember, setSelectionMember] = useState<AdminMemberWeekResponse | null>(null);
+  const [memberProject, setMemberProject] = useState<ProjectResponse | null>(null);
+  const [selectionsLoading, setSelectionsLoading] = useState(false);
+  const [selectionsError, setSelectionsError] = useState<string | null>(null);
   const [reviewActivities, setReviewActivities] = useState<AdminActivityResponse[]>([]);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [newCohortInput, setNewCohortInput] = useState<Record<number, string>>({});
@@ -259,6 +265,20 @@ export function AdminPage() {
       setActivitiesError("수행 내역을 불러오지 못했어요.");
     } finally {
       setActivitiesLoading(false);
+    }
+  };
+
+  const openProjectSelections = async (member: AdminMemberWeekResponse) => {
+    setSelectionMember(member);
+    setMemberProject(null);
+    setSelectionsError(null);
+    setSelectionsLoading(true);
+    try {
+      setMemberProject(await getAdminMemberProjectSelections(member.userId));
+    } catch {
+      setSelectionsError("선택한 아비투스와 미션을 불러오지 못했어요.");
+    } finally {
+      setSelectionsLoading(false);
     }
   };
 
@@ -827,6 +847,14 @@ export function AdminPage() {
                         </td>
                         <td>
                           <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                            <button
+                              type="button"
+                              className="ghost"
+                              style={{ padding: "4px 8px", fontSize: 12 }}
+                              onClick={() => openProjectSelections(p)}
+                            >
+                              아비투스·미션
+                            </button>
                             {photoReviewUserIds.has(p.userId) && <span className="role-tag admin-review-tag">사진 검토</span>}
                             {p.role === "ADMIN" && <span className="role-tag">관리자</span>}
                           </div>
@@ -919,6 +947,68 @@ export function AdminPage() {
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {selectionMember && (
+        <div className="modal-overlay" onClick={() => setSelectionMember(null)}>
+          <div
+            className="modal-card"
+            style={{
+              width: "min(720px, calc(100vw - 32px))",
+              maxWidth: 720,
+              maxHeight: "85vh",
+              overflowY: "auto",
+              textAlign: "left",
+              alignItems: "stretch",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="row-between" style={{ gap: 16 }}>
+              <div>
+                <strong style={{ fontSize: 20 }}>{selectionMember.nickname}님의 아비투스·미션</strong>
+                <div className="muted">온보딩에서 저장한 최신 설정 · 읽기 전용</div>
+              </div>
+              <button type="button" className="ghost" onClick={() => setSelectionMember(null)} aria-label="닫기">×</button>
+            </div>
+
+            {selectionsLoading && <p className="muted">설정을 불러오는 중...</p>}
+            {selectionsError && <div className="error-banner">{selectionsError}</div>}
+            {!selectionsLoading && !selectionsError && memberProject && (
+              <div className="stack" style={{ gap: 12 }}>
+                {memberProject.goals.length === 0 && <p className="muted">아직 선택한 아비투스가 없어요.</p>}
+                {memberProject.goals.map((goal) => (
+                  <section className="card" key={goal.id} style={{ padding: 16 }}>
+                    <div className="row-between" style={{ alignItems: "baseline", gap: 12 }}>
+                      <strong style={{ fontSize: 17 }}>{goal.name}</strong>
+                      <span className="badge good">비중 {goal.weightPercent}%</span>
+                    </div>
+                    <div className="stack" style={{ gap: 10, marginTop: 12 }}>
+                      {goal.stats.map((stat) => (
+                        <div key={stat.id} style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                          <strong>{stat.name}</strong>
+                          {stat.missions.length === 0 ? (
+                            <div className="muted" style={{ marginTop: 6 }}>선택한 미션 없음</div>
+                          ) : (
+                            <ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>
+                              {stat.missions.map((mission) => (
+                                <li key={mission.id} style={{ marginBottom: 6 }}>
+                                  {mission.name} · 목표 {mission.targetValue}{mission.unit}
+                                  {` · ${mission.missionType === "DAILY" ? "매일" : "주간"}`}
+                                  {` · ${mission.assignedPoints}점`}
+                                  {mission.requiresPhoto ? " · 사진 인증" : ""}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

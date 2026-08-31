@@ -15,6 +15,7 @@ import com.example.princessproject.admin.dto.RecruitmentApplicantRequest;
 import com.example.princessproject.admin.dto.RecruitmentApplicantResponse;
 import com.example.princessproject.admin.dto.RefundRequest;
 import com.example.princessproject.admin.service.AdminService;
+import com.example.princessproject.project.dto.ProjectResponse;
 import com.example.princessproject.user.dto.UserResponse;
 import com.example.princessproject.user.model.Role;
 import com.example.princessproject.user.service.UserService;
@@ -81,6 +82,12 @@ public class AdminController {
     @GetMapping("/members/{userId}/activities")
     public List<AdminActivityResponse> memberActivities(@PathVariable Long userId) {
         return adminService.listMemberActivities(userId);
+    }
+
+    /** 참가자가 온보딩에서 선택한 최신 아비투스·스탯·미션 구성을 읽기 전용으로 제공한다. */
+    @GetMapping("/members/{userId}/project-selections")
+    public ProjectResponse memberProjectSelections(@PathVariable Long userId) {
+        return adminService.getMemberProjectSelections(userId);
     }
 
     /** Vision 판정이 false인 사진 인증만 운영진 검수함에 모아 제공한다. */

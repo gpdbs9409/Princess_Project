@@ -22,6 +22,9 @@ import com.example.princessproject.record.model.DailyRecord;
 import com.example.princessproject.record.repository.DailyRecordRepository;
 import com.example.princessproject.record.service.DailyRecordService;
 import com.example.princessproject.record.service.MissionProgress;
+import com.example.princessproject.project.dto.ProjectResponse;
+import com.example.princessproject.project.model.UserProject;
+import com.example.princessproject.project.repository.UserProjectRepository;
 import com.example.princessproject.retrospective.model.WeeklyRetrospective;
 import com.example.princessproject.retrospective.repository.WeeklyRetrospectiveRepository;
 import com.example.princessproject.user.model.User;
@@ -55,6 +58,7 @@ public class AdminService {
     private final DailyRecordRepository dailyRecordRepository;
     private final CommonTaskRecordRepository commonTaskRecordRepository;
     private final WeeklyRetrospectiveRepository weeklyRetrospectiveRepository;
+    private final UserProjectRepository userProjectRepository;
 
     public AdminService(
             UserRepository userRepository,
@@ -65,7 +69,8 @@ public class AdminService {
             DailyRecordService dailyRecordService,
             DailyRecordRepository dailyRecordRepository,
             CommonTaskRecordRepository commonTaskRecordRepository,
-            WeeklyRetrospectiveRepository weeklyRetrospectiveRepository
+            WeeklyRetrospectiveRepository weeklyRetrospectiveRepository,
+            UserProjectRepository userProjectRepository
     ) {
         this.userRepository = userRepository;
         this.weeklyRefundRepository = weeklyRefundRepository;
@@ -76,6 +81,7 @@ public class AdminService {
         this.dailyRecordRepository = dailyRecordRepository;
         this.commonTaskRecordRepository = commonTaskRecordRepository;
         this.weeklyRetrospectiveRepository = weeklyRetrospectiveRepository;
+        this.userProjectRepository = userProjectRepository;
     }
 
     // ---- recruitment applicants (internal-only, decoupled from users) ----
@@ -189,6 +195,16 @@ public class AdminService {
         result.sort(Comparator.comparing(AdminActivityResponse::recordDate).reversed()
                 .thenComparing(AdminActivityResponse::recordedAt, Comparator.nullsLast(Comparator.reverseOrder())));
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public ProjectResponse getMemberProjectSelections(Long userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+        UserProject project = userProjectRepository.findByUserIdInOrderByUpdatedAtDesc(List.of(userId)).stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Project not found for user: " + userId));
+        return ProjectResponse.from(project);
     }
 
     @Transactional(readOnly = true)

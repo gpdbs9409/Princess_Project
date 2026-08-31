@@ -151,6 +151,9 @@ export const getAdminParticipants = (cohort: string | null, weekStart: string) =
 export const getAdminMemberActivities = (userId: number) =>
   api.get<AdminActivityResponse[]>(`/api/admin/members/${userId}/activities`);
 
+export const getAdminMemberProjectSelections = (userId: number) =>
+  api.get<ProjectResponse>(`/api/admin/members/${userId}/project-selections`);
+
 export const getAdminActivitiesForReview = (cohort: string | null) => {
   const query = cohort ? `?cohort=${encodeURIComponent(cohort)}` : "";
   return api.get<AdminActivityResponse[]>(`/api/admin/activities/review${query}`);
