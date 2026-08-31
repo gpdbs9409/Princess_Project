@@ -32,6 +32,7 @@ import { parseRecruitmentCsv } from "../lib/parseRecruitmentCsv";
 
 type Tab = "participants" | "unassigned" | "recruitment";
 type ParticipantFilter = "ALL" | "NEEDS_ATTENTION" | "ELIGIBLE" | "UNPAID" | "PAID";
+type RequiredActivity = { key: string; name: string; kind: "PERSONAL" | "READING" | "STUDY"; missionId: number | null };
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 
 const RECRUITMENT_STATUS_LABELS: Record<RecruitmentStatus, string> = {
@@ -103,6 +104,7 @@ export function AdminPage() {
   const [activityMember, setActivityMember] = useState<AdminMemberWeekResponse | null>(null);
   const [openActivityDates, setOpenActivityDates] = useState<string[]>([]);
   const [activities, setActivities] = useState<AdminActivityResponse[]>([]);
+  const [activityProject, setActivityProject] = useState<ProjectResponse | null>(null);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
   const [selectionMember, setSelectionMember] = useState<AdminMemberWeekResponse | null>(null);
@@ -142,6 +144,27 @@ export function AdminPage() {
     }
     return [...grouped.entries()].sort((a, b) => b[0].localeCompare(a[0]));
   }, [activities]);
+
+  const requiredActivities = useMemo<RequiredActivity[]>(() => {
+    if (!activityProject) return [];
+    const personal = activityProject.goals.flatMap((goal) =>
+      goal.stats.flatMap((stat) =>
+        stat.missions
+          .filter((mission) => mission.missionType === "DAILY")
+          .map((mission) => ({
+            key: `PERSONAL-${mission.id}`,
+            name: mission.name,
+            kind: "PERSONAL" as const,
+            missionId: mission.id,
+          }))
+      )
+    );
+    return [
+      ...personal,
+      { key: "READING", name: "독서", kind: "READING", missionId: null },
+      { key: "STUDY", name: "공부", kind: "STUDY", missionId: null },
+    ];
+  }, [activityProject]);
 
   const weekStartIso = useMemo(() => isoDate(weekStart), [weekStart]);
 
@@ -250,12 +273,17 @@ export function AdminPage() {
   const openActivities = async (member: AdminMemberWeekResponse) => {
     setActivityMember(member);
     setActivities([]);
+    setActivityProject(null);
     setOpenActivityDates([]);
     setActivitiesError(null);
     setActivitiesLoading(true);
     try {
-      const loaded = await getAdminMemberActivities(member.userId);
+      const [loaded, project] = await Promise.all([
+        getAdminMemberActivities(member.userId),
+        getAdminMemberProjectSelections(member.userId),
+      ]);
       setActivities(loaded);
+      setActivityProject(project);
       // 가장 최근 날짜 하나만 펼쳐둔다 - 전부 접혀 있으면 한 번 더 눌러야 해서 번거롭고,
       // 전부 펼치면 30일치가 쏟아져 원래 문제로 돌아간다.
       const latest = loaded.reduce<string | null>(
@@ -893,6 +921,17 @@ export function AdminPage() {
               {activitiesByDate.map(([date, dayActivities]) => {
                 const open = openActivityDates.includes(date);
                 const dayScore = dayActivities.reduce((sum, a) => sum + (a.earnedScore ?? 0), 0);
+                const completedRequired = new Set(
+                  dayActivities
+                    .filter((activity) => !activity.adminInvalidated)
+                    .map((activity) => activity.activityType === "PERSONAL"
+                      ? `PERSONAL-${activity.missionId}`
+                      : activity.activityType)
+                );
+                const missingActivities = requiredActivities.filter(
+                  (required) => !completedRequired.has(required.key)
+                );
+                const completedCount = requiredActivities.length - missingActivities.length;
                 return (
                   <div key={date} className="admin-day-group">
                     <button
@@ -908,12 +947,27 @@ export function AdminPage() {
                       <span className="admin-day-toggle">{open ? "▾" : "▸"}</span>
                       <strong>{formatDayLabel(date)}</strong>
                       <span className="muted">
-                        {dayActivities.length}건 · {Math.round(dayScore * 100) / 100}점
+                        {requiredActivities.length > 0
+                          ? `완료 ${completedCount}/${requiredActivities.length} · 미이행 ${missingActivities.length}개 · `
+                          : `${dayActivities.length}건 · `}
+                        {Math.round(dayScore * 100) / 100}점
                       </span>
                     </button>
 
                     {open && (
                       <div className="stack" style={{ gap: 12, marginTop: 10 }}>
+                        {missingActivities.length > 0 && (
+                          <div className="admin-missing-missions" role="status">
+                            <strong>미이행 미션 {missingActivities.length}개</strong>
+                            <div className="admin-missing-mission-list">
+                              {missingActivities.map((mission) => (
+                                <span key={mission.key} className="badge danger">
+                                  {mission.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         {dayActivities.map((activity) => (
                 <div className="card" key={`${activity.activityType}-${activity.id}`} style={{ padding: 16 }}>
                   <div className="row-between" style={{ alignItems: "flex-start", gap: 12 }}>

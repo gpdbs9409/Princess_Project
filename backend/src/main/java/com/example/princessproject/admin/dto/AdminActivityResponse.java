@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 /** Read-only participant activity row for the admin challenge-history modal. */
 public record AdminActivityResponse(
         Long id,
+        Long missionId,
         Long userId,
         String nickname,
         String activityType,

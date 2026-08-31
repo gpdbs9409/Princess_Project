@@ -170,7 +170,7 @@ public class AdminService {
         for (DailyRecord record : personalRecords) {
             ActivityScoreSnapshot score = currentScores.personal().get(record.getId());
             result.add(new AdminActivityResponse(
-                    record.getId(), record.getUser().getId(), record.getUser().getNickname(),
+                    record.getId(), record.getUserMission().getId(), record.getUser().getId(), record.getUser().getNickname(),
                     "PERSONAL", record.getUserMission().displayName(), record.getRecordDate(),
                     record.getInputValue(), record.getTargetValueSnapshot(), record.getUserMission().getUnit(),
                     score.earnedScore(), score.achievementRate(), null, record.getMemo(), record.getPhotoUrl(),
@@ -187,7 +187,7 @@ public class AdminService {
                                 + (record.getStudyPlannedAmount() == null ? "" : " / 계획 " + record.getStudyPlannedAmount());
             };
             result.add(new AdminActivityResponse(
-                    record.getId(), record.getUser().getId(), record.getUser().getNickname(),
+                    record.getId(), null, record.getUser().getId(), record.getUser().getNickname(),
                     record.getTaskType().name(), switch (record.getTaskType()) {
                         case READING -> "독서";
                         case STUDY -> "공부";
@@ -199,7 +199,7 @@ public class AdminService {
                     nullToEmpty(record.getRetroDailyLife()), nullToEmpty(record.getRetroWeekReview()),
                     nullToEmpty(record.getRetroNextWeekPlan()))).replaceAll("(?: / )+$", "");
             result.add(new AdminActivityResponse(
-                    record.getId(), record.getUser().getId(), record.getUser().getNickname(),
+                    record.getId(), null, record.getUser().getId(), record.getUser().getNickname(),
                     "WEEKLY_RETROSPECTIVE", "주간 회고", record.getWeekStart(), null, null, null,
                     null, null, detail, null, null, null, false, record.getCreatedAt()));
         }
@@ -224,7 +224,7 @@ public class AdminService {
         for (DailyRecord record : dailyRecordRepository.findByAiVerifiedFalseAndAdminInvalidatedFalseOrderByRecordDateDescCreatedAtDesc()) {
             if (!matchesCohort(record.getUser(), cohort)) continue;
             result.add(new AdminActivityResponse(
-                    record.getId(), record.getUser().getId(), record.getUser().getNickname(),
+                    record.getId(), record.getUserMission().getId(), record.getUser().getId(), record.getUser().getNickname(),
                     "PERSONAL", record.getUserMission().displayName(), record.getRecordDate(),
                     record.getInputValue(), record.getTargetValueSnapshot(), record.getUserMission().getUnit(),
                     record.getEarnedScore(), record.getAchievementRate(), null, record.getMemo(), record.getPhotoUrl(),
@@ -241,7 +241,7 @@ public class AdminService {
                                 + (record.getStudyPlannedAmount() == null ? "" : " / 계획 " + record.getStudyPlannedAmount());
             };
             result.add(new AdminActivityResponse(
-                    record.getId(), record.getUser().getId(), record.getUser().getNickname(),
+                    record.getId(), null, record.getUser().getId(), record.getUser().getNickname(),
                     record.getTaskType().name(), record.getTaskType() == com.example.princessproject.commontask.model.CommonTaskType.READING ? "독서" : "공부",
                     record.getRecordDate(), null, null, null, null, null, detail, record.getMemo(), record.getPhotoUrl(),
                     false, record.isAdminInvalidated(), record.getCreatedAt()));

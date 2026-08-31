@@ -1762,3 +1762,17 @@ a.link:hover {
   width: 12px;
   color: var(--text-muted);
 }
+.admin-missing-missions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, var(--border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+}
+.admin-missing-mission-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

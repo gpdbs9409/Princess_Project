@@ -84,6 +84,7 @@ export interface AdminMemberResponse {
 
 export interface AdminActivityResponse {
   id: number;
+  missionId: number | null;
   userId: number;
   nickname: string;
   activityType: "PERSONAL" | CommonTaskType;
