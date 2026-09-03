@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -31,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DailyRecordService {
+
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
     // A record's input is compared against its mission's own target so this scales naturally
     // (a "10000걸음" mission and a "30분" mission both get the same generous headroom above
@@ -125,9 +128,14 @@ public class DailyRecordService {
                     : VerificationStatus.PENDING;
         }
 
-        DailyRecord record = dailyRecordRepository
-                .findByUserIdAndUserMissionIdAndRecordDate(userId, userMissionId, date)
-                .orElseGet(DailyRecord::new);
+        var existingRecord = dailyRecordRepository
+                .findByUserIdAndUserMissionIdAndRecordDate(userId, userMissionId, date);
+        // Preserve the existing backfill path for a genuinely missing record, but once a record
+        // exists it cannot be overwritten after its KST calendar day has ended.
+        if (existingRecord.isPresent()) {
+            requireToday(date, "RECORD_EDIT_WINDOW_CLOSED");
+        }
+        DailyRecord record = existingRecord.orElseGet(DailyRecord::new);
         record.setUser(user);
         record.setProject(project);
         record.setUserMission(userMission);
@@ -141,9 +149,18 @@ public class DailyRecordService {
         record.setEarnedScore(earnedScore);
         record.setVerificationStatus(verificationStatus);
         record.setAiVerified(aiVerified);
+        // A same-day correction is a new version of the user's evidence. Any review decision
+        // about the replaced version must not silently keep suppressing its score/refund state.
+        record.setAdminInvalidated(false);
         dailyRecordRepository.save(record);
 
         return getMissionProgress(userId, date);
+    }
+
+    private void requireToday(LocalDate date, String code) {
+        if (!LocalDate.now(SEOUL).equals(date)) {
+            throw new RecordValidationException(code, "Only today's record can be changed");
+        }
     }
 
     /**

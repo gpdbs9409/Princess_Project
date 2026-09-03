@@ -39,6 +39,17 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
   const [checkingVision, setCheckingVision] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    if (!record || !editing) return;
+    setInputValue(String(record.inputValue));
+    setMemo(record.memo ?? "");
+    setPhotoFile(null);
+    setPhotoPreviewUrl(record.photoUrl);
+    setVisionNote(null);
+    setError(null);
+  }, [record, editing]);
 
   // Object URLs aren't garbage-collected on their own - revoke the previous one whenever
   // the selected file changes or the card unmounts, so we don't leak blob URLs.
@@ -89,7 +100,7 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
       );
       return;
     }
-    if (!photoFile) {
+    if (!photoFile && !record?.photoUrl) {
       setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
       return;
     }
@@ -100,17 +111,18 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
     setSaving(true);
     setError(null);
     try {
-      const uploaded = await uploadFile(photoFile);
+      const uploaded = photoFile ? await uploadFile(photoFile) : null;
       await saveRecord({
         userMissionId: mission.userMissionId,
         date,
         inputValue: value,
-        photoUrl: uploaded.url,
+        photoUrl: uploaded?.url ?? record?.photoUrl ?? undefined,
         memo: memo || undefined,
-        aiVerified: visionNote?.ok,
+        aiVerified: photoFile ? visionNote?.ok : record?.aiVerified ?? undefined,
       });
       onSaved();
-      showToast("기록이 저장되었어요");
+      setEditing(false);
+      showToast(record ? "기록이 수정되었어요" : "기록이 저장되었어요");
     } catch (err) {
       if (err instanceof ApiError && err.code === "PHOTO_REQUIRED") {
         setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
@@ -129,7 +141,7 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
     }
   };
 
-  if (record) {
+  if (record && !editing) {
     return (
       <div className="card recorded-mission-card">
         <div className="row-between">
@@ -156,6 +168,11 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
           </div>
           {record.photoUrl && (
             <img src={record.photoUrl} alt="기록한 인증 사진" className="photo-preview" />
+          )}
+          {!readOnly && (
+            <button type="button" className="ghost" onClick={() => setEditing(true)}>
+              기록 수정
+            </button>
           )}
         </div>
       </div>
@@ -210,9 +227,12 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
           )}
         </div>
         {error && <div className="error-banner">{error}</div>}
-        <button className="primary" onClick={handleSave} disabled={saving || checkingVision}>
-          {saving ? "저장 중..." : checkingVision ? "사진 확인 중..." : "저장"}
-        </button>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="primary" onClick={handleSave} disabled={saving || checkingVision}>
+            {saving ? "저장 중..." : checkingVision ? "사진 확인 중..." : editing ? "수정 저장" : "저장"}
+          </button>
+          {editing && <button type="button" className="ghost" onClick={() => setEditing(false)} disabled={saving}>취소</button>}
+        </div>
       </div>
     </div>
   );

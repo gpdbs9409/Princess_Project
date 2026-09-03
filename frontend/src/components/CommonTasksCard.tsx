@@ -69,6 +69,7 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
   const [visionNote, setVisionNote] = useState<{ text: string; ok: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -128,7 +129,7 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
       setError(`하루 독서량이 너무 커요. ${MAX_PAGES_PER_DAY.toLocaleString()}p 이하로 입력해주세요.`);
       return;
     }
-    if (!photoFile) {
+    if (!photoFile && !existing?.photoUrl) {
       setError("사진을 첨부해야 저장할 수 있어요. 인증 사진을 선택해주세요.");
       return;
     }
@@ -139,18 +140,19 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
     setSaving(true);
     setError(null);
     try {
-      const uploaded = await uploadFile(photoFile);
+      const uploaded = photoFile ? await uploadFile(photoFile) : null;
       const saved = await saveCommonTask({
         taskType: "READING",
         date,
-        bookTitle: project?.commonReadingBookTitle?.trim() || undefined,
+        bookTitle: existing?.bookTitle ?? (project?.commonReadingBookTitle?.trim() || undefined),
         startPage: start,
         endPage: end,
-        photoUrl: uploaded.url,
-        aiVerified: visionNote?.ok ?? false,
+        photoUrl: uploaded?.url ?? existing?.photoUrl ?? undefined,
+        aiVerified: uploaded ? (visionNote?.ok ?? false) : existing?.aiVerified ?? false,
       });
       setExisting(saved);
-      showToast("독서 기록이 저장되었어요");
+      setEditing(false);
+      showToast(existing ? "독서 기록이 수정되었어요" : "독서 기록이 저장되었어요");
     } catch (err) {
       setError(commonTaskErrorMessage(err, "저장에 실패했습니다. 다시 시도해주세요."));
     } finally {
@@ -160,7 +162,18 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
 
   if (loading) return null;
 
-  if (existing) {
+  const startEditing = () => {
+    if (!existing) return;
+    setStartPage(String(existing.startPage ?? ""));
+    setEndPage(String(existing.endPage ?? ""));
+    setPhotoFile(null);
+    setPhotoPreviewUrl(existing.photoUrl);
+    setVisionNote(null);
+    setError(null);
+    setEditing(true);
+  };
+
+  if (existing && !editing) {
     return (
       <div className="card recorded-mission-card">
         <div className="row-between">
@@ -185,6 +198,11 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
           </div>
           {existing.photoUrl && (
             <img src={existing.photoUrl} alt="독서 인증 사진" className="photo-preview" />
+          )}
+          {!readOnly && (
+            <button type="button" className="ghost" onClick={startEditing}>
+              기록 수정
+            </button>
           )}
         </div>
       </div>
@@ -242,9 +260,12 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
           </span>
         )}
         {error && <div className="error-banner">{error}</div>}
-        <button className="primary" onClick={handleSave} disabled={saving || checkingVision}>
-          {saving ? "저장 중..." : checkingVision ? "사진 확인 중..." : "저장"}
-        </button>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="primary" onClick={handleSave} disabled={saving || checkingVision}>
+            {saving ? "저장 중..." : checkingVision ? "사진 확인 중..." : editing ? "수정 저장" : "저장"}
+          </button>
+          {editing && <button type="button" className="ghost" onClick={() => setEditing(false)} disabled={saving}>취소</button>}
+        </div>
       </div>
     </div>
   );
@@ -257,6 +278,7 @@ function StudySection({ project, date, readOnly }: { project: ProjectResponse | 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -284,7 +306,8 @@ function StudySection({ project, date, readOnly }: { project: ProjectResponse | 
         studyTakeaway: note,
       });
       setExisting(saved);
-      showToast("공부 기록이 저장되었어요");
+      setEditing(false);
+      showToast(existing ? "공부 기록이 수정되었어요" : "공부 기록이 저장되었어요");
     } catch (err) {
       setError(commonTaskErrorMessage(err, "저장에 실패했습니다. 다시 시도해주세요."));
     } finally {
@@ -294,7 +317,14 @@ function StudySection({ project, date, readOnly }: { project: ProjectResponse | 
 
   if (loading) return null;
 
-  if (existing) {
+  const startEditing = () => {
+    if (!existing) return;
+    setTakeaway(existing.studyTakeaway ?? "");
+    setError(null);
+    setEditing(true);
+  };
+
+  if (existing && !editing) {
     return (
       <div className="card recorded-mission-card">
         <div className="row-between">
@@ -310,6 +340,7 @@ function StudySection({ project, date, readOnly }: { project: ProjectResponse | 
           ) : (
             <div className="recorded-field"><span className="muted">기존 공부 기록</span><strong>{existing.studyCompletedAmount}</strong></div>
           )}
+          {!readOnly && <button type="button" className="ghost" onClick={startEditing}>기록 수정</button>}
         </div>
       </div>
     );
@@ -332,9 +363,12 @@ function StudySection({ project, date, readOnly }: { project: ProjectResponse | 
         <textarea placeholder="배운 점이나 느낀 점을 작성해주세요"
           value={takeaway} onChange={(e) => setTakeaway(e.target.value)} maxLength={1000} rows={3} />
         {error && <div className="error-banner">{error}</div>}
-        <button className="primary" onClick={handleSave} disabled={saving}>
-          {saving ? "저장 중..." : "저장"}
-        </button>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="primary" onClick={handleSave} disabled={saving}>
+            {saving ? "저장 중..." : editing ? "수정 저장" : "저장"}
+          </button>
+          {editing && <button type="button" className="ghost" onClick={() => setEditing(false)} disabled={saving}>취소</button>}
+        </div>
       </div>
     </div>
   );

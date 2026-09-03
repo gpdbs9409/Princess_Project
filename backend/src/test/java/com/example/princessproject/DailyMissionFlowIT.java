@@ -147,6 +147,37 @@ class DailyMissionFlowIT {
         assertThat(afterExercise.maxPossible()).isEqualByComparingTo(new BigDecimal("100"));
         assertThat(afterExercise.completedMissions()).contains(exerciseMission.name());
 
+        // The same record can be corrected during its KST calendar day. The regular save path
+        // must recalculate score/progress and replace every editable field instead of layering a
+        // second record on top of the first one.
+        BigDecimal correctedExerciseInput = exerciseMission.defaultTargetValue().divide(new BigDecimal("2"));
+        DailySummaryResponse correctedExercise = client.post().uri("/api/records")
+                .header("Authorization", auth)
+                .body(new RecordRequest(exerciseUserMissionId, today, correctedExerciseInput,
+                        "https://example.com/corrected.jpg", "수정한 기록", false))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(DailySummaryResponse.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(correctedExercise.totalScore()).isEqualByComparingTo("28.00");
+        assertThat(correctedExercise.todayRecords().get(exerciseUserMissionId).inputValue())
+                .isEqualByComparingTo(correctedExerciseInput);
+        assertThat(correctedExercise.todayRecords().get(exerciseUserMissionId).memo()).isEqualTo("수정한 기록");
+        assertThat(correctedExercise.todayRecords().get(exerciseUserMissionId).photoUrl())
+                .isEqualTo("https://example.com/corrected.jpg");
+
+        afterExercise = client.post().uri("/api/records")
+                .header("Authorization", auth)
+                .body(new RecordRequest(exerciseUserMissionId, today, exerciseMission.defaultTargetValue(),
+                        "https://example.com/photo.jpg", "완료!", null))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(DailySummaryResponse.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(afterExercise.totalScore()).isEqualByComparingTo("56.00");
+
         DailySummaryResponse afterJournal = client.post().uri("/api/records")
                 .header("Authorization", auth)
                 .body(new RecordRequest(journalUserMissionId, today, journalMission.defaultTargetValue(), "https://example.com/photo.jpg", null, null))
@@ -197,6 +228,25 @@ class DailyMissionFlowIT {
                 BigDecimal.TEN, BigDecimal.TEN,
                 null, "오늘 배운 내용을 적용한다",
                 null, null, null));
+
+        // Daily common tasks use the same upsert rule: all fields are replaceable today and the
+        // refund state continues to reference the single updated record.
+        client.post().uri("/api/common-tasks")
+                .header("Authorization", auth)
+                .body(new CommonTaskRequest(
+                        CommonTaskType.READING, today, "수정한 책", 10, 25,
+                        null, null, null, null,
+                        "https://example.com/reading-corrected.jpg", false, null))
+                .exchange()
+                .expectStatus().isOk();
+        client.post().uri("/api/common-tasks")
+                .header("Authorization", auth)
+                .body(new CommonTaskRequest(
+                        CommonTaskType.STUDY, today, null, null, null,
+                        null, null, null, "수정한 배운 점",
+                        null, null, null))
+                .exchange()
+                .expectStatus().isOk();
         AdminMemberWeekResponse afterReadingAndStudy = adminService.listParticipantsForWeek("1기", weekStart).stream()
                 .filter(member -> member.userId().equals(userId))
                 .findFirst().orElseThrow();
@@ -250,6 +300,41 @@ class DailyMissionFlowIT {
                 .getResponseBody();
         assertThat(summaryWithFeedback.aiFeedback()).isNotNull();
         assertThat(summaryWithFeedback.aiFeedback().summary()).isEqualTo(feedback.summary());
+
+        // Once the KST calendar day has ended, an existing personal/common record is immutable.
+        LocalDate yesterday = today.minusDays(1);
+        client.post().uri("/api/records")
+                .header("Authorization", auth)
+                .body(new RecordRequest(exerciseUserMissionId, yesterday, exerciseMission.defaultTargetValue(),
+                        "https://example.com/yesterday.jpg", null, null))
+                .exchange()
+                .expectStatus().isOk();
+        ApiErrorResponse closedPersonalEdit = client.post().uri("/api/records")
+                .header("Authorization", auth)
+                .body(new RecordRequest(exerciseUserMissionId, yesterday, BigDecimal.ONE,
+                        "https://example.com/yesterday-corrected.jpg", null, null))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(ApiErrorResponse.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(closedPersonalEdit.code()).isEqualTo("RECORD_EDIT_WINDOW_CLOSED");
+
+        CommonTaskRequest yesterdayStudy = new CommonTaskRequest(
+                CommonTaskType.STUDY, yesterday, null, null, null,
+                null, null, null, "어제 공부", null, null, null);
+        saveCommonTask(auth, yesterdayStudy);
+        ApiErrorResponse closedCommonEdit = client.post().uri("/api/common-tasks")
+                .header("Authorization", auth)
+                .body(new CommonTaskRequest(
+                        CommonTaskType.STUDY, yesterday, null, null, null,
+                        null, null, null, "어제 공부 수정", null, null, null))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(ApiErrorResponse.class)
+                .returnResult()
+                .getResponseBody();
+        assertThat(closedCommonEdit.code()).isEqualTo("COMMON_TASK_EDIT_WINDOW_CLOSED");
     }
 
     private void saveCommonTask(String auth, CommonTaskRequest request) {

@@ -9,6 +9,7 @@ import com.example.princessproject.project.service.UserProjectService;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.repository.UserRepository;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 /** Daily default tasks only: READING and STUDY. */
 @Service
 public class CommonTaskService {
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     private static final int MAX_PAGE_NUMBER = 100_000;
     private static final int MAX_PAGES_PER_DAY = 2_000;
     private final CommonTaskRecordRepository repository;
@@ -37,8 +39,12 @@ public class CommonTaskService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         UserProject project = userProjectService.getOrCreateActive(userId);
-        CommonTaskRecord record = repository.findTopByUserIdAndTaskTypeAndRecordDateOrderByCreatedAtDesc(
-                        userId, request.taskType(), request.date()).orElseGet(CommonTaskRecord::new);
+        var existingRecord = repository.findTopByUserIdAndTaskTypeAndRecordDateOrderByCreatedAtDesc(
+                userId, request.taskType(), request.date());
+        if (existingRecord.isPresent()) {
+            requireToday(request.date(), "COMMON_TASK_EDIT_WINDOW_CLOSED");
+        }
+        CommonTaskRecord record = existingRecord.orElseGet(CommonTaskRecord::new);
         record.setUser(user);
         record.setProject(project);
         record.setTaskType(request.taskType());
@@ -53,7 +59,14 @@ public class CommonTaskService {
         record.setPhotoUrl(request.photoUrl());
         record.setAiVerified(request.aiVerified());
         record.setMemo(request.memo());
+        record.setAdminInvalidated(false);
         return repository.save(record);
+    }
+
+    private void requireToday(LocalDate date, String code) {
+        if (!LocalDate.now(SEOUL).equals(date)) {
+            throw new CommonTaskValidationException(code, "Only today's record can be changed");
+        }
     }
 
     @Transactional(readOnly = true)
