@@ -15,6 +15,12 @@ export function Footer() {
             </a>
             )
           </p>
+          <p className="site-footer-contact-line">
+            카카오톡:{" "}
+            <a href="https://open.kakao.com/o/swJ7TIKi" target="_blank" rel="noreferrer">
+              1:1 오픈채팅
+            </a>
+          </p>
         </div>
         <div className="site-footer-copyright">ⓒ 2026 PP All Rights Reserved.</div>
       </div>
