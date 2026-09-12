@@ -27,21 +27,21 @@ interface CapitalSegmentWithPercent extends CapitalSegment {
 // 앱 캡처를 참고해달라는 요청). 대시보드가 자본별로 각각 개별 막대를 그리는 것과 달리, 여기서는
 // 막대 하나를 오늘 각 자본이 벌어들인 점수 비중대로 나눠 칠하는 스택형 바 + 태그 칩 +
 // (오늘 레오집사 피드백이 있다면) 그 한마디를 함께 보여준다.
-export function CapitalScoreSummaryCard() {
+export function CapitalScoreSummaryCard({ date = todayIso() }: { date?: string }) {
   const [project, setProject] = useState<ProjectResponse | null>(null);
   const [summary, setSummary] = useState<DailySummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    Promise.all([getActiveProject(), getDailySummary(todayIso())])
+    Promise.all([getActiveProject(), getDailySummary(date)])
       .then(([projectData, summaryData]) => {
         setProject(projectData);
         setSummary(summaryData);
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [date]);
 
   // 로딩 중/실패 시에는 조용히 아무것도 안 보여준다 - 이 카드는 채팅을 보조하는 요약일 뿐,
   // 못 불러온다고 레오집사 채팅 전체를 막을 이유는 없다.
@@ -85,7 +85,7 @@ export function CapitalScoreSummaryCard() {
   }));
 
   const progressPercent = Math.round(summary.progress * 100);
-  const latestComment = summary.aiFeedback?.summary ?? null;
+
 
   return (
     <div className="card capital-score-card">
@@ -121,7 +121,7 @@ export function CapitalScoreSummaryCard() {
         ))}
       </div>
 
-      {latestComment && <p className="capital-score-comment">🤍 레오집사: {latestComment}</p>}
+
     </div>
   );
 }

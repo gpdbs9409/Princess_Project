@@ -69,7 +69,6 @@ export function ButlerChatPage() {
         </button>
       </div>
 
-      <CapitalScoreSummaryCard />
 
       {error && <div className="error-banner">{error}</div>}
 
@@ -99,6 +98,7 @@ export function ButlerChatPage() {
                   </div>
                 )}
                 <div className="butler-chat-entry-time">{feedbackTime(entry.createdAt)}</div>
+                {index === entries.length - 1 && <CapitalScoreSummaryCard date={entry.feedbackDate} />}
                 <div className="butler-bubbles">
                   {[entry.summary, entry.praise, entry.improvement, entry.tomorrow, entry.cheer]
                     .filter(Boolean)

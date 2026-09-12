@@ -251,9 +251,7 @@ export function MyPage() {
           <div className="recorded-field">
             <span className="muted">{readingBook.title ? "읽고 있는 책" : "아직 책 제목이 없어요"}</span>
             <strong>{readingBook.title || "제목을 등록해주세요"}</strong>
-            {readingBook.lastEndPage != null && (
-              <span className="muted">마지막으로 기록한 페이지: {readingBook.lastEndPage}p</span>
-            )}
+
           </div>
         )}
 

@@ -6,6 +6,8 @@ import com.example.princessproject.commontask.model.ReadingBook;
 import com.example.princessproject.commontask.service.ReadingBookService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.time.LocalDate;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,10 +25,11 @@ public class ReadingBookController {
     }
 
     @GetMapping("/api/reading-books/active")
-    public ReadingBookResponse getActive(Authentication authentication) {
+    public ReadingBookResponse getActive(Authentication authentication, @RequestParam(required = false) LocalDate beforeDate) {
         Long userId = (Long) authentication.getPrincipal();
         ReadingBook active = readingBookService.getActiveBook(userId);
-        Integer lastEndPage = readingBookService.lastRecordedEndPage(userId, active);
+        Integer lastEndPage = beforeDate == null ? readingBookService.lastRecordedEndPage(userId, active)
+                : readingBookService.lastRecordedEndPage(userId, active, beforeDate);
         return ReadingBookResponse.from(active, lastEndPage);
     }
 

@@ -136,7 +136,7 @@ class DailyMissionFlowIT {
 
         DailySummaryResponse afterExercise = client.post().uri("/api/records")
                 .header("Authorization", auth)
-                .body(new RecordRequest(exerciseUserMissionId, today, exerciseMission.defaultTargetValue(), "https://example.com/photo.jpg", "완료!", null))
+                .body(new RecordRequest(exerciseUserMissionId, today, exerciseMission.defaultTargetValue(), "https://example.com/photo.jpg", "완료!", null, null))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DailySummaryResponse.class)
@@ -154,7 +154,7 @@ class DailyMissionFlowIT {
         DailySummaryResponse correctedExercise = client.post().uri("/api/records")
                 .header("Authorization", auth)
                 .body(new RecordRequest(exerciseUserMissionId, today, correctedExerciseInput,
-                        "https://example.com/corrected.jpg", "수정한 기록", false))
+                        "https://example.com/corrected.jpg", "수정한 기록", false, null))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DailySummaryResponse.class)
@@ -170,7 +170,7 @@ class DailyMissionFlowIT {
         afterExercise = client.post().uri("/api/records")
                 .header("Authorization", auth)
                 .body(new RecordRequest(exerciseUserMissionId, today, exerciseMission.defaultTargetValue(),
-                        "https://example.com/photo.jpg", "완료!", null))
+                        "https://example.com/photo.jpg", "완료!", null, null))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DailySummaryResponse.class)
@@ -180,7 +180,7 @@ class DailyMissionFlowIT {
 
         DailySummaryResponse afterJournal = client.post().uri("/api/records")
                 .header("Authorization", auth)
-                .body(new RecordRequest(journalUserMissionId, today, journalMission.defaultTargetValue(), "https://example.com/photo.jpg", null, null))
+                .body(new RecordRequest(journalUserMissionId, today, journalMission.defaultTargetValue(), "https://example.com/photo.jpg", null, null, null))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(DailySummaryResponse.class)
@@ -217,7 +217,7 @@ class DailyMissionFlowIT {
                 CommonTaskType.READING, today, "테스트 책", 1, 2,
                 null, null,
                 null, null,
-                "https://example.com/reading.jpg", true, null));
+                "https://example.com/reading.jpg", true, null, null));
         AdminMemberWeekResponse afterReading = adminService.listParticipantsForWeek("1기", weekStart).stream()
                 .filter(member -> member.userId().equals(userId))
                 .findFirst().orElseThrow();
@@ -227,7 +227,7 @@ class DailyMissionFlowIT {
                 CommonTaskType.STUDY, today, null, null, null,
                 BigDecimal.TEN, BigDecimal.TEN,
                 null, "오늘 배운 내용을 적용한다",
-                null, null, null));
+                null, null, null, null));
 
         // Daily common tasks use the same upsert rule: all fields are replaceable today and the
         // refund state continues to reference the single updated record.
@@ -236,7 +236,7 @@ class DailyMissionFlowIT {
                 .body(new CommonTaskRequest(
                         CommonTaskType.READING, today, "수정한 책", 10, 25,
                         null, null, null, null,
-                        "https://example.com/reading-corrected.jpg", false, null))
+                        "https://example.com/reading-corrected.jpg", false, null, null))
                 .exchange()
                 .expectStatus().isOk();
         client.post().uri("/api/common-tasks")
@@ -244,7 +244,7 @@ class DailyMissionFlowIT {
                 .body(new CommonTaskRequest(
                         CommonTaskType.STUDY, today, null, null, null,
                         null, null, null, "수정한 배운 점",
-                        null, null, null))
+                        null, null, null, null))
                 .exchange()
                 .expectStatus().isOk();
         AdminMemberWeekResponse afterReadingAndStudy = adminService.listParticipantsForWeek("1기", weekStart).stream()
@@ -306,13 +306,13 @@ class DailyMissionFlowIT {
         client.post().uri("/api/records")
                 .header("Authorization", auth)
                 .body(new RecordRequest(exerciseUserMissionId, yesterday, exerciseMission.defaultTargetValue(),
-                        "https://example.com/yesterday.jpg", null, null))
+                        "https://example.com/yesterday.jpg", null, null, null))
                 .exchange()
                 .expectStatus().isOk();
         ApiErrorResponse closedPersonalEdit = client.post().uri("/api/records")
                 .header("Authorization", auth)
                 .body(new RecordRequest(exerciseUserMissionId, yesterday, BigDecimal.ONE,
-                        "https://example.com/yesterday-corrected.jpg", null, null))
+                        "https://example.com/yesterday-corrected.jpg", null, null, null))
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectBody(ApiErrorResponse.class)
@@ -322,13 +322,13 @@ class DailyMissionFlowIT {
 
         CommonTaskRequest yesterdayStudy = new CommonTaskRequest(
                 CommonTaskType.STUDY, yesterday, null, null, null,
-                null, null, null, "어제 공부", null, null, null);
+                null, null, null, "어제 공부", null, null, null, null);
         saveCommonTask(auth, yesterdayStudy);
         ApiErrorResponse closedCommonEdit = client.post().uri("/api/common-tasks")
                 .header("Authorization", auth)
                 .body(new CommonTaskRequest(
                         CommonTaskType.STUDY, yesterday, null, null, null,
-                        null, null, null, "어제 공부 수정", null, null, null))
+                        null, null, null, "어제 공부 수정", null, null, null, null))
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectBody(ApiErrorResponse.class)
@@ -414,7 +414,7 @@ class DailyMissionFlowIT {
 
         client.post().uri("/api/records")
                 .header("Authorization", authB)
-                .body(new RecordRequest(userAMissionId, LocalDate.now(), BigDecimal.TEN, "https://example.com/photo.jpg", null, null))
+                .body(new RecordRequest(userAMissionId, LocalDate.now(), BigDecimal.TEN, "https://example.com/photo.jpg", null, null, null))
                 .exchange()
                 .expectStatus().is5xxServerError();
     }

@@ -19,7 +19,7 @@ class VisionAnalysisServiceTest {
                 "dummy-image".getBytes()
         );
 
-        VisionAnalysisResult result = service.analyze(file, "독서");
+        VisionAnalysisResult result = service.analyze(file, "독서", null);
 
         assertThat(result.likelyValid()).isTrue();
         assertThat(result.reason()).contains("독서");
@@ -29,7 +29,7 @@ class VisionAnalysisServiceTest {
     void rejectsWhenImageBytesAreEmpty() {
         MockMultipartFile file = new MockMultipartFile("file", "empty.png", "image/png", new byte[0]);
 
-        VisionAnalysisResult result = service.analyze(file, "독서");
+        VisionAnalysisResult result = service.analyze(file, "독서", null);
 
         assertThat(result.likelyValid()).isFalse();
     }

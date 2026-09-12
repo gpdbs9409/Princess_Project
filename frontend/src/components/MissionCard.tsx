@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import { analyzeVisionPhoto, saveRecord, uploadFile } from "../api/endpoints";
 import type { GoalTypeCode, TodayRecordEntry } from "../api/types";
@@ -72,11 +72,13 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
     };
   }, [photoPreviewUrl]);
 
+  const extraPreviewRef = useRef<string[]>([]);
   useEffect(() => {
-    return () => {
-      extraPhotoPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
+    const previous = extraPreviewRef.current;
+    previous.filter((url) => !extraPhotoPreviewUrls.includes(url)).forEach((url) => URL.revokeObjectURL(url));
+    extraPreviewRef.current = extraPhotoPreviewUrls;
   }, [extraPhotoPreviewUrls]);
+  useEffect(() => () => extraPreviewRef.current.forEach((url) => URL.revokeObjectURL(url)), []);
 
   const handleAddExtraPhotos = (files: File[]) => {
     setExtraPhotoFiles((prev) => [...prev, ...files]);
@@ -223,18 +225,14 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
             <span className="muted">기록한 소감</span>
             <span>{record.memo || "작성하지 않았어요"}</span>
           </div>
-          {record.photoUrl && (
-            <img src={record.photoUrl} alt="기록한 인증 사진" className="photo-preview" />
-          )}
-          {record.extraPhotoUrls && record.extraPhotoUrls.length > 0 && (
-            <div className="extra-photo-grid">
-              {record.extraPhotoUrls.map((url, i) => (
-                <div className="extra-photo-thumb" key={i}>
-                  <img src={url} alt={`추가 인증 사진 ${i + 1}`} />
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="extra-photo-grid recorded-photo-gallery">
+            {[record.photoUrl, ...(record.extraPhotoUrls ?? [])].filter((url): url is string => Boolean(url)).map((url, i) => (
+              <a className="extra-photo-thumb" key={url} href={url} target="_blank" rel="noreferrer">
+                <img src={url} alt={i === 0 ? "첫 인증 사진" : `저장된 추가 사진 ${i}`} />
+              </a>
+            ))}
+            {!readOnly && <button type="button" className="photo-add-tile" onClick={() => setEditing(true)}>＋<span>사진 추가</span></button>}
+          </div>
           {!readOnly && (
             <button type="button" className="ghost" onClick={() => setEditing(true)}>
               기록 수정
@@ -274,13 +272,14 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
         </div>
         <input
           type="text"
-          placeholder="오늘 어땠나요? (선택 · 사진 판정이 '부적합'이면 여기 설명을 남겨보세요)"
+          placeholder="오늘 어땠나요?"
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
           onBlur={handleMemoBlur}
         />
         <div className="stack" style={{ gap: 8 }}>
           <PhotoCaptureField
+          hidePreview
             photoFile={photoFile}
             photoPreviewUrl={photoPreviewUrl}
             onSelect={handlePhotoCaptured}
@@ -293,6 +292,7 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
             </span>
           )}
           <ExtraPhotosField
+          primaryUrl={photoPreviewUrl}
             previewUrls={extraPhotoPreviewUrls}
             existingUrls={existingExtraUrls}
             onAdd={handleAddExtraPhotos}

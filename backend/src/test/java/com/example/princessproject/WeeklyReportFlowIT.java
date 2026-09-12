@@ -98,13 +98,13 @@ class WeeklyReportFlowIT {
 
         client.post().uri("/api/records")
                 .header("Authorization", auth)
-                .body(new RecordRequest(userMissionId, day1, exerciseMission.defaultTargetValue(), "https://example.com/photo1.jpg", null, null))
+                .body(new RecordRequest(userMissionId, day1, exerciseMission.defaultTargetValue(), "https://example.com/photo1.jpg", null, null, null))
                 .exchange()
                 .expectStatus().isOk();
 
         client.post().uri("/api/records")
                 .header("Authorization", auth)
-                .body(new RecordRequest(userMissionId, day2, exerciseMission.defaultTargetValue(), "https://example.com/photo2.jpg", null, null))
+                .body(new RecordRequest(userMissionId, day2, exerciseMission.defaultTargetValue(), "https://example.com/photo2.jpg", null, null, null))
                 .exchange()
                 .expectStatus().isOk();
 

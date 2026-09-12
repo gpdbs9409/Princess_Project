@@ -6,6 +6,7 @@ interface PhotoCaptureFieldProps {
   photoPreviewUrl: string | null;
   onSelect: (file: File) => void;
   label?: string;
+  hidePreview?: boolean;
 }
 
 // 사진 인증 정책이 다시 바뀌어서 (2026-08-21), 실시간 카메라 촬영에 더해 갤러리(파일) 업로드도
@@ -15,7 +16,7 @@ interface PhotoCaptureFieldProps {
 // MissionCard와 공통과제(독서/공부) 양쪽에서 똑같이 쓰기 위해 분리한 컴포넌트. 실제 File 상태는
 // 부모가 들고 있고(오브젝트 URL revoke 등 정리 책임도 부모 쪽), 여기는 "카메라로 촬영" vs
 // "갤러리에서 선택" 두 입력 경로를 하나의 File로 합쳐서 onSelect로 넘겨주는 역할만 한다.
-export function PhotoCaptureField({ photoFile, photoPreviewUrl, onSelect, label }: PhotoCaptureFieldProps) {
+export function PhotoCaptureField({ photoFile, photoPreviewUrl, onSelect, label, hidePreview = false }: PhotoCaptureFieldProps) {
   const [showCamera, setShowCamera] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,7 +35,7 @@ export function PhotoCaptureField({ photoFile, photoPreviewUrl, onSelect, label 
   return (
     <div className="stack" style={{ gap: 8 }}>
       {label && <label>{label}</label>}
-      {photoPreviewUrl && <img src={photoPreviewUrl} alt="선택한 인증 사진 미리보기" className="photo-preview" />}
+      {!hidePreview && photoPreviewUrl && <img src={photoPreviewUrl} alt="선택한 인증 사진 미리보기" className="photo-preview" />}
       <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
         <button type="button" className="file-picker-button" onClick={() => setShowCamera(true)}>
           {photoFile ? "다시 촬영하기" : "카메라로 촬영하기"}

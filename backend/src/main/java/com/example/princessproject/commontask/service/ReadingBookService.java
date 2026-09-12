@@ -52,11 +52,21 @@ public class ReadingBookService {
     /** getActiveBook()과 별도 호출: 지금 활성 책에 대해 마지막으로 기록된 페이지. */
     @Transactional
     public Integer lastRecordedEndPage(Long userId, ReadingBook activeBook) {
-        return commonTaskRecordRepository
-                .findFirstByUserIdAndTaskTypeAndRecordDateGreaterThanEqualAndAdminInvalidatedFalseOrderByRecordDateDescCreatedAtDesc(
-                        userId, CommonTaskType.READING, activeBook.getStartedAt())
+        return lastRecordedEndPage(userId, activeBook, LocalDate.now(SEOUL).plusDays(1));
+    }
+
+    @Transactional(readOnly = true)
+    public Integer lastRecordedEndPage(Long userId, ReadingBook activeBook, LocalDate beforeDate) {
+        return commonTaskRecordRepository.findByUserIdOrderByRecordDateDescCreatedAtDesc(userId).stream()
+                .filter(record -> record.getTaskType() == CommonTaskType.READING && !record.isAdminInvalidated())
+                .filter(record -> record.getProject().getId().equals(activeBook.getProject().getId()))
+                .filter(record -> !record.getRecordDate().isBefore(activeBook.getStartedAt())
+                        && record.getRecordDate().isBefore(beforeDate))
+                .filter(record -> activeBook.getTitle().equals(record.getBookTitle())
+                        || record.getBookTitle() == null || record.getBookTitle().isBlank())
                 .map(CommonTaskRecord::getEndPage)
-                .orElse(null);
+                .filter(java.util.Objects::nonNull)
+                .findFirst().orElse(null);
     }
 
     /**

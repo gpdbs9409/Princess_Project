@@ -3,6 +3,7 @@ import { useRef } from "react";
 interface ExtraPhotosFieldProps {
   /** 새로 선택했지만 아직 업로드 전인 파일들의 미리보기 URL. */
   previewUrls: string[];
+  primaryUrl?: string | null;
   /** 이미 저장돼 있는(수정 화면에서 불러온) 추가 사진 URL. */
   existingUrls?: string[];
   onAdd: (files: File[]) => void;
@@ -16,6 +17,7 @@ interface ExtraPhotosFieldProps {
 // 증빙이라 갤러리 다중 선택만 지원한다 - AI 판정 대상은 여전히 대표 사진 하나뿐이다.
 export function ExtraPhotosField({
   previewUrls,
+  primaryUrl,
   existingUrls = [],
   onAdd,
   onRemoveNew,
@@ -36,8 +38,9 @@ export function ExtraPhotosField({
   return (
     <div className="stack" style={{ gap: 8 }}>
       <label>추가 사진 (선택, 최대 {maxCount}장)</label>
-      {totalCount > 0 && (
+      {(
         <div className="extra-photo-grid">
+          {primaryUrl && <div className="extra-photo-thumb"><img src={primaryUrl} alt="첫 인증 사진" /></div>}
           {existingUrls.map((url, i) => (
             <div className="extra-photo-thumb" key={`existing-${i}`}>
               <img src={url} alt={`추가 인증 사진 ${i + 1}`} />
@@ -66,12 +69,10 @@ export function ExtraPhotosField({
               </button>
             </div>
           ))}
+          {totalCount < maxCount && (
+            <button type="button" className="photo-add-tile" onClick={() => inputRef.current?.click()}>＋<span>사진 추가</span></button>
+          )}
         </div>
-      )}
-      {totalCount < maxCount && (
-        <button type="button" className="file-picker-button" onClick={() => inputRef.current?.click()}>
-          사진 추가하기
-        </button>
       )}
       <input
         ref={inputRef}

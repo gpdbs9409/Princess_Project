@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import {
   analyzeVisionPhoto,
@@ -103,15 +103,15 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
   }, [date]);
 
   useEffect(() => {
-    getActiveReadingBook()
+    getActiveReadingBook(date)
       .then((book) => {
         setActiveBook(book);
         // 오늘 아직 기록이 없다면 시작 페이지를 이 책의 마지막 기록 페이지로 미리 채워준다
         // (이어쓰기). 이미 사용자가 입력을 시작했다면 건드리지 않는다.
-        setStartPage((prev) => (prev === "" && book.lastEndPage != null ? String(book.lastEndPage) : prev));
+        setStartPage(String((book.lastEndPage ?? 0) + 1));
       })
       .catch(() => {
-        // 활성 책 정보를 못 가져와도 기록 자체는 그대로 할 수 있어야 한다 - 조용히 무시.
+        setError("이전 독서 페이지를 불러오지 못했어요. 새로고침 후 다시 시도해주세요.");
       });
   }, []);
 
@@ -123,11 +123,13 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
     };
   }, [photoPreviewUrl]);
 
+  const extraPreviewRef = useRef<string[]>([]);
   useEffect(() => {
-    return () => {
-      extraPhotoPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
+    const previous = extraPreviewRef.current;
+    previous.filter((url) => !extraPhotoPreviewUrls.includes(url)).forEach((url) => URL.revokeObjectURL(url));
+    extraPreviewRef.current = extraPhotoPreviewUrls;
   }, [extraPhotoPreviewUrls]);
+  useEffect(() => () => extraPreviewRef.current.forEach((url) => URL.revokeObjectURL(url)), []);
 
   const handleAddExtraPhotos = (files: File[]) => {
     setExtraPhotoFiles((prev) => [...prev, ...files]);
@@ -273,7 +275,7 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
           <div className="recorded-field">
             <span className="muted">오늘 읽은 범위</span>
             <strong>
-              {existing.startPage}p ~ {existing.endPage}p ({(existing.endPage ?? 0) - (existing.startPage ?? 0)}p)
+              {existing.startPage}p ~ {existing.endPage}p ({(existing.endPage ?? 0) - (existing.startPage ?? 0) + 1}p)
             </strong>
           </div>
           {existing.memo && (
@@ -282,18 +284,14 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
               <span>{existing.memo}</span>
             </div>
           )}
-          {existing.photoUrl && (
-            <img src={existing.photoUrl} alt="독서 인증 사진" className="photo-preview" />
-          )}
-          {existing.extraPhotoUrls && existing.extraPhotoUrls.length > 0 && (
-            <div className="extra-photo-grid">
-              {existing.extraPhotoUrls.map((url, i) => (
-                <div className="extra-photo-thumb" key={i}>
-                  <img src={url} alt={`추가 인증 사진 ${i + 1}`} />
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="extra-photo-grid recorded-photo-gallery">
+            {[existing.photoUrl, ...(existing.extraPhotoUrls ?? [])].filter((url): url is string => Boolean(url)).map((url, i) => (
+              <a className="extra-photo-thumb" key={url} href={url} target="_blank" rel="noreferrer">
+                <img src={url} alt={i === 0 ? "첫 인증 사진" : `저장된 추가 사진 ${i}`} />
+              </a>
+            ))}
+            {!readOnly && <button type="button" className="photo-add-tile" onClick={startEditing}>＋<span>사진 추가</span></button>}
+          </div>
           {!readOnly && (
             <button type="button" className="ghost" onClick={startEditing}>
               기록 수정
@@ -330,6 +328,8 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
             min={0}
             max={MAX_PAGE_NUMBER}
             placeholder="시작 페이지"
+            aria-label="시작 페이지"
+            readOnly
             value={startPage}
             onChange={(e) => setStartPage(e.target.value)}
             style={{ maxWidth: 110 }}
@@ -340,6 +340,7 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
             min={0}
             max={MAX_PAGE_NUMBER}
             placeholder="종료 페이지"
+            aria-label="종료 페이지"
             value={endPage}
             onChange={(e) => setEndPage(e.target.value)}
             style={{ maxWidth: 110 }}
@@ -347,12 +348,13 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
         </div>
         <input
           type="text"
-          placeholder="오늘 어땠나요? (선택 · 사진 판정이 '부적합'이면 여기 설명을 남겨보세요)"
+          placeholder="오늘 어땠나요?"
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
           onBlur={handleMemoBlur}
         />
         <PhotoCaptureField
+          hidePreview
           photoFile={photoFile}
           photoPreviewUrl={photoPreviewUrl}
           onSelect={handlePhotoSelected}
@@ -365,6 +367,7 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
           </span>
         )}
         <ExtraPhotosField
+          primaryUrl={photoPreviewUrl}
           previewUrls={extraPhotoPreviewUrls}
           existingUrls={existingExtraUrls}
           onAdd={handleAddExtraPhotos}

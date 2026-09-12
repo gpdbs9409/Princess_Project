@@ -143,7 +143,7 @@ export const analyzeVisionPhoto = (file: File, expectedTopic: string, memo?: str
 
 // ---- reading book (독서 - 지금 읽고 있는 책 하나만 활성화, 병렬독서 없음) ----
 
-export const getActiveReadingBook = () => api.get<ReadingBookResponse>("/api/reading-books/active");
+export const getActiveReadingBook = (beforeDate?: string) => api.get<ReadingBookResponse>(`/api/reading-books/active${beforeDate ? `?beforeDate=${encodeURIComponent(beforeDate)}` : ""}`);
 
 export const registerReadingBook = (title: string) =>
   api.post<ReadingBookResponse>("/api/reading-books", { title });
