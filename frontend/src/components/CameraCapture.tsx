@@ -12,6 +12,10 @@ interface CameraCaptureModalProps {
  * 2026-08-21 정책 변경: 갤러리 업로드도 다시 허용됐다 - 다만 그건 이 모달이 아니라
  * PhotoCaptureField의 "갤러리에서 선택" 버튼(별도 <input type="file">)을 통해서다. 이 모달
  * 자체는 여전히 실시간 촬영 전용이다. 업로드 단계에서는 촬영 날짜를 검사하지 않는다.
+ *
+ * 2026-09: 셀카(전면 카메라) 인증 지원 요청 반영 - facingMode를 토글할 수 있게 했다. 기본은
+ * 후면("environment")이고, 전면으로 바꾸면 미리보기만 좌우 반전(mirror)해서 자연스럽게 보이게
+ * 하되, 실제로 저장되는 사진은 반전하지 않는다 (대부분의 카메라 앱과 동일한 기본 동작).
  */
 export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -19,6 +23,22 @@ export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalPro
   const [error, setError] = useState<string | null>(null);
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  // 이 기기에 카메라가 두 개 이상 있는지 확실치 않으면 전환 버튼 자체를 숨긴다 - 없는 카메라로
+  // 전환을 시도했다가 에러만 보여주는 것보다야 낫다. 목록을 읽을 수 없는 브라우저에서는 그냥
+  // 버튼을 보여준다 (getUserMedia의 { ideal } 힌트가 알아서 최선을 골라준다).
+  const [canSwitchCamera, setCanSwitchCamera] = useState(true);
+
+  useEffect(() => {
+    navigator.mediaDevices?.enumerateDevices?.()
+      .then((devices) => {
+        const videoInputs = devices.filter((d) => d.kind === "videoinput");
+        if (videoInputs.length > 0) setCanSwitchCamera(videoInputs.length > 1);
+      })
+      .catch(() => {
+        // 목록을 못 읽어도 전환 버튼은 그냥 보여준다.
+      });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,9 +48,13 @@ export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalPro
         setError("이 브라우저에서는 카메라 촬영을 지원하지 않아요. 최신 브라우저로 다시 시도해주세요.");
         return;
       }
+      // 전환 시 이전 스트림을 먼저 끄지 않으면 일부 브라우저(특히 모바일)에서 카메라가 계속
+      // 점유된 채로 남아 두 번째 getUserMedia 호출이 실패하거나 멈춘다.
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
+          video: { facingMode: { ideal: facingMode } },
           audio: false,
         });
         if (cancelled) {
@@ -41,6 +65,7 @@ export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalPro
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
+        setError(null);
       } catch {
         setError("카메라를 사용할 수 없어요. 브라우저 설정에서 카메라 권한을 허용한 뒤 다시 시도해주세요.");
       }
@@ -52,7 +77,11 @@ export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalPro
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     };
-  }, []);
+  }, [facingMode]);
+
+  const handleSwitchCamera = () => {
+    setFacingMode((prev) => (prev === "environment" ? "user" : "environment"));
+  };
 
   useEffect(() => {
     return () => {
@@ -113,7 +142,14 @@ export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalPro
         {error && <div className="error-banner">{error}</div>}
 
         {!error && !capturedUrl && (
-          <video ref={videoRef} autoPlay playsInline muted className="camera-video" />
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="camera-video"
+            style={facingMode === "user" ? { transform: "scaleX(-1)" } : undefined}
+          />
         )}
         {capturedUrl && <img src={capturedUrl} alt="촬영한 사진 미리보기" className="camera-video" />}
 
@@ -124,9 +160,16 @@ export function CameraCaptureModal({ onCapture, onClose }: CameraCaptureModalPro
 
         <div className="row" style={{ gap: 10, marginTop: 12, justifyContent: "center" }}>
           {!capturedUrl ? (
-            <button type="button" className="primary" onClick={handleShutter} disabled={!!error}>
-              촬영하기
-            </button>
+            <>
+              {canSwitchCamera && (
+                <button type="button" className="ghost" onClick={handleSwitchCamera} disabled={!!error}>
+                  {facingMode === "environment" ? "전면 카메라(셀카)로" : "후면 카메라로"}
+                </button>
+              )}
+              <button type="button" className="primary" onClick={handleShutter} disabled={!!error}>
+                촬영하기
+              </button>
+            </>
           ) : (
             <>
               <button type="button" className="ghost" onClick={handleRetake}>

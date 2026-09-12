@@ -22,6 +22,7 @@ import type {
   ProfileStatsResponse,
   ProjectResponse,
   ProjectSelectionsRequest,
+  ReadingBookResponse,
   RecordRequest,
   UploadResponse,
   UserResponse,
@@ -129,12 +130,25 @@ export const uploadFile = (file: File) => {
   return api.postMultipart<UploadResponse>("/api/uploads", formData);
 };
 
-export const analyzeVisionPhoto = (file: File, expectedTopic: string) => {
+// memo(선택): 사진만으로 1차 판정이 부적합(false)으로 나오면, 백엔드가 이 메모까지 함께
+// 참고해서 한 번 더 판정한다 (2026-09) - "운동 사진을 못 찍어서 땀 흘린 셀카로 대체해요" 같은
+// 설명이 있으면 통과될 수 있다.
+export const analyzeVisionPhoto = (file: File, expectedTopic: string, memo?: string) => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("expectedTopic", expectedTopic);
+  if (memo && memo.trim()) formData.append("memo", memo.trim());
   return api.postMultipart<VisionAnalysisResponse>("/api/vision/analyze", formData);
 };
+
+// ---- reading book (독서 - 지금 읽고 있는 책 하나만 활성화, 병렬독서 없음) ----
+
+export const getActiveReadingBook = () => api.get<ReadingBookResponse>("/api/reading-books/active");
+
+export const registerReadingBook = (title: string) =>
+  api.post<ReadingBookResponse>("/api/reading-books", { title });
+
+export const getReadingBookHistory = () => api.get<ReadingBookResponse[]>("/api/reading-books/history");
 
 // ---- admin ----
 

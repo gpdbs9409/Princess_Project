@@ -1,11 +1,15 @@
 package com.example.princessproject.aifeedback.service;
 
+import com.example.princessproject.common.OpenAiCallLimiter;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -76,7 +80,12 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
               계산하거나 서로 비교해 새로운 숫자를 만들지 마세요. 모든 achievementPercent 값은 이미 0~100
               백분율로 변환되어 있습니다.
             - capitals에는 자본별 획득점수, 가능점수, 달성률이 들어 있고 missions에는 각 미션의 주기, 목표,
-              실제 수행량, 배정점수, 획득점수, 달성률, 완료 상태가 들어 있습니다.
+              실제 수행량, 배정점수, 획득점수, 달성률, 완료 상태, 단위(unit)가 들어 있습니다.
+            - 숫자 뒤에 단위를 붙일 때는 반드시 그 미션의 unit 값을 그대로 쓰세요 (예: unit이 "분"이면
+              "30분", "쪽"이면 "10쪽"). unit을 임의로 다른 단위로 바꾸거나 추측하지 마세요.
+            - 독서(이름이 "독서"인 미션)는 언제나 "쪽" 단위입니다. 책의 권수를 세는 것이 아니므로
+              "권"이라는 단어는 독서에 대해 절대 쓰지 마세요 (예: "12쪽 읽으셨어요"는 맞고
+              "12권 읽으셨어요"는 틀립니다).
             - completedMissions만 오늘 완료한 미션이고 remainingMissions는 아직 완료하지 못한 미션입니다.
             - 공통과제도 백엔드가 일반 미션과 같은 목록에 합쳐 전달하므로 특별대우하거나 별도로 점수를
               추정하지 마세요.
@@ -108,18 +117,28 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
+    private final OpenAiCallLimiter callLimiter;
     private final String model;
 
     public OpenAiFeedbackClient(
             @Value("${openai.api.key}") String apiKey,
             @Value("${openai.model.feedback}") String model,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            OpenAiCallLimiter callLimiter
     ) {
         this.model = model;
         this.objectMapper = objectMapper;
+        this.callLimiter = callLimiter;
+        // 명시적 타임아웃 (2026-09): 기본 JDK HttpClient는 타임아웃이 없어서, OpenAI가 응답을 안
+        // 주면 요청 스레드가 무한정 붙잡혀 있었다. 이 호출은 이미지가 없는 텍스트 전용이라 비전
+        // 호출보다는 read timeout을 짧게(20초) 잡아도 충분하다.
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
+                HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build());
+        requestFactory.setReadTimeout(Duration.ofSeconds(20));
         this.restClient = RestClient.builder()
                 .baseUrl("https://api.openai.com/v1")
                 .defaultHeader("Authorization", "Bearer " + apiKey)
+                .requestFactory(requestFactory)
                 .build();
     }
 
@@ -135,11 +154,13 @@ public class OpenAiFeedbackClient implements AiFeedbackClient {
                 )
         );
 
-        JsonNode response = restClient.post()
+        // 대기열(OpenAiCallLimiter)을 통해 나간다 - 동시에 여러 명이 "레오집사" 피드백을 요청해도
+        // OpenAI 레이트리밋에 걸려 에러로 보이는 대신, 내부적으로 순서를 기다렸다가 나간다.
+        JsonNode response = callLimiter.call(() -> restClient.post()
                 .uri("/chat/completions")
                 .body(requestBody)
                 .retrieve()
-                .body(JsonNode.class);
+                .body(JsonNode.class));
 
         try {
             String content = response.path("choices").get(0).path("message").path("content").asString();

@@ -128,13 +128,27 @@ public class AdminController {
         return AdminMemberResponse.from(adminService.assignCohort(userId, request.cohort()));
     }
 
+    /**
+     * paid=true("환급하기")로 지급 상태를 저장하면, DB 저장 직후 같은 요청 안에서 환급 시트에도
+     * 그 자리에서 반영을 시도한다 (2026-09). 시트 연동이 꺼져 있거나 실패해도 이미 저장된 DB
+     * 지급 상태는 그대로 유지되고, 그 결과만 sheetSyncStatus로 응답에 실어 프론트가 안내 문구를
+     * 보여줄 수 있게 한다. paid=false(취소)일 때는 시트를 건드리지 않는다 - 시트에 이미 채워진
+     * 금액을 자동으로 지우면 운영자가 수기로 넣어둔 값과 구분이 안 되기 때문이다.
+     */
     @PutMapping("/members/{userId}/refund")
     public AdminMemberWeekResponse setRefund(
             @PathVariable Long userId,
             @RequestParam(required = false) LocalDate weekStart,
             @RequestBody RefundRequest request
     ) {
-        return adminService.setRefundPaid(userId, resolveWeekStart(weekStart), request.paid());
+        LocalDate resolvedWeekStart = resolveWeekStart(weekStart);
+        AdminMemberWeekResponse response = adminService.setRefundPaid(userId, resolvedWeekStart, request.paid());
+        if (request.paid()) {
+            PaybackSheetService.SheetSyncOutcome outcome =
+                    paybackSheetService.syncSingleMember(response.nickname(), resolvedWeekStart);
+            response = response.withSheetSyncStatus(outcome.name());
+        }
+        return response;
     }
 
     /** 이번 주 MVP 지정 - 같은 기수/주에 이미 있던 MVP는 교체된다. */

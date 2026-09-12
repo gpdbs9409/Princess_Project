@@ -74,6 +74,9 @@ export interface AdminMemberWeekResponse {
   paidAt: string | null;
   isMvp: boolean;
   role: Role;
+  // "환급하기" 클릭으로 지급 상태를 저장한 요청에서만 값이 채워진다 (2026-09). 그 외 조회성
+  // 응답에서는 항상 null - PaybackSheetService.SheetSyncOutcome 이름 그대로 온다.
+  sheetSyncStatus: string | null;
 }
 
 export interface AdminMemberResponse {
@@ -101,6 +104,8 @@ export interface AdminActivityResponse {
   aiVerified: boolean | null;
   adminInvalidated: boolean;
   recordedAt: string | null;
+  // 참고용 추가 인증 사진 (2026-09) - 주간회고처럼 사진이 없는 활동은 빈 배열이다.
+  extraPhotoUrls: string[];
 }
 
 export interface AdminMvpResponse {
@@ -304,6 +309,8 @@ export interface TodayRecordEntry {
   memo: string | null;
   photoUrl: string | null;
   aiVerified: boolean | null;
+  // 참고용 추가 인증 사진 (최대 4장, 2026-09). 대표 사진(photoUrl)만 AI 판정 대상이다.
+  extraPhotoUrls: string[];
 }
 
 export interface DailySummaryResponse {
@@ -338,6 +345,7 @@ export interface RecordRequest {
   photoUrl?: string;
   memo?: string;
   aiVerified?: boolean;
+  extraPhotoUrls?: string[];
 }
 
 export interface UploadResponse {
@@ -348,6 +356,17 @@ export interface VisionAnalysisResponse {
   likelyValid: boolean;
   reason: string;
   confidence: string;
+}
+
+// ---- reading book (2026-09: 이전 페이지 이어쓰기 + 완독 후 새 책 등록/활성화, 병렬독서 없음) ----
+export interface ReadingBookResponse {
+  id: number;
+  title: string;
+  status: "ACTIVE" | "COMPLETED";
+  startedAt: string;
+  completedAt: string | null;
+  /** 이 책으로 마지막에 기록된 종료 페이지. 아직 이 책으로 기록이 없으면 null. */
+  lastEndPage: number | null;
 }
 
 // ---- daily common tasks (독서/공부): score/refund inputs ----
@@ -370,6 +389,8 @@ export interface CommonTaskRequest {
   // Vision 결과는 저장 차단용이 아니라 운영진 검토용 플래그다.
   aiVerified?: boolean;
   memo?: string;
+  // 참고용 추가 인증 사진 (최대 4장, 2026-09). READING에서만 의미가 있다.
+  extraPhotoUrls?: string[];
 }
 
 export interface CommonTaskResponse {
@@ -387,6 +408,7 @@ export interface CommonTaskResponse {
   aiVerified: boolean | null;
   memo: string | null;
   createdAt: string;
+  extraPhotoUrls: string[];
 }
 
 export interface WeeklyRetrospectiveRequest {

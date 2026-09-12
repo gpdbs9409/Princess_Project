@@ -19,8 +19,9 @@ public class VisionController {
     @PostMapping("/api/vision/analyze")
     public VisionAnalysisResult analyze(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "expectedTopic", required = false, defaultValue = "독서") String expectedTopic
+            @RequestParam(value = "expectedTopic", required = false, defaultValue = "독서") String expectedTopic,
+            @RequestParam(value = "memo", required = false) String memo
     ) {
-        return visionAnalysisService.analyze(file, expectedTopic);
+        return visionAnalysisService.analyze(file, expectedTopic, memo);
     }
 }

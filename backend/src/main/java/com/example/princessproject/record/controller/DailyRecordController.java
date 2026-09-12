@@ -40,7 +40,7 @@ public class DailyRecordController {
         Long userId = (Long) authentication.getPrincipal();
         MissionProgress progress = dailyRecordService.saveRecord(
                 userId, request.userMissionId(), request.date(), request.inputValue(), request.photoUrl(),
-                request.memo(), request.aiVerified());
+                request.memo(), request.aiVerified(), request.extraPhotoUrls());
         AiFeedbackResult stored = aiFeedbackService.getStoredFeedback(userId, request.date());
         return DailySummaryResponse.from(request.date(), progress, AiFeedbackResponse.from(stored));
     }

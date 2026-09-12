@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import { analyzeVisionPhoto, saveRecord, uploadFile } from "../api/endpoints";
 import type { GoalTypeCode, TodayRecordEntry } from "../api/types";
+import { ExtraPhotosField } from "./ExtraPhotosField";
 import { PhotoCaptureField } from "./PhotoCaptureField";
 import { useToast } from "./ToastProvider";
+
+// 갤러리에서 한 번에 고를 수 있는 추가 사진 개수 상한 - ExtraPhotosField의 기본값과 맞춘다.
+const MAX_EXTRA_PHOTOS = 4;
 
 export interface FlatMission {
   userMissionId: number;
@@ -40,6 +44,12 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  // 참고용 추가 사진(2026-09) - 대표 사진과 달리 AI 판정 대상은 아니고, 갤러리에서 여러 장
+  // 골라 첨부만 하는 보조 증빙이다. existingExtraUrls는 수정 화면에서 불러온 기존 저장분,
+  // extraPhotoFiles/extraPhotoPreviewUrls는 이번에 새로 고른 것.
+  const [existingExtraUrls, setExistingExtraUrls] = useState<string[]>([]);
+  const [extraPhotoFiles, setExtraPhotoFiles] = useState<File[]>([]);
+  const [extraPhotoPreviewUrls, setExtraPhotoPreviewUrls] = useState<string[]>([]);
 
   useEffect(() => {
     if (!record || !editing) return;
@@ -49,6 +59,9 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
     setPhotoPreviewUrl(record.photoUrl);
     setVisionNote(null);
     setError(null);
+    setExistingExtraUrls(record.extraPhotoUrls ?? []);
+    setExtraPhotoFiles([]);
+    setExtraPhotoPreviewUrls([]);
   }, [record, editing]);
 
   // Object URLs aren't garbage-collected on their own - revoke the previous one whenever
@@ -58,6 +71,46 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
       if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
     };
   }, [photoPreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      extraPhotoPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [extraPhotoPreviewUrls]);
+
+  const handleAddExtraPhotos = (files: File[]) => {
+    setExtraPhotoFiles((prev) => [...prev, ...files]);
+    setExtraPhotoPreviewUrls((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
+  };
+
+  const handleRemoveNewExtraPhoto = (index: number) => {
+    setExtraPhotoPreviewUrls((prev) => {
+      const url = prev[index];
+      if (url) URL.revokeObjectURL(url);
+      return prev.filter((_, i) => i !== index);
+    });
+    setExtraPhotoFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveExistingExtraPhoto = (index: number) => {
+    setExistingExtraUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // 2026-09: 사진만으로 부적합(false) 판정이 났을 때, 사용자가 메모에 설명을 적고 나가면
+  // (블러) 메모까지 포함해서 한 번 더 판정한다 (백엔드 2차 판정 로직과 짝). 매 타이핑마다
+  // 부르면 낭비니 블러 시점에만 실행하고, 이미 true거나 메모가 비어있으면 건드리지 않는다.
+  const handleMemoBlur = async () => {
+    if (!photoFile || !visionNote || visionNote.ok || !memo.trim() || checkingVision) return;
+    setCheckingVision(true);
+    try {
+      const result = await analyzeVisionPhoto(photoFile, mission.name, memo);
+      setVisionNote({ text: result.reason, ok: result.likelyValid });
+    } catch {
+      // 재판정 실패 시 기존 판정을 그대로 둔다 - 저장 자체를 막지는 않는다.
+    } finally {
+      setCheckingVision(false);
+    }
+  };
 
   // There is no gallery/file picker for mission photos - only the live in-app camera. A
   // canvas-captured frame can't be a re-uploaded old photo, so this is the anti-cheat
@@ -112,6 +165,9 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
     setError(null);
     try {
       const uploaded = photoFile ? await uploadFile(photoFile) : null;
+      const uploadedExtras = extraPhotoFiles.length
+        ? await Promise.all(extraPhotoFiles.map((file) => uploadFile(file)))
+        : [];
       await saveRecord({
         userMissionId: mission.userMissionId,
         date,
@@ -119,6 +175,7 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
         photoUrl: uploaded?.url ?? record?.photoUrl ?? undefined,
         memo: memo || undefined,
         aiVerified: photoFile ? visionNote?.ok : record?.aiVerified ?? undefined,
+        extraPhotoUrls: [...existingExtraUrls, ...uploadedExtras.map((u) => u.url)],
       });
       onSaved();
       setEditing(false);
@@ -169,6 +226,15 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
           {record.photoUrl && (
             <img src={record.photoUrl} alt="기록한 인증 사진" className="photo-preview" />
           )}
+          {record.extraPhotoUrls && record.extraPhotoUrls.length > 0 && (
+            <div className="extra-photo-grid">
+              {record.extraPhotoUrls.map((url, i) => (
+                <div className="extra-photo-thumb" key={i}>
+                  <img src={url} alt={`추가 인증 사진 ${i + 1}`} />
+                </div>
+              ))}
+            </div>
+          )}
           {!readOnly && (
             <button type="button" className="ghost" onClick={() => setEditing(true)}>
               기록 수정
@@ -208,9 +274,10 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
         </div>
         <input
           type="text"
-          placeholder="오늘 어땠나요? (선택)"
+          placeholder="오늘 어땠나요? (선택 · 사진 판정이 '부적합'이면 여기 설명을 남겨보세요)"
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
+          onBlur={handleMemoBlur}
         />
         <div className="stack" style={{ gap: 8 }}>
           <PhotoCaptureField
@@ -225,6 +292,14 @@ export function MissionCard({ mission, date, completed, record, onSaved, readOnl
               {visionNote.text}
             </span>
           )}
+          <ExtraPhotosField
+            previewUrls={extraPhotoPreviewUrls}
+            existingUrls={existingExtraUrls}
+            onAdd={handleAddExtraPhotos}
+            onRemoveNew={handleRemoveNewExtraPhoto}
+            onRemoveExisting={handleRemoveExistingExtraPhoto}
+            maxCount={MAX_EXTRA_PHOTOS}
+          />
         </div>
         {error && <div className="error-banner">{error}</div>}
         <div className="row" style={{ gap: 8 }}>

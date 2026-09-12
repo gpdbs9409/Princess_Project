@@ -58,6 +58,13 @@ public class DailyRecord {
     @Column(length = 1000)
     private String photoUrl;
 
+    /**
+     * 추가 인증 사진(최대 4장, 쉼표로 구분). 대표 사진(photoUrl)만 AI 비전 판정 대상이고 이건
+     * 참고용 추가 증빙이다 (2026-09, PhotoUrlListCodec 참고).
+     */
+    @Column(name = "extra_photo_urls", length = 2000)
+    private String extraPhotoUrls;
+
     @Column(length = 1000)
     private String memo;
 

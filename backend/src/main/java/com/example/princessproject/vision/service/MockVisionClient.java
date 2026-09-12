@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 public class MockVisionClient implements VisionClient {
 
     @Override
-    public VisionAnalysisResult analyze(byte[] imageBytes, String contentType, String expectedTopic) {
+    public VisionAnalysisResult analyze(byte[] imageBytes, String contentType, String expectedTopic, String note) {
         boolean hasImage = imageBytes != null && imageBytes.length > 0;
         String reason = hasImage
                 ? "OpenAI 키가 설정되지 않아 임시로 통과 처리되었습니다 (" + expectedTopic + ")."

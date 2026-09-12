@@ -73,6 +73,10 @@ public class CommonTaskRecord {
     @Column(name = "photo_url", length = 500)
     private String photoUrl;
 
+    /** 추가 인증 사진(최대 4장, 쉼표로 구분) - PhotoUrlListCodec 참고 (2026-09). */
+    @Column(name = "extra_photo_urls", length = 2000)
+    private String extraPhotoUrls;
+
     /** Vision API relevance verdict. Null is reserved for legacy records/not-yet-checked photos. */
     @Column(name = "ai_verified")
     private Boolean aiVerified;

@@ -65,4 +65,15 @@ public class GlobalExceptionHandler {
     public ApiErrorResponse onDataIntegrityViolation(DataIntegrityViolationException ex) {
         return new ApiErrorResponse("CONSTRAINT_VIOLATION", "Data integrity violation");
     }
+
+    /**
+     * OpenAI 호출(비전 인증/레오집사 피드백)이 순간적으로 몰려 내부 대기열(OpenAiCallLimiter)에서도
+     * 감당하지 못했을 때. 500이 아니라 503 + 명확한 코드로 내려줘서, 프론트가 "잠시 후 다시
+     * 시도해주세요" 안내를 보여줄 수 있게 한다.
+     */
+    @ExceptionHandler(OpenAiCallLimiter.OpenAiOverloadedException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ApiErrorResponse onOpenAiOverloaded(OpenAiCallLimiter.OpenAiOverloadedException ex) {
+        return new ApiErrorResponse("OPENAI_OVERLOADED", ex.getMessage());
+    }
 }

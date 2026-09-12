@@ -28,6 +28,16 @@ public record AdminMemberWeekResponse(
         BigDecimal amount,
         LocalDateTime paidAt,
         boolean isMvp,
-        String role
+        String role,
+        /**
+         * "환급하기" 클릭 한 건에 대해 환급 시트 반영을 시도한 결과 (2026-09 추가). 지급 상태를
+         * 저장한 요청에서만 값이 채워지고(PaybackSheetService.SheetSyncOutcome의 이름), 그 외의
+         * 조회성 응답에서는 항상 null이다.
+         */
+        String sheetSyncStatus
 ) {
+    public AdminMemberWeekResponse withSheetSyncStatus(String sheetSyncStatus) {
+        return new AdminMemberWeekResponse(userId, nickname, cohort, weekStart, weekEnd, successDays, dailyCredits,
+                eligible, paid, amount, paidAt, isMvp, role, sheetSyncStatus);
+    }
 }

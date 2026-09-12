@@ -23,4 +23,8 @@ public interface CommonTaskRecordRepository extends JpaRepository<CommonTaskReco
     List<CommonTaskRecord> findByAiVerifiedFalseOrderByRecordDateDescCreatedAtDesc();
 
     List<CommonTaskRecord> findByAiVerifiedFalseAndAdminInvalidatedFalseOrderByRecordDateDescCreatedAtDesc();
+
+    /** "이전 페이지 이어쓰기"용 - 지금 활성화된 책이 시작된 날짜 이후의 가장 최근 독서 기록. */
+    Optional<CommonTaskRecord> findFirstByUserIdAndTaskTypeAndRecordDateGreaterThanEqualAndAdminInvalidatedFalseOrderByRecordDateDescCreatedAtDesc(
+            Long userId, CommonTaskType taskType, LocalDate fromDateInclusive);
 }

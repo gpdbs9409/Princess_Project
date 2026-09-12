@@ -4,6 +4,7 @@ import com.example.princessproject.catalog.model.MissionType;
 import com.example.princessproject.commontask.model.CommonTaskRecord;
 import com.example.princessproject.commontask.model.CommonTaskType;
 import com.example.princessproject.commontask.repository.CommonTaskRecordRepository;
+import com.example.princessproject.common.PhotoUrlListCodec;
 import com.example.princessproject.record.dto.TodayRecordEntry;
 import com.example.princessproject.project.model.UserGoal;
 import com.example.princessproject.project.model.UserMission;
@@ -78,7 +79,7 @@ public class DailyRecordService {
     @Transactional
     public MissionProgress saveRecord(
             Long userId, Long userMissionId, LocalDate date, BigDecimal inputValue, String photoUrl, String memo,
-            Boolean aiVerified
+            Boolean aiVerified, List<String> extraPhotoUrls
     ) {
         UserMission userMission = userMissionRepository.findById(userMissionId)
                 .orElseThrow(() -> new IllegalArgumentException("Mission not found: " + userMissionId));
@@ -142,6 +143,7 @@ public class DailyRecordService {
         record.setRecordDate(date);
         record.setInputValue(inputValue);
         record.setPhotoUrl(photoUrl);
+        record.setExtraPhotoUrls(PhotoUrlListCodec.encode(extraPhotoUrls));
         record.setMemo(memo);
         record.setTargetValueSnapshot(targetValue);
         record.setAssignedPointsSnapshot(assignedPoints);
@@ -267,7 +269,7 @@ public class DailyRecordService {
                 if (todaysRecord == null) {
                     missionDetails.add(new MissionProgressDetail(
                             mission.displayName(), active.goalTypeCode(), active.missionType(), mission.getTargetValue(),
-                            BigDecimal.ZERO, points, BigDecimal.ZERO, BigDecimal.ZERO, false));
+                            BigDecimal.ZERO, points, BigDecimal.ZERO, BigDecimal.ZERO, false, mission.getUnit()));
                     remaining.add(mission.displayName());
                     continue;
                 }
@@ -284,7 +286,7 @@ public class DailyRecordService {
             (isComplete ? completed : remaining).add(mission.displayName());
             missionDetails.add(new MissionProgressDetail(
                     mission.displayName(), active.goalTypeCode(), active.missionType(), mission.getTargetValue(),
-                    actualValue, points, earnedScore, achievementRate, isComplete));
+                    actualValue, points, earnedScore, achievementRate, isComplete, mission.getUnit()));
         }
 
         for (CommonMissionScore common : commonMissionScores(commonRecords, date)) {
@@ -490,8 +492,12 @@ public class DailyRecordService {
             boolean completed
     ) {
         MissionProgressDetail toDetail() {
+            // 독서는 언제나 "쪽" 단위다 (책 권수가 아니다) - AI에게 이 단위를 명시적으로 알려줘야
+            // "~권"이라고 잘못 말하는 걸 막을 수 있다. 공부는 완료 여부(T/F)라 실질적인 단위가
+            // 없으므로 "회"로 둔다.
+            String unit = taskType == CommonTaskType.READING ? "쪽" : "회";
             return new MissionProgressDetail(name, goalTypeCode, missionType, target, actual,
-                    COMMON_TASK_POINTS, earnedScore, achievementRate, completed);
+                    COMMON_TASK_POINTS, earnedScore, achievementRate, completed, unit);
         }
     }
 

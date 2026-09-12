@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
 import {
   analyzeVisionPhoto,
+  getActiveReadingBook,
   getDailyCommonTasks,
   getWeeklyCommonTask,
   getWeeklyRetrospectiveHistory,
@@ -10,9 +11,18 @@ import {
   updateWeeklyRetrospective,
   uploadFile,
 } from "../api/endpoints";
-import type { CommonTaskResponse, ProjectResponse, WeeklyRetrospectiveResponse } from "../api/types";
+import type {
+  CommonTaskResponse,
+  ProjectResponse,
+  ReadingBookResponse,
+  WeeklyRetrospectiveResponse,
+} from "../api/types";
+import { ExtraPhotosField } from "./ExtraPhotosField";
 import { PhotoCaptureField } from "./PhotoCaptureField";
 import { useToast } from "./ToastProvider";
+
+// 갤러리에서 한 번에 고를 수 있는 추가 사진 개수 상한 - ExtraPhotosField의 기본값과 맞춘다.
+const MAX_EXTRA_PHOTOS = 4;
 
 // A "field to write these in" was missing from the whole app even though the setup wizard's
 // notice above the goal list calls 독서/공부 daily tasks and 주간회고 an optional task - this
@@ -62,6 +72,7 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
   const [existing, setExisting] = useState<CommonTaskResponse | null>(null);
   const [startPage, setStartPage] = useState("");
   const [endPage, setEndPage] = useState("");
+  const [memo, setMemo] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -70,6 +81,14 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  // 지금 활성화된 책 (2026-09) - 이전 페이지 이어쓰기 + 책 제목 표시용. 등록/전환은
+  // 마이페이지에서만 한다 (병렬독서 없음, 한 번에 한 권).
+  const [activeBook, setActiveBook] = useState<ReadingBookResponse | null>(null);
+  // 참고용 추가 사진(2026-09) - 대표 사진과 달리 AI 판정 대상은 아니다. MissionCard와 동일한
+  // 패턴 (existingExtraUrls: 수정 화면에서 불러온 기존 저장분).
+  const [existingExtraUrls, setExistingExtraUrls] = useState<string[]>([]);
+  const [extraPhotoFiles, setExtraPhotoFiles] = useState<File[]>([]);
+  const [extraPhotoPreviewUrls, setExtraPhotoPreviewUrls] = useState<string[]>([]);
 
   useEffect(() => {
     setLoading(true);
@@ -83,6 +102,19 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
       .finally(() => setLoading(false));
   }, [date]);
 
+  useEffect(() => {
+    getActiveReadingBook()
+      .then((book) => {
+        setActiveBook(book);
+        // 오늘 아직 기록이 없다면 시작 페이지를 이 책의 마지막 기록 페이지로 미리 채워준다
+        // (이어쓰기). 이미 사용자가 입력을 시작했다면 건드리지 않는다.
+        setStartPage((prev) => (prev === "" && book.lastEndPage != null ? String(book.lastEndPage) : prev));
+      })
+      .catch(() => {
+        // 활성 책 정보를 못 가져와도 기록 자체는 그대로 할 수 있어야 한다 - 조용히 무시.
+      });
+  }, []);
+
   // Object URLs aren't garbage-collected on their own - revoke the previous one whenever
   // the selected file changes or the card unmounts, so we don't leak blob URLs.
   useEffect(() => {
@@ -90,6 +122,45 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
       if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
     };
   }, [photoPreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      extraPhotoPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [extraPhotoPreviewUrls]);
+
+  const handleAddExtraPhotos = (files: File[]) => {
+    setExtraPhotoFiles((prev) => [...prev, ...files]);
+    setExtraPhotoPreviewUrls((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
+  };
+
+  const handleRemoveNewExtraPhoto = (index: number) => {
+    setExtraPhotoPreviewUrls((prev) => {
+      const url = prev[index];
+      if (url) URL.revokeObjectURL(url);
+      return prev.filter((_, i) => i !== index);
+    });
+    setExtraPhotoFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveExistingExtraPhoto = (index: number) => {
+    setExistingExtraUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // 2026-09: 사진만으로 부적합(false) 판정이 났을 때, 메모에 설명을 적고 나가면(블러) 메모까지
+  // 포함해서 한 번 더 판정한다 - MissionCard와 동일한 패턴.
+  const handleMemoBlur = async () => {
+    if (!photoFile || !visionNote || visionNote.ok || !memo.trim() || checkingVision) return;
+    setCheckingVision(true);
+    try {
+      const result = await analyzeVisionPhoto(photoFile, "독서", memo);
+      setVisionNote({ text: result.reason, ok: result.likelyValid });
+    } catch {
+      // 재판정 실패 시 기존 판정을 그대로 둔다.
+    } finally {
+      setCheckingVision(false);
+    }
+  };
 
   const handlePhotoSelected = async (file: File) => {
     setPhotoFile(file);
@@ -141,14 +212,19 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
     setError(null);
     try {
       const uploaded = photoFile ? await uploadFile(photoFile) : null;
+      const uploadedExtras = extraPhotoFiles.length
+        ? await Promise.all(extraPhotoFiles.map((file) => uploadFile(file)))
+        : [];
       const saved = await saveCommonTask({
         taskType: "READING",
         date,
-        bookTitle: existing?.bookTitle ?? (project?.commonReadingBookTitle?.trim() || undefined),
+        bookTitle: existing?.bookTitle ?? (activeBook?.title?.trim() || project?.commonReadingBookTitle?.trim() || undefined),
         startPage: start,
         endPage: end,
         photoUrl: uploaded?.url ?? existing?.photoUrl ?? undefined,
         aiVerified: uploaded ? (visionNote?.ok ?? false) : existing?.aiVerified ?? false,
+        extraPhotoUrls: [...existingExtraUrls, ...uploadedExtras.map((u) => u.url)],
+        memo: memo || undefined,
       });
       setExisting(saved);
       setEditing(false);
@@ -166,10 +242,14 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
     if (!existing) return;
     setStartPage(String(existing.startPage ?? ""));
     setEndPage(String(existing.endPage ?? ""));
+    setMemo(existing.memo ?? "");
     setPhotoFile(null);
     setPhotoPreviewUrl(existing.photoUrl);
     setVisionNote(null);
     setError(null);
+    setExistingExtraUrls(existing.extraPhotoUrls ?? []);
+    setExtraPhotoFiles([]);
+    setExtraPhotoPreviewUrls([]);
     setEditing(true);
   };
 
@@ -196,8 +276,23 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
               {existing.startPage}p ~ {existing.endPage}p ({(existing.endPage ?? 0) - (existing.startPage ?? 0)}p)
             </strong>
           </div>
+          {existing.memo && (
+            <div className="recorded-field">
+              <span className="muted">기록한 메모</span>
+              <span>{existing.memo}</span>
+            </div>
+          )}
           {existing.photoUrl && (
             <img src={existing.photoUrl} alt="독서 인증 사진" className="photo-preview" />
+          )}
+          {existing.extraPhotoUrls && existing.extraPhotoUrls.length > 0 && (
+            <div className="extra-photo-grid">
+              {existing.extraPhotoUrls.map((url, i) => (
+                <div className="extra-photo-thumb" key={i}>
+                  <img src={url} alt={`추가 인증 사진 ${i + 1}`} />
+                </div>
+              ))}
+            </div>
           )}
           {!readOnly && (
             <button type="button" className="ghost" onClick={startEditing}>
@@ -220,10 +315,13 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
         </div>
       </div>
       <div className="stack" style={{ gap: 10, marginTop: 12 }}>
-        {project?.commonReadingBookTitle && (
+        {(activeBook?.title || project?.commonReadingBookTitle) && (
           <div className="recorded-field">
             <span className="muted">읽을 책</span>
-            <strong>{project.commonReadingBookTitle}</strong>
+            <strong>{activeBook?.title || project?.commonReadingBookTitle}</strong>
+            <span className="muted">
+              책을 바꾸고 싶다면 마이페이지에서 "완독하고 새 책 등록"을 눌러주세요.
+            </span>
           </div>
         )}
         <div className="row" style={{ gap: 6 }}>
@@ -247,6 +345,13 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
             style={{ maxWidth: 110 }}
           />
         </div>
+        <input
+          type="text"
+          placeholder="오늘 어땠나요? (선택 · 사진 판정이 '부적합'이면 여기 설명을 남겨보세요)"
+          value={memo}
+          onChange={(e) => setMemo(e.target.value)}
+          onBlur={handleMemoBlur}
+        />
         <PhotoCaptureField
           photoFile={photoFile}
           photoPreviewUrl={photoPreviewUrl}
@@ -259,6 +364,14 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
             {visionNote.ok ? "인증 사진 확인 완료 · " : "인증 사진 확인 필요 · "}{visionNote.text}
           </span>
         )}
+        <ExtraPhotosField
+          previewUrls={extraPhotoPreviewUrls}
+          existingUrls={existingExtraUrls}
+          onAdd={handleAddExtraPhotos}
+          onRemoveNew={handleRemoveNewExtraPhoto}
+          onRemoveExisting={handleRemoveExistingExtraPhoto}
+          maxCount={MAX_EXTRA_PHOTOS}
+        />
         {error && <div className="error-banner">{error}</div>}
         <div className="row" style={{ gap: 8 }}>
           <button className="primary" onClick={handleSave} disabled={saving || checkingVision}>

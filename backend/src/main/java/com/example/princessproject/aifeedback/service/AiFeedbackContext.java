@@ -35,6 +35,8 @@ public record AiFeedbackContext(
             double assignedPoints,
             double earnedScore,
             double achievementPercent,
-            String status
+            String status,
+            /** target/actual의 단위 (예: "분", "걸음", "쪽"). 독서는 항상 "쪽"이지 "권"이 아니다. */
+            String unit
     ) {}
 }

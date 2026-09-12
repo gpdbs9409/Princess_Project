@@ -405,14 +405,34 @@ export function AdminPage() {
     } finally { setSavingState(null); }
   };
 
+  // "환급하기"를 누른 건(=지급 완료로 바뀌는 건)만 시트에도 반영을 시도한다 - 백엔드가
+  // AdminMemberWeekResponse.sheetSyncStatus에 그 결과(PaybackSheetService.SheetSyncOutcome
+  // 이름)를 실어 보내주므로, 그 값을 사람이 읽을 문구로 바꿔서 토스트로 보여준다.
+  const sheetSyncStatusMessage = (status: string | null): string => {
+    switch (status) {
+      case "WRITTEN":
+        return "환급 완료로 저장하고 시트에도 반영했어요";
+      case "ALREADY_FILLED":
+        return "환급 완료로 저장했어요 (시트에는 이미 값이 있어 덮어쓰지 않았어요)";
+      case "NOT_FOUND_IN_SHEET":
+        return "환급 완료로 저장했어요. 다만 시트에서 이 닉네임을 찾지 못해 시트에는 반영되지 않았어요 - 닉네임 표기를 확인해주세요";
+      case "DISABLED":
+        return "환급 완료로 저장했어요 (시트 연동이 꺼져 있어 시트에는 반영되지 않았어요)";
+      case "ERROR":
+        return "환급 완료로 저장했지만 시트 반영 중 오류가 발생했어요 - 잠시 후 다시 시도해주세요";
+      default:
+        return "환급 완료로 저장했어요";
+    }
+  };
+
   const handleTogglePaid = async (member: AdminMemberWeekResponse) => {
     const nextPaid = !member.paid;
-    if (!window.confirm(`${member.nickname}님을 '${nextPaid ? "지급 완료" : "미지급"}' 상태로 변경하시겠습니까?`)) return;
-    setSavingState("지급 상태를 저장하고 있어요");
+    if (!window.confirm(`${member.nickname}님을 '${nextPaid ? "환급 완료" : "미지급"}' 상태로 변경하시겠습니까?`)) return;
+    setSavingState(nextPaid ? "환급 처리 중이에요 (시트에도 반영해요)" : "지급 상태를 저장하고 있어요");
     try {
-      await setAdminRefundPaid(member.userId, weekStartIso, nextPaid);
+      const updated = await setAdminRefundPaid(member.userId, weekStartIso, nextPaid);
       await loadParticipants();
-      showToast("지급 상태가 저장되었어요");
+      showToast(nextPaid ? sheetSyncStatusMessage(updated.sheetSyncStatus) : "미지급 상태로 되돌렸어요");
     } finally { setSavingState(null); }
   };
 
@@ -858,10 +878,23 @@ export function AdminPage() {
                           </span>
                         </td>
                         <td>
-                          <label className="row" style={{ gap: 6, alignItems: "center" }}>
-                            <input type="checkbox" checked={p.paid} onChange={() => handleTogglePaid(p)} />
-                            {p.paid ? "지급완료" : "미지급"}
-                          </label>
+                          {p.paid ? (
+                            <div className="stack" style={{ gap: 4 }}>
+                              <span className="badge good">환급 완료</span>
+                              <button
+                                type="button"
+                                className="ghost"
+                                style={{ fontSize: 12, padding: "2px 6px" }}
+                                onClick={() => handleTogglePaid(p)}
+                              >
+                                취소(미지급으로)
+                              </button>
+                            </div>
+                          ) : (
+                            <button type="button" className="primary" onClick={() => handleTogglePaid(p)}>
+                              환급하기
+                            </button>
+                          )}
                         </td>
                         <td>
                           <button
@@ -992,6 +1025,15 @@ export function AdminPage() {
                     {activity.detail && <span style={{ whiteSpace: "pre-wrap" }}>{activity.detail}</span>}
                     {activity.memo && <span className="muted">메모 · {activity.memo}</span>}
                     {activity.photoUrl && <img src={activity.photoUrl} alt={`${activity.name} 인증 사진`} className="photo-preview" />}
+                    {activity.extraPhotoUrls.length > 0 && (
+                      <div className="extra-photo-grid">
+                        {activity.extraPhotoUrls.map((url, i) => (
+                          <div className="extra-photo-thumb" key={i}>
+                            <img src={url} alt={`${activity.name} 추가 인증 사진 ${i + 1}`} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                         ))}
@@ -1089,6 +1131,15 @@ export function AdminPage() {
                     <span className="badge warn">검토 필요</span>
                   </div>
                   {activity.photoUrl && <img src={activity.photoUrl} alt={`${activity.nickname} ${activity.name} 인증 사진`} className="photo-preview" />}
+                  {activity.extraPhotoUrls.length > 0 && (
+                    <div className="extra-photo-grid">
+                      {activity.extraPhotoUrls.map((url, i) => (
+                        <div className="extra-photo-thumb" key={i}>
+                          <img src={url} alt={`${activity.nickname} ${activity.name} 추가 인증 사진 ${i + 1}`} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {activity.detail && <p>{activity.detail}</p>}
                   {activity.memo && <p className="muted">메모 · {activity.memo}</p>}
                   <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>

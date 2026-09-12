@@ -14,6 +14,7 @@ import { SideWidget } from "../components/SideWidget";
 import { StatMeter } from "../components/StatMeter";
 import { WeeklyBarChart } from "../components/WeeklyBarChart";
 import { WeeklyStatLineChart } from "../components/WeeklyStatLineChart";
+import { dailyMaxByGoal } from "../lib/capitalScore";
 
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -55,26 +56,6 @@ function isoDate(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-/**
- * Max possible score per goal type, matching the backend's own maxPossible math
- * (DailyRecordService) instead of scaling bars against whatever the highest actual
- * score happens to be - otherwise the best-scoring stat always renders as a full bar
- * even at 20% of what's actually achievable.
- */
-function dailyMaxByGoal(project: ProjectResponse | null): Record<string, number> {
-  const result: Record<string, number> = {};
-  const goalsWithMissions = (project?.goals ?? []).filter((goal) =>
-    goal.stats.some((stat) => stat.missions.length > 0)
-  );
-  const weightSum = goalsWithMissions.reduce((sum, goal) => sum + goal.weightPercent, 0);
-  for (const goal of goalsWithMissions) {
-    result[goal.goalTypeCode.toLowerCase()] = weightSum > 0
-      ? 80 * goal.weightPercent / weightSum
-      : 80 / goalsWithMissions.length;
-  }
-  return result;
 }
 
 export function DashboardPage() {

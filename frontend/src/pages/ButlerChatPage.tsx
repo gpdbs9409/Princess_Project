@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { generateAiFeedback, getAiFeedbackHistory } from "../api/endpoints";
 import type { AiFeedbackHistoryEntry } from "../api/types";
+import { CapitalScoreSummaryCard } from "../components/CapitalScoreSummaryCard";
 
 function feedbackTime(createdAt: string): string {
   const time = createdAt.match(/T(\d{2}):(\d{2})/);
@@ -67,6 +68,8 @@ export function ButlerChatPage() {
           {generating ? "집사가 오늘 하루를 살펴보는 중..." : "오늘의 한마디 듣기"}
         </button>
       </div>
+
+      <CapitalScoreSummaryCard />
 
       {error && <div className="error-banner">{error}</div>}
 

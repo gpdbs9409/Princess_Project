@@ -3,6 +3,7 @@ package com.example.princessproject.admin.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /** Read-only participant activity row for the admin challenge-history modal. */
 public record AdminActivityResponse(
@@ -23,6 +24,8 @@ public record AdminActivityResponse(
         String photoUrl,
         Boolean aiVerified,
         boolean adminInvalidated,
-        LocalDateTime recordedAt
+        LocalDateTime recordedAt,
+        /** 참고용 추가 인증 사진 (2026-09) - 주간회고처럼 사진이 없는 활동은 빈 리스트다. */
+        List<String> extraPhotoUrls
 ) {
 }

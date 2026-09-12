@@ -4,6 +4,7 @@ import com.example.princessproject.commontask.model.CommonTaskType;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 /** Daily READING/STUDY input. Weekly retrospectives use WeeklyRetrospectiveRequest. */
 public record CommonTaskRequest(
@@ -21,6 +22,8 @@ public record CommonTaskRequest(
         String photoUrl,
         // Vision 판정은 저장 허용 여부가 아니라 운영진 확인용 true/false 플래그다.
         Boolean aiVerified,
-        String memo
+        String memo,
+        /** 참고용 추가 인증 사진 (최대 4장, 2026-09). READING에서만 의미가 있다. */
+        List<String> extraPhotoUrls
 ) {
 }

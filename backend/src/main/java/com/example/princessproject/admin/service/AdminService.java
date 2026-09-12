@@ -3,6 +3,7 @@ package com.example.princessproject.admin.service;
 import com.example.princessproject.admin.dto.AdjustmentResponse;
 import com.example.princessproject.admin.dto.AdminApplicantResponse;
 import com.example.princessproject.admin.dto.AdminActivityResponse;
+import com.example.princessproject.common.PhotoUrlListCodec;
 import com.example.princessproject.admin.dto.AdminMemberWeekResponse;
 import com.example.princessproject.admin.dto.MvpResponse;
 import com.example.princessproject.admin.dto.RecruitmentApplicantRequest;
@@ -174,7 +175,8 @@ public class AdminService {
                     "PERSONAL", record.getUserMission().displayName(), record.getRecordDate(),
                     record.getInputValue(), record.getTargetValueSnapshot(), record.getUserMission().getUnit(),
                     score.earnedScore(), score.achievementRate(), null, record.getMemo(), record.getPhotoUrl(),
-                    record.getAiVerified(), record.isAdminInvalidated(), record.getCreatedAt()));
+                    record.getAiVerified(), record.isAdminInvalidated(), record.getCreatedAt(),
+                    PhotoUrlListCodec.decode(record.getExtraPhotoUrls())));
         }
         for (CommonTaskRecord record : commonRecords) {
             ActivityScoreSnapshot score = currentScores.common().get(record.getId());
@@ -192,7 +194,8 @@ public class AdminService {
                         case READING -> "독서";
                         case STUDY -> "공부";
                     }, record.getRecordDate(), null, null, null, score.earnedScore(), score.achievementRate(), detail, record.getMemo(),
-                    record.getPhotoUrl(), record.getAiVerified(), record.isAdminInvalidated(), record.getCreatedAt()));
+                    record.getPhotoUrl(), record.getAiVerified(), record.isAdminInvalidated(), record.getCreatedAt(),
+                    PhotoUrlListCodec.decode(record.getExtraPhotoUrls())));
         }
         for (WeeklyRetrospective record : weeklyRetrospectiveRepository.findByUserIdOrderByWeekStartDescCreatedAtDesc(userId)) {
             String detail = String.join(" / ", List.of(
@@ -201,7 +204,7 @@ public class AdminService {
             result.add(new AdminActivityResponse(
                     record.getId(), null, record.getUser().getId(), record.getUser().getNickname(),
                     "WEEKLY_RETROSPECTIVE", "주간 회고", record.getWeekStart(), null, null, null,
-                    null, null, detail, null, null, null, false, record.getCreatedAt()));
+                    null, null, detail, null, null, null, false, record.getCreatedAt(), List.of()));
         }
         result.sort(Comparator.comparing(AdminActivityResponse::recordDate).reversed()
                 .thenComparing(AdminActivityResponse::recordedAt, Comparator.nullsLast(Comparator.reverseOrder())));
@@ -228,7 +231,8 @@ public class AdminService {
                     "PERSONAL", record.getUserMission().displayName(), record.getRecordDate(),
                     record.getInputValue(), record.getTargetValueSnapshot(), record.getUserMission().getUnit(),
                     record.getEarnedScore(), record.getAchievementRate(), null, record.getMemo(), record.getPhotoUrl(),
-                    false, record.isAdminInvalidated(), record.getCreatedAt()));
+                    false, record.isAdminInvalidated(), record.getCreatedAt(),
+                    PhotoUrlListCodec.decode(record.getExtraPhotoUrls())));
         }
         for (CommonTaskRecord record : commonTaskRecordRepository.findByAiVerifiedFalseAndAdminInvalidatedFalseOrderByRecordDateDescCreatedAtDesc()) {
             if (!matchesCohort(record.getUser(), cohort)) continue;
@@ -244,7 +248,8 @@ public class AdminService {
                     record.getId(), null, record.getUser().getId(), record.getUser().getNickname(),
                     record.getTaskType().name(), record.getTaskType() == com.example.princessproject.commontask.model.CommonTaskType.READING ? "독서" : "공부",
                     record.getRecordDate(), null, null, null, null, null, detail, record.getMemo(), record.getPhotoUrl(),
-                    false, record.isAdminInvalidated(), record.getCreatedAt()));
+                    false, record.isAdminInvalidated(), record.getCreatedAt(),
+                    PhotoUrlListCodec.decode(record.getExtraPhotoUrls())));
         }
         result.sort(Comparator.comparing(AdminActivityResponse::recordDate).reversed()
                 .thenComparing(AdminActivityResponse::recordedAt, Comparator.nullsLast(Comparator.reverseOrder())));
@@ -459,7 +464,8 @@ public class AdminService {
                 paid ? refund.getAmount() : WEEKLY_REFUND_AMOUNT,
                 paid ? refund.getPaidAt() : null,
                 user.getId().equals(mvpUserId),
-                user.getRole().name()
+                user.getRole().name(),
+                null
         );
     }
 

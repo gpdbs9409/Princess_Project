@@ -2,9 +2,11 @@ package com.example.princessproject.commontask.dto;
 
 import com.example.princessproject.commontask.model.CommonTaskRecord;
 import com.example.princessproject.commontask.model.CommonTaskType;
+import com.example.princessproject.common.PhotoUrlListCodec;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record CommonTaskResponse(
         Long id,
@@ -20,7 +22,8 @@ public record CommonTaskResponse(
         String photoUrl,
         Boolean aiVerified,
         String memo,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        List<String> extraPhotoUrls
 ) {
     public static CommonTaskResponse from(CommonTaskRecord record) {
         return new CommonTaskResponse(
@@ -37,7 +40,8 @@ public record CommonTaskResponse(
                 record.getPhotoUrl(),
                 record.getAiVerified(),
                 record.getMemo(),
-                record.getCreatedAt()
+                record.getCreatedAt(),
+                PhotoUrlListCodec.decode(record.getExtraPhotoUrls())
         );
     }
 }

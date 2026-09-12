@@ -4,6 +4,7 @@ import com.example.princessproject.commontask.dto.CommonTaskRequest;
 import com.example.princessproject.commontask.model.CommonTaskRecord;
 import com.example.princessproject.commontask.model.CommonTaskType;
 import com.example.princessproject.commontask.repository.CommonTaskRecordRepository;
+import com.example.princessproject.common.PhotoUrlListCodec;
 import com.example.princessproject.project.model.UserProject;
 import com.example.princessproject.project.service.UserProjectService;
 import com.example.princessproject.user.model.User;
@@ -57,6 +58,7 @@ public class CommonTaskService {
         record.setStudyYoutubeUrl(request.studyYoutubeUrl());
         record.setStudyTakeaway(request.studyTakeaway());
         record.setPhotoUrl(request.photoUrl());
+        record.setExtraPhotoUrls(PhotoUrlListCodec.encode(request.extraPhotoUrls()));
         record.setAiVerified(request.aiVerified());
         record.setMemo(request.memo());
         record.setAdminInvalidated(false);

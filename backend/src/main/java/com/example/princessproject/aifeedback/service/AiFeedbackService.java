@@ -45,7 +45,15 @@ public class AiFeedbackService {
         this.dailyRecordService = dailyRecordService;
     }
 
-    @Transactional
+    // 의도적으로 @Transactional을 걸지 않는다 (2026-09): 이 메서드는 중간에 OpenAI 호출
+    // (aiFeedbackClient.generate)이 껴 있는데, 예전에는 메서드 전체가 @Transactional이라 그
+    // 외부 API 호출 몇 초 동안에도 HikariCP 커넥션을 하나 붙잡고 있었다. 동시에 여러 명이 이
+    // 엔드포인트를 부르면(마감 시간대 등) 커넥션 풀(기본 10개)이 금방 바닥나서, 이 요청뿐 아니라
+    // 전혀 무관한 다른 요청(기록 저장, 로그인 등)까지 커넥션을 못 받아 실패하는 게 실제 원인이었다.
+    // 아래에서 실제로 DB에 닿는 호출들(dailyRecordService.getMissionProgress, aiFeedbackRepository
+    // 의 조회/저장)은 전부 그 자신의 짧은 트랜잭션을 이미 가지고 있으므로(Spring Data JPA 리포지토리
+    // 메서드는 기본적으로 자체 트랜잭션을 연다), 여기서 감싸지 않아도 각 단계는 원자적이다. 이
+    // 메서드 전체의 원자성은 필요 없다 - 조회들은 서로 독립적이고, 마지막 save 한 번이면 충분하다.
     public AiFeedbackResult generateFeedback(Long userId, LocalDate date) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
@@ -131,7 +139,8 @@ public class AiFeedbackService {
                         detail.name(), detail.goalTypeCode().toLowerCase(), detail.missionType().name(),
                         detail.targetValue().doubleValue(), detail.actualValue().doubleValue(),
                         detail.assignedPoints().doubleValue(), detail.earnedScore().doubleValue(),
-                        detail.achievementRate().doubleValue() * 100, detail.completed() ? "COMPLETED" : "REMAINING"))
+                        detail.achievementRate().doubleValue() * 100, detail.completed() ? "COMPLETED" : "REMAINING",
+                        detail.unit()))
                 .toList();
         return new AiFeedbackContext(
                 date,

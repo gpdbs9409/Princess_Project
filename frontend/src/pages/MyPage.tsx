@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
-import { getActiveProject, getProfileStats, updateInstagram, updateProfileImage } from "../api/endpoints";
-import type { ProfileStatsResponse, ProjectResponse } from "../api/types";
+import {
+  getActiveProject,
+  getActiveReadingBook,
+  getProfileStats,
+  registerReadingBook,
+  updateInstagram,
+  updateProfileImage,
+} from "../api/endpoints";
+import { ApiError } from "../api/client";
+import type { ProfileStatsResponse, ProjectResponse, ReadingBookResponse } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../components/ToastProvider";
 import { ProjectReadOnlyView } from "../components/ProjectReadOnlyView";
@@ -18,6 +26,26 @@ export function MyPage() {
   const [instagramSaving, setInstagramSaving] = useState(false);
   const [instagramError, setInstagramError] = useState<string | null>(null);
 
+  // 독서 - 지금 읽고 있는 책 (2026-09: 완독 후 여기서 새 책을 등록하면 그 책으로 바로 활성화되고,
+  // 이전 책은 자동으로 완독 처리된다. 병렬독서는 지원하지 않는다).
+  const [readingBook, setReadingBook] = useState<ReadingBookResponse | null>(null);
+  const [readingBookLoading, setReadingBookLoading] = useState(true);
+  const [registeringBook, setRegisteringBook] = useState(false);
+  const [newBookTitle, setNewBookTitle] = useState("");
+  const [newBookSaving, setNewBookSaving] = useState(false);
+  const [newBookError, setNewBookError] = useState<string | null>(null);
+
+  const loadReadingBook = () => {
+    setReadingBookLoading(true);
+    getActiveReadingBook()
+      .then(setReadingBook)
+      .catch(() => {
+        // 독서 기록이 아직 하나도 없는 아주 초기 상태 등에서는 조용히 비워둔다 - 아래 카드가
+        // "아직 등록된 책이 없어요" 상태로 자연스럽게 보여준다.
+      })
+      .finally(() => setReadingBookLoading(false));
+  };
+
   useEffect(() => {
     if (!user) return;
     Promise.all([getProfileStats(user.id), getActiveProject()])
@@ -26,7 +54,37 @@ export function MyPage() {
         setProject(activeProject);
       })
       .catch(() => setError("정보를 불러오지 못했어요."));
+    loadReadingBook();
   }, [user]);
+
+  const startRegisteringBook = () => {
+    setNewBookTitle("");
+    setNewBookError(null);
+    setRegisteringBook(true);
+  };
+
+  const handleRegisterBook = async () => {
+    if (!newBookTitle.trim()) {
+      setNewBookError("책 제목을 입력해주세요.");
+      return;
+    }
+    setNewBookSaving(true);
+    setNewBookError(null);
+    try {
+      const created = await registerReadingBook(newBookTitle.trim());
+      setReadingBook(created);
+      setRegisteringBook(false);
+      showToast("새 책이 등록되었어요. 오늘부터 이 책으로 기록해주세요!");
+    } catch (err) {
+      setNewBookError(
+        err instanceof ApiError && err.code === "BOOK_TITLE_REQUIRED"
+          ? "책 제목을 입력해주세요."
+          : "책 등록에 실패했어요. 잠시 후 다시 시도해주세요."
+      );
+    } finally {
+      setNewBookSaving(false);
+    }
+  };
 
   if (!user) return null;
 
@@ -168,6 +226,57 @@ export function MyPage() {
                 {instagramSaving ? "저장 중..." : "저장"}
               </button>
               <button type="button" className="ghost" onClick={() => setEditingInstagram(false)} disabled={instagramSaving}>
+                취소
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="card stack" style={{ gap: 10, marginTop: 16 }}>
+        <div className="row-between">
+          <strong>독서 - 지금 읽는 책</strong>
+          {!registeringBook && (
+            <button type="button" className="ghost" onClick={startRegisteringBook}>
+              완독하고 새 책 등록
+            </button>
+          )}
+        </div>
+        <p className="muted" style={{ margin: 0 }}>
+          한 번에 한 권만 활성화돼요 (병렬독서는 지원하지 않아요). 새 책을 등록하면 지금 책은
+          자동으로 완독 처리되고, 오늘의 독서 기록부터 새 책 기준으로 이어서 쓸 수 있어요.
+        </p>
+
+        {!readingBookLoading && readingBook && !registeringBook && (
+          <div className="recorded-field">
+            <span className="muted">{readingBook.title ? "읽고 있는 책" : "아직 책 제목이 없어요"}</span>
+            <strong>{readingBook.title || "제목을 등록해주세요"}</strong>
+            {readingBook.lastEndPage != null && (
+              <span className="muted">마지막으로 기록한 페이지: {readingBook.lastEndPage}p</span>
+            )}
+          </div>
+        )}
+
+        {registeringBook && (
+          <div className="stack" style={{ gap: 8 }}>
+            <input
+              type="text"
+              value={newBookTitle}
+              onChange={(e) => setNewBookTitle(e.target.value)}
+              placeholder="새로 읽을 책 제목"
+              maxLength={200}
+            />
+            {newBookError && <div className="error-banner">{newBookError}</div>}
+            <div className="row" style={{ gap: 8 }}>
+              <button type="button" className="primary" onClick={handleRegisterBook} disabled={newBookSaving}>
+                {newBookSaving ? "등록 중..." : "새 책으로 시작하기"}
+              </button>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => setRegisteringBook(false)}
+                disabled={newBookSaving}
+              >
                 취소
               </button>
             </div>
