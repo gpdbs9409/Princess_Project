@@ -122,6 +122,7 @@ export function RecordPage() {
         <span className="badge good" style={{ alignSelf: "flex-start" }}>
           {isToday ? "오늘의 기록" : `${date} 기록`}
         </span>
+        {isToday && <p className="muted" style={{ margin: 0 }}>첫 번째 사진만 AI 인증에 사용돼요. 이후 사진은 추가로 첨부할 수 있어요.</p>}
         <CommonTasksCard key={date} project={project} date={date} readOnly={!isToday} />
         {missions.map((mission) => (
           <MissionCard

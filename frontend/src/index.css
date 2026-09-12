@@ -1886,3 +1886,13 @@ a.link:hover {
 .photo-add-tile span { font-size: 12px; }
 .recorded-photo-gallery { align-items: stretch; }
 .butler-chat-scene .capital-score-card { max-width: 520px; margin: 8px 0 12px; border-radius: 22px; }
+
+/* 채팅 배경 위에서도 점수와 범례를 선명하게 표시한다. */
+.butler-chat-scene .capital-score-card { background: #fffafc; color: #292337; border: 1px solid #e8dbe2; }
+.butler-chat-scene .capital-score-card .muted,
+.butler-chat-scene .capital-score-total-label,
+.butler-chat-scene .capital-score-tag { color: #625567; }
+.butler-chat-scene .capital-score-total-value { color: #292337; }
+.capital-score-bar-track { height: 16px; border: none; background: #eee7ed; }
+.capital-score-bar-segment + .capital-score-bar-segment { border-left: 2px solid #fffafc; }
+.capital-score-tag-dot { width: 10px; height: 10px; }

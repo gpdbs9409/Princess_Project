@@ -37,7 +37,7 @@ export function ExtraPhotosField({
 
   return (
     <div className="stack" style={{ gap: 8 }}>
-      <label>추가 사진 (선택, 최대 {maxCount}장)</label>
+      <label>사진</label>
       {(
         <div className="extra-photo-grid">
           {primaryUrl && <div className="extra-photo-thumb"><img src={primaryUrl} alt="첫 인증 사진" /></div>}
