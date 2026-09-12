@@ -91,29 +91,20 @@ function ReadingSection({ project, date, readOnly }: { project: ProjectResponse 
   const [extraPhotoPreviewUrls, setExtraPhotoPreviewUrls] = useState<string[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    setExisting(null);
-    getDailyCommonTasks(date)
-      .then((entries) => setExisting(entries.find((e) => e.taskType === "READING") ?? null))
-      .catch(() => {
-        // A failed load here just means the section starts as "not recorded yet" - the
-        // save call below will still work, and a retry naturally happens on next visit.
-      })
-      .finally(() => setLoading(false));
-  }, [date]);
-
-  useEffect(() => {
-    getActiveReadingBook(date)
-      .then((book) => {
+    Promise.all([getDailyCommonTasks(date), getActiveReadingBook(date)])
+      .then(([entries, book]) => {
+        if (cancelled) return;
+        const saved = entries.find((entry) => entry.taskType === "READING") ?? null;
         setActiveBook(book);
-        // 오늘 아직 기록이 없다면 시작 페이지를 이 책의 마지막 기록 페이지로 미리 채워준다
-        // (이어쓰기). 이미 사용자가 입력을 시작했다면 건드리지 않는다.
+        setExisting(saved && (readOnly || !saved.bookTitle || saved.bookTitle === book.title) ? saved : null);
         setStartPage(String((book.lastEndPage ?? 0) + 1));
       })
-      .catch(() => {
-        setError("이전 독서 페이지를 불러오지 못했어요. 새로고침 후 다시 시도해주세요.");
-      });
-  }, []);
+      .catch(() => { if (!cancelled) setError("독서 기록을 불러오지 못했어요. 새로고침 후 다시 시도해주세요."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [date, readOnly]);
 
   // Object URLs aren't garbage-collected on their own - revoke the previous one whenever
   // the selected file changes or the card unmounts, so we don't leak blob URLs.
