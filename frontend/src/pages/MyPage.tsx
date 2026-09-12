@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   getActiveProject,
   getActiveReadingBook,
+  getReadingBookHistory,
   getProfileStats,
   registerReadingBook,
   updateInstagram,
@@ -29,6 +30,9 @@ export function MyPage() {
   // 독서 - 지금 읽고 있는 책 (2026-09: 완독 후 여기서 새 책을 등록하면 그 책으로 바로 활성화되고,
   // 이전 책은 자동으로 완독 처리된다. 병렬독서는 지원하지 않는다).
   const [readingBook, setReadingBook] = useState<ReadingBookResponse | null>(null);
+  const [completedBooks, setCompletedBooks] = useState<ReadingBookResponse[]>([]);
+  const [bookHistoryError, setBookHistoryError] = useState(false);
+  const loadBookHistory = () => getReadingBookHistory().then((books) => { setCompletedBooks(books.filter((book) => book.status === "COMPLETED")); setBookHistoryError(false); }).catch(() => setBookHistoryError(true));
   const [readingBookLoading, setReadingBookLoading] = useState(true);
   const [registeringBook, setRegisteringBook] = useState(false);
   const [newBookTitle, setNewBookTitle] = useState("");
@@ -55,6 +59,7 @@ export function MyPage() {
       })
       .catch(() => setError("정보를 불러오지 못했어요."));
     loadReadingBook();
+    loadBookHistory();
   }, [user]);
 
   const startRegisteringBook = () => {
@@ -73,6 +78,7 @@ export function MyPage() {
     try {
       const created = await registerReadingBook(newBookTitle.trim());
       setReadingBook(created);
+      await loadBookHistory();
       setRegisteringBook(false);
       showToast("새 책이 등록되었어요. 오늘부터 이 책으로 기록해주세요!");
     } catch (err) {
@@ -243,7 +249,7 @@ export function MyPage() {
           )}
         </div>
         <p className="muted" style={{ margin: 0 }}>
-          한 번에 한 권만 활성화돼요 (병렬독서는 지원하지 않아요). 새 책을 등록하면 지금 책은
+          새 책을 등록하면 지금 책은
           자동으로 완독 처리되고, 오늘의 독서 기록부터 새 책 기준으로 이어서 쓸 수 있어요.
         </p>
 
@@ -281,6 +287,16 @@ export function MyPage() {
           </div>
         )}
       </div>
+
+      <section className="card stack" style={{ gap: 12, marginTop: 16 }}>
+        <strong>다 읽은 책</strong>
+        {bookHistoryError ? <p className="muted">완독한 책을 불러오지 못했어요. 잠시 후 다시 확인해주세요.</p> : completedBooks.length === 0 ? <p className="muted">아직 완독한 책이 없어요.</p> : completedBooks.map((book) => (
+          <div className="row-between" key={book.id}>
+            <strong>{book.title || "제목 없는 책"}</strong>
+            <span className="muted">{book.completedAt} 완독</span>
+          </div>
+        ))}
+      </section>
 
       {project && project.goals.length > 0 && (
         <section className="section" style={{ marginTop: 28 }}>
