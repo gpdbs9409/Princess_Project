@@ -23,12 +23,12 @@ export function dailyMaxByGoal(project: ProjectResponse | null): Record<string, 
 
 // 자본별 고정 색상 (2026-09, 필라이즈 참고 요청) - 매번 같은 자본이 같은 색으로 보이도록 고정한다.
 export const CAPITAL_COLORS: Record<string, string> = {
-  physical: "var(--good)",
-  economy: "#858C6C",
-  culture: "#B77E6D",
+  physical: "#465775",
+  economy: "#60748B",
+  culture: "#A4899E",
   knowledge: "#91809E",
   language: "#7995A3",
-  psychology: "#BF9B65",
-  symbol: "#877466",
+  psychology: "#9AAAC0",
+  symbol: "#6C6784",
   common: "var(--accent)",
 };
