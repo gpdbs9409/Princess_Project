@@ -44,12 +44,10 @@
 - AI 피드백으로 하루의 실천을 돌아보고 다음 행동의 방향을 잡습니다.
 - 대시보드에서 오늘의 점수·달성률과 이번 주의 성장 흐름을 확인합니다.
 
-<details>
+
 <summary>데일리 인증 화면 보기</summary>
 
 ![데일리 미션 인증 화면](docs/images/feature-01-diary.png)
-
-</details>
 
 ### 2. 아비투스 7자본 — 나만의 캐릭터와 미션 설계
 
@@ -63,12 +61,11 @@
 
 공유하고 싶은 일상, 이번 주 회고, 다음 주 계획을 기록합니다. 이전 회고를 다시 읽으며 자신의 변화와 다음 실천을 연결할 수 있습니다.
 
-<details>
+
 <summary>주간 회고 화면 보기</summary>
 
 ![주간 회고 작성 및 지난 회고 조회](docs/images/screen-weekly-retrospective.png)
 
-</details>
 
 ## 앞으로의 확장 — 엔딩 리포트
 
