@@ -15,7 +15,6 @@
 | 김혜윤 |
 | :---: |
 | 기획 · Full-Stack · Infra |
-| [gpdbs9409](https://github.com/gpdbs9409) |
 
 ### 개발 기간 및 서비스
 
