@@ -114,13 +114,6 @@ AI 모델명은 현재 코드의 기본 설정 기준이며, 환경변수로 변
 
 [![프린세스 프로젝트 전체 ERD](docs/images/erd.png)](docs/images/erd.svg)
 
-이미지를 클릭하면 확대 가능한 SVG 원본을 볼 수 있습니다.
-
-- [전체 컬럼·ENUM·복합 UNIQUE·CHECK·인덱스 상세 명세](docs/schema-details.md)
-- [편집 가능한 DBML 원본](docs/schema.dbml)
-- [고해상도 PNG](docs/images/erd.png) · [SVG 원본](docs/images/erd.svg)
-
-실선은 JPA 연관관계, 점선은 기존 SQL에만 선언된 FK입니다. 현재 모델과 기존 SQL의 제약조건 차이는 상세 명세에 구분해 기록했습니다.
 
 ---
 
