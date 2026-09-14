@@ -37,3 +37,9 @@ out/
 ### VS Code ###
 .vscode/
 .vercel
+
+### Personal / Claude assistant (not part of the app) ###
+# docs 전체 (스펙/블로그초안/이력서/면접준비 등 - 실서버 코드/빌드와 무관한 개인 문서)
+docs/
+# Claude Code 로컬 설정 및 대화 관련 파일
+.claude/
