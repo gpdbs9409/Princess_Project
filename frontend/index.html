@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Princess Diary</title>
+    <!-- Google tag (gtag.js): initialize before the React app starts. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA_MEASUREMENT_ID%"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        window.dataLayer.push(arguments);
+      }
+      window.gtag = gtag;
+      gtag("js", new Date());
+      // React sends page_view for the initial URL and every SPA route change.
+      gtag("config", "%VITE_GA_MEASUREMENT_ID%", { send_page_view: false });
+    </script>
     <!-- iOS Safari "홈 화면에 추가" 아이콘 - 지정 안 돼 있으면 "P" 글자 플레이스홀더로 뜬다.
          2026-08-21: 현지님 드라이브의 icon7_v4.png(크라운 아이콘)로 반영 요청. -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

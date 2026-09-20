@@ -15,19 +15,16 @@ export function initAnalytics() {
   if (!MEASUREMENT_ID || initialized) return;
   initialized = true;
 
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`;
-  document.head.appendChild(script);
-
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag(...args: unknown[]) {
-    window.dataLayer.push(args);
-  };
-  window.gtag("js", new Date());
-  // send_page_view: false - this is an SPA, so we fire page_view ourselves on every route
-  // change (see trackPageView) instead of relying on gtag's one-shot initial pageview.
-  window.gtag("config", MEASUREMENT_ID, { send_page_view: false });
+  // The standard Google tag is initialized in index.html before React starts.
+  // Keep a fallback for tests or non-standard hosts that omit the HTML snippet.
+  if (!window.gtag) {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function gtag(...args: unknown[]) {
+      window.dataLayer.push(args);
+    };
+    window.gtag("js", new Date());
+    window.gtag("config", MEASUREMENT_ID, { send_page_view: false });
+  }
 }
 
 export function trackPageView(path: string) {
