@@ -107,5 +107,8 @@ class EndingCalculatorTest {
         assertThat(EndingSchedule.isEarlyReveal("production", "dev")).isFalse();
         assertThat(EndingSchedule.isEarlyReveal("", "dev")).isFalse();
         assertThat(EndingSchedule.isEarlyReveal(null, "dev")).isFalse();
+        assertThat(EndingSchedule.isDevDomain("backend-dev-0226.up.railway.app")).isTrue();
+        assertThat(EndingSchedule.isDevDomain("backend-production-e551.up.railway.app")).isFalse();
+        assertThat(EndingSchedule.isDevDomain("")).isFalse();
     }
 }

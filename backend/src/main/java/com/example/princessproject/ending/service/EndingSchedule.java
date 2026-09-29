@@ -31,8 +31,9 @@ public class EndingSchedule {
 
     /**
      * dev 조기 공개 (2026-09-29 요청): Railway가 자동으로 넣어주는 RAILWAY_ENVIRONMENT_NAME이
-     * ending.early-reveal-environments 목록(기본 "dev")에 있으면 공개 시각을 산정 기간 다음 날로
-     * 앞당겨 지금 바로 엔딩을 확인할 수 있게 한다. production 환경 이름은 목록에 없으므로 운영은
+     * ending.early-reveal-environments 목록(기본 "dev")에 있으면 공개 시각을 (ending.early-reveal-at, 기본 9/29 00:00)으로
+     * 앞당겨 지금 바로 엔딩을 확인할 수 있게 한다. Railway 환경 이름이 다를 경우를 대비해
+     * RAILWAY_PUBLIC_DOMAIN이 backend-dev로 시작해도 dev로 본다. production 환경 이름은 목록에 없으므로 운영은
      * 항상 10/1 00:00 공개 그대로다. 운영 종료(close-at) 시각은 어느 환경이든 바꾸지 않는다.
      */
     @Autowired
@@ -42,13 +43,20 @@ public class EndingSchedule {
             @Value("${ending.reveal-at:2026-10-01T00:00:00}") String revealAt,
             @Value("${ending.close-at:2026-10-21T00:00:00}") String closeAt,
             @Value("${RAILWAY_ENVIRONMENT_NAME:}") String environmentName,
-            @Value("${ending.early-reveal-environments:dev}") String earlyRevealEnvironments
+            @Value("${RAILWAY_PUBLIC_DOMAIN:}") String publicDomain,
+            @Value("${ending.early-reveal-environments:dev}") String earlyRevealEnvironments,
+            @Value("${ending.early-reveal-at:2026-09-29T00:00:00}") String earlyRevealAt
     ) {
         this(LocalDate.parse(periodStart), LocalDate.parse(periodEnd),
-                isEarlyReveal(environmentName, earlyRevealEnvironments)
-                        ? LocalDate.parse(periodEnd).plusDays(1).atStartOfDay()
+                isEarlyReveal(environmentName, earlyRevealEnvironments) || isDevDomain(publicDomain)
+                        ? LocalDateTime.parse(earlyRevealAt)
                         : LocalDateTime.parse(revealAt),
                 LocalDateTime.parse(closeAt), Clock.system(SEOUL));
+    }
+
+    /** dev 백엔드 도메인(backend-dev-xxxx.up.railway.app) 보조 판별. 운영은 backend-production-xxxx. */
+    static boolean isDevDomain(String publicDomain) {
+        return publicDomain != null && publicDomain.trim().toLowerCase().startsWith("backend-dev");
     }
 
     static boolean isEarlyReveal(String environmentName, String earlyRevealEnvironments) {
