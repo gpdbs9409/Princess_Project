@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ApiError } from "../api/client";
+import { ApiError, SERVICE_CLOSED_FLAG } from "../api/client";
 import {
   confirmEmailVerification,
   getActiveProject,
@@ -27,6 +27,16 @@ export function LoginPage() {
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 운영 종료 안내 (10/21 00:00 KST~) - 로그인 시도 또는 기존 세션이 차단돼 넘어온 경우
+  const [serviceClosed, setServiceClosed] = useState(() => {
+    try {
+      const flagged = sessionStorage.getItem(SERVICE_CLOSED_FLAG) === "1";
+      sessionStorage.removeItem(SERVICE_CLOSED_FLAG);
+      return flagged;
+    } catch {
+      return false;
+    }
+  });
 
   // 이메일 인증 (2026-08-26 요청: 이메일 선택 -> 필수, 인증에 성공해야만 회원가입 버튼이 풀린다).
   // verifiedToken은 이메일이 바뀌면 더 이상 그 이메일에 대해 유효하지 않으므로, 이메일을 다시
@@ -153,7 +163,9 @@ export function LoginPage() {
         navigate("/dashboard");
       }
     } catch (err) {
-      if (err instanceof ApiError && mode === "login" && err.code === "NICKNAME_NOT_FOUND") {
+      if (err instanceof ApiError && err.code === "SERVICE_CLOSED") {
+        setServiceClosed(true);
+      } else if (err instanceof ApiError && mode === "login" && err.code === "NICKNAME_NOT_FOUND") {
         setError("존재하지 않는 닉네임이에요. 닉네임을 다시 확인하거나 회원가입해주세요.");
       } else if (err instanceof ApiError && mode === "login" && err.status === 401) {
         setError("비밀번호가 올바르지 않아요.");
@@ -326,6 +338,23 @@ export function LoginPage() {
           </Link>
         )}
       </form>
+
+      {serviceClosed && (
+        <div className="modal-overlay" role="alertdialog" aria-modal="true" aria-labelledby="service-closed-title">
+          <div className="modal-card">
+            <p id="service-closed-title" style={{ margin: 0, lineHeight: 1.6 }}>
+              <strong>프린세스 프로젝트 1기</strong>
+              <br />
+              운영이 종료되었어요.
+              <br />
+              함께해 주셔서 감사합니다.
+            </p>
+            <button type="button" className="primary" onClick={() => setServiceClosed(false)}>
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -18,4 +18,7 @@ public interface WeeklyMvpRepository extends JpaRepository<WeeklyMvp, Long> {
     List<WeeklyMvp> findByCohortAndUserId(String cohort, Long userId);
 
     boolean existsByUserId(Long userId);
+
+    // 엔딩 산정용 - MVP 성장권(최종 등급 +1) 보유 여부.
+    List<WeeklyMvp> findByUserId(Long userId);
 }

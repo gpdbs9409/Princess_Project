@@ -321,9 +321,21 @@ public class DailyRecordService {
     // Not readOnly: same reason as getMissionProgress above.
     @Transactional
     public MissionProgress getWeekTotalProgress(Long userId, LocalDate weekStart) {
+        return getPeriodTotalProgress(userId, weekStart, weekStart.plusDays(6));
+    }
+
+    /**
+     * {@link #getWeekTotalProgress}와 같은 계산을 임의의 기간(start~end, 양끝 포함)에 대해 한다.
+     * 엔딩 산정(2026-09)처럼 월요일 경계와 맞지 않는 기간(예: 9/1(화)~9/6)을 잘라 합산할 때 쓴다.
+     * 만점도 기간 일수 × 하루 만점으로 계산한다.
+     */
+    @Transactional
+    public MissionProgress getPeriodTotalProgress(Long userId, LocalDate start, LocalDate end) {
         UserProject project = userProjectService.getOrCreateActive(userId);
         List<ActiveMission> activeMissions = flattenScoredMissions(project);
-        LocalDate weekEnd = weekStart.plusDays(6);
+        LocalDate weekStart = start;
+        LocalDate weekEnd = end;
+        long periodDays = java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
 
         List<DailyRecord> records = dailyRecordRepository.findByUserIdAndRecordDateBetween(userId, weekStart, weekEnd);
         List<CommonTaskRecord> commonRecords = latestCommonRecords(commonTaskRecordRepository
@@ -358,7 +370,7 @@ public class DailyRecordService {
 
         // 주간 만점 = 하루 만점 × 7. 하루 만점이 100으로 고정이라 주간도 700으로 고정된다.
         BigDecimal maxPossible = (activeMissions.isEmpty() ? COMMON_TASK_TOTAL_POINTS : DAILY_MAX_POINTS)
-                .multiply(BigDecimal.valueOf(7));
+                .multiply(BigDecimal.valueOf(Math.max(0, periodDays)));
 
 
         // 이 저장소에는 점수가 붙는 일일 독서·공부만 존재한다. 주간 회고는 별도 저장소다.
