@@ -29,15 +29,36 @@ public class EndingSchedule {
     private final LocalDateTime closeAt;
     private final Clock clock;
 
+    /**
+     * dev 조기 공개 (2026-09-29 요청): Railway가 자동으로 넣어주는 RAILWAY_ENVIRONMENT_NAME이
+     * ending.early-reveal-environments 목록(기본 "dev")에 있으면 공개 시각을 산정 기간 다음 날로
+     * 앞당겨 지금 바로 엔딩을 확인할 수 있게 한다. production 환경 이름은 목록에 없으므로 운영은
+     * 항상 10/1 00:00 공개 그대로다. 운영 종료(close-at) 시각은 어느 환경이든 바꾸지 않는다.
+     */
     @Autowired
     public EndingSchedule(
             @Value("${ending.period-start:2026-09-01}") String periodStart,
             @Value("${ending.period-end:2026-09-27}") String periodEnd,
             @Value("${ending.reveal-at:2026-10-01T00:00:00}") String revealAt,
-            @Value("${ending.close-at:2026-10-21T00:00:00}") String closeAt
+            @Value("${ending.close-at:2026-10-21T00:00:00}") String closeAt,
+            @Value("${RAILWAY_ENVIRONMENT_NAME:}") String environmentName,
+            @Value("${ending.early-reveal-environments:dev}") String earlyRevealEnvironments
     ) {
         this(LocalDate.parse(periodStart), LocalDate.parse(periodEnd),
-                LocalDateTime.parse(revealAt), LocalDateTime.parse(closeAt), Clock.system(SEOUL));
+                isEarlyReveal(environmentName, earlyRevealEnvironments)
+                        ? LocalDate.parse(periodEnd).plusDays(1).atStartOfDay()
+                        : LocalDateTime.parse(revealAt),
+                LocalDateTime.parse(closeAt), Clock.system(SEOUL));
+    }
+
+    static boolean isEarlyReveal(String environmentName, String earlyRevealEnvironments) {
+        if (environmentName == null || environmentName.isBlank() || earlyRevealEnvironments == null) {
+            return false;
+        }
+        for (String name : earlyRevealEnvironments.split(",")) {
+            if (!name.isBlank() && name.trim().equalsIgnoreCase(environmentName.trim())) return true;
+        }
+        return false;
     }
 
     public EndingSchedule(

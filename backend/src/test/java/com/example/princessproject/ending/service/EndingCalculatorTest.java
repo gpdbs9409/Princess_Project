@@ -99,4 +99,13 @@ class EndingCalculatorTest {
         assertThat(at.apply(close.minusSeconds(1))).isEqualTo(EndingPhase.REVEALED);
         assertThat(at.apply(close)).isEqualTo(EndingPhase.CLOSED);
     }
+
+    @Test
+    void earlyRevealOnlyForListedEnvironments() {
+        assertThat(EndingSchedule.isEarlyReveal("dev", "dev")).isTrue();
+        assertThat(EndingSchedule.isEarlyReveal("DEV", "dev")).isTrue();
+        assertThat(EndingSchedule.isEarlyReveal("production", "dev")).isFalse();
+        assertThat(EndingSchedule.isEarlyReveal("", "dev")).isFalse();
+        assertThat(EndingSchedule.isEarlyReveal(null, "dev")).isFalse();
+    }
 }
