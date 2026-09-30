@@ -113,7 +113,10 @@ public class EndingService {
                     weekIndex, adjustment.getStatTypeCode(), adjustment.getPoints()));
         }
 
-        boolean mvp = false;
+        // 운영자가 확인한 1기 MVP 명단과 주간 MVP 기록을 합집합으로 적용한다.
+        // boolean 하나로 전달하므로 양쪽에 등록되어 있어도 승급은 한 번뿐이다.
+        boolean mvp = EndingMvpOverrides.appliesTo(
+                user.getId(), user.getCohort(), schedule.periodStart(), schedule.periodEnd());
         for (WeeklyMvp weeklyMvp : weeklyMvpRepository.findByUserId(userId)) {
             if (weekIndexOf(ranges, weeklyMvp.getWeekStart()) != null) {
                 mvp = true;
