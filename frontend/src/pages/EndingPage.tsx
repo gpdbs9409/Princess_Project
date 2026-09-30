@@ -175,11 +175,9 @@ function Revealed({ nickname }: { nickname: string }) {
         )}
       </div>
 
-      {ending && (ending.mvpApplied || ending.mvpTeaTime) && (
+      {ending?.mvpApplied && (
         <p className="ending-mvp-note">
-          {ending.mvpApplied
-            ? "✦ 주간 MVP 성장권으로 결말이 한 단계 올라갔어요"
-            : "✦ 이미 공주 엔딩이라, MVP 성장권은 티타임으로 안내드릴게요"}
+          ✦ 주간 MVP 성장권으로 결말이 한 단계 올라갔어요
         </p>
       )}
 
