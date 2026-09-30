@@ -1,5 +1,7 @@
 package com.example.princessproject.auth.service;
 
+import com.example.princessproject.ending.service.EndingSchedule;
+import com.example.princessproject.ending.service.ServiceClosedException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,9 +26,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final EndingSchedule endingSchedule;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, EndingSchedule endingSchedule) {
         this.jwtService = jwtService;
+        this.endingSchedule = endingSchedule;
     }
 
     @Override
@@ -38,6 +42,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Long userId = jwtService.parseUserId(token);
             if (userId != null) {
                 String role = jwtService.parseRole(token);
+                // 운영 종료(10/21 00:00 KST~) 후에는 이미 로그인돼 있던 세션도 다음 API 요청에서
+                // 막는다 (화면설계서 10p). 관리자는 운영 확인을 위해 계속 허용한다.
+                if (!"ADMIN".equals(role) && isBlockedWhenClosed(request) && endingSchedule.isClosed()) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"code\":\"" + ServiceClosedException.CODE
+                            + "\",\"message\":\"Service closed\"}");
+                    return;
+                }
                 List<SimpleGrantedAuthority> authorities = role != null
                         ? List.of(new SimpleGrantedAuthority("ROLE_" + role))
                         : List.of();
@@ -46,5 +59,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private static boolean isBlockedWhenClosed(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return uri != null && uri.startsWith("/api/") && !uri.startsWith("/api/auth/");
     }
 }

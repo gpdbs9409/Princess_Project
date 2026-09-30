@@ -14,6 +14,8 @@ import type {
   WeeklyRetrospectiveRequest,
   WeeklyRetrospectiveResponse,
   DailySummaryResponse,
+  EndingResponse,
+  EndingStatusResponse,
   LoginResponse,
   AiFeedbackResponse,
   AiFeedbackHistoryEntry,
@@ -218,3 +220,10 @@ export const updateRecruitmentApplicant = (id: number, payload: RecruitmentAppli
 
 export const deleteRecruitmentApplicant = (id: number) =>
   api.del<void>(`/api/admin/recruitment-applicants/${id}`);
+
+// 공주 엔딩 - preview는 관리자 미리보기(공개일 전 dev 검증용)이며 서버가 관리자에게만 적용한다.
+export const getEndingStatus = (preview = false) =>
+  api.get<EndingStatusResponse>(`/api/ending/status${preview ? "?preview=true" : ""}`);
+
+export const getEnding = (preview = false) =>
+  api.get<EndingResponse>(`/api/ending${preview ? "?preview=true" : ""}`);

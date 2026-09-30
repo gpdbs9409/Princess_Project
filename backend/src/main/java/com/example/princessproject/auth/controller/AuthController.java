@@ -1,5 +1,8 @@
 package com.example.princessproject.auth.controller;
 
+import com.example.princessproject.ending.service.EndingSchedule;
+import com.example.princessproject.ending.service.ServiceClosedException;
+import com.example.princessproject.user.model.Role;
 import com.example.princessproject.user.model.User;
 import com.example.princessproject.user.service.UserService;
 import com.example.princessproject.auth.service.EmailVerificationService;
@@ -32,17 +35,20 @@ public class AuthController {
     private final JwtService jwtService;
     private final PasswordResetService passwordResetService;
     private final EmailVerificationService emailVerificationService;
+    private final EndingSchedule endingSchedule;
 
     public AuthController(
             UserService userService,
             JwtService jwtService,
             PasswordResetService passwordResetService,
-            EmailVerificationService emailVerificationService
+            EmailVerificationService emailVerificationService,
+            EndingSchedule endingSchedule
     ) {
         this.userService = userService;
         this.jwtService = jwtService;
         this.passwordResetService = passwordResetService;
         this.emailVerificationService = emailVerificationService;
+        this.endingSchedule = endingSchedule;
     }
 
     // 이메일 인증 코드 발급 (2026-08-26) - 가입 전이라 계정이 아직 없으므로 이메일 문자열만으로 요청한다.
@@ -62,6 +68,9 @@ public class AuthController {
     // 이메일 인증(verifiedToken)을 통과해야만 가입이 완료된다 (2026-08-26).
     @PostMapping("/signup")
     public LoginResponse signup(@Valid @RequestBody SignupRequest request) {
+        if (endingSchedule.isClosed()) {
+            throw new ServiceClosedException();
+        }
         User user = userService.signup(
                 request.nickname(), request.password(), request.email(), request.emailVerificationToken(),
                 request.instagram());
@@ -75,6 +84,20 @@ public class AuthController {
      */
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
+        // 운영 종료(10/21 00:00 KST~) 이후에는 관리자만 로그인할 수 있다 (화면설계서 10p).
+        // 참가자에게는 비밀번호가 맞든 틀리든 운영 종료 안내만 보여준다.
+        if (endingSchedule.isClosed()) {
+            User user;
+            try {
+                user = userService.authenticate(request.nickname(), request.password());
+            } catch (RuntimeException e) {
+                throw new ServiceClosedException();
+            }
+            if (user.getRole() != Role.ADMIN) {
+                throw new ServiceClosedException();
+            }
+            return new LoginResponse(jwtService.generateToken(user), UserResponse.from(user));
+        }
         User user = userService.authenticate(request.nickname(), request.password());
         String token = jwtService.generateToken(user);
         return new LoginResponse(token, UserResponse.from(user));

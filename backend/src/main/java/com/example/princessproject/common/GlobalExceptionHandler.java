@@ -31,6 +31,19 @@ public class GlobalExceptionHandler {
         return new ApiErrorResponse(ex.getCode(), ex.getMessage());
     }
 
+    @ExceptionHandler(com.example.princessproject.ending.service.ServiceClosedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiErrorResponse onServiceClosed(com.example.princessproject.ending.service.ServiceClosedException ex) {
+        return new ApiErrorResponse(com.example.princessproject.ending.service.ServiceClosedException.CODE, ex.getMessage());
+    }
+
+    @ExceptionHandler(com.example.princessproject.ending.service.EndingException.class)
+    public org.springframework.http.ResponseEntity<ApiErrorResponse> onEnding(
+            com.example.princessproject.ending.service.EndingException ex) {
+        return org.springframework.http.ResponseEntity.status(ex.getStatus())
+                .body(new ApiErrorResponse(ex.getCode(), ex.getMessage()));
+    }
+
     @ExceptionHandler(AdminValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiErrorResponse onAdminValidation(AdminValidationException ex) {

@@ -18,6 +18,9 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { StatFocusPage } from "./pages/StatFocusPage";
 import { MyPage } from "./pages/MyPage";
 import { AdminPage } from "./pages/AdminPage";
+import { EndingPage } from "./pages/EndingPage";
+import { EndingRevealPopup } from "./components/EndingRevealPopup";
+import { syncEndingPreviewFromUrl } from "./lib/ending";
 import { initAnalytics, trackPageView } from "./lib/analytics";
 
 function App() {
@@ -34,6 +37,11 @@ function App() {
     trackPageView(location.pathname + location.search);
   }, [location]);
 
+  // 관리자 엔딩 미리보기 플래그 (?endingPreview=1 / 0) - 공개일 전 dev 검증용
+  useEffect(() => {
+    syncEndingPreviewFromUrl(location.search);
+  }, [location.search]);
+
   // React Router keeps the document's scroll position between routes. The butler history is
   // intentionally scrollable and can leave the document far below the top; without resetting,
   // the next page (and especially a modal opened there) appears displaced relative to the user's
@@ -49,6 +57,7 @@ function App() {
           별도 URL 없이 로그인 화면 위에만 뜬다 (2026-08-13 온보딩 회의 결정사항). */}
       {!token && location.pathname === "/login" && <OnboardingBridge />}
       <NavBar />
+      {token && <EndingRevealPopup />}
       <Routes>
         <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
         {/* Ungated (not wrapped in RequireAuth, not gated on token) - a signed-in user
@@ -84,6 +93,14 @@ function App() {
           element={
             <RequireAuth>
               <DashboardPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/ending"
+          element={
+            <RequireAuth>
+              <EndingPage />
             </RequireAuth>
           }
         />

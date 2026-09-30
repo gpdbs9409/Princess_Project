@@ -21,6 +21,25 @@ function getToken(): string | null {
 // the stale session and sends the user back to /login so they can sign back in immediately
 // instead of staring at a broken screen. /api/auth/* is excluded - a 401 there just means
 // "wrong password" on the login form itself, not an expired session.
+// 10/21 00:00(KST) 운영 종료 이후엔 서버가 기존 세션 요청도 SERVICE_CLOSED(403)로 막는다.
+// 세션을 정리하고 로그인 화면에서 운영 종료 안내 팝업을 띄운다 (화면설계서 10p).
+export const SERVICE_CLOSED_FLAG = "princess_service_closed";
+
+function handleServiceClosed() {
+  localStorage.removeItem("princess_token");
+  localStorage.removeItem("princess_user");
+  try {
+    sessionStorage.setItem(SERVICE_CLOSED_FLAG, "1");
+  } catch {
+    // ignore
+  }
+  if (!window.location.pathname.startsWith("/login")) {
+    window.location.href = "/login";
+  } else {
+    window.location.reload();
+  }
+}
+
 function handleUnauthorized() {
   localStorage.removeItem("princess_token");
   localStorage.removeItem("princess_user");
@@ -63,6 +82,9 @@ async function request<T>(
       } catch {
         // not a JSON body - fall back to raw text
       }
+    }
+    if (res.status === 403 && code === "SERVICE_CLOSED" && !path.startsWith("/api/auth/")) {
+      handleServiceClosed();
     }
     throw new ApiError(res.status, message, code);
   }

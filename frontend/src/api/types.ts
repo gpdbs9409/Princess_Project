@@ -426,3 +426,37 @@ export interface WeeklyRetrospectiveResponse {
   retroNextWeekPlan: string | null;
   createdAt: string;
 }
+
+// ---- 공주 엔딩 (화면설계서 v0.2, 2026-09) ----
+export type EndingPhase = "BEFORE_REVEAL" | "REVEALED" | "CLOSED";
+
+export interface EndingStatusResponse {
+  phase: EndingPhase;
+  serverNow: string;
+  revealAt: string;
+  closeAt: string;
+  preview: boolean;
+}
+
+export interface EndingWeek {
+  week: number;
+  start: string;
+  end: string;
+  /** 소문자 자본 키(physical...) + common → 그 주의 점수 */
+  scores: Record<string, number>;
+}
+
+export interface EndingResponse {
+  nickname: string;
+  capital: GoalTypeCode;
+  /** 1 각성한 조연 · 2 영애 · 3 공녀 · 4 대공녀 · 5 공주 (MVP 반영 후) */
+  stage: number;
+  grade: string;
+  baseStage: number;
+  score100: number;
+  mvpApplied: boolean;
+  mvpTeaTime: boolean;
+  /** 선택 3자본(대문자) + "common" */
+  seriesKeys: string[];
+  weeks: EndingWeek[];
+}

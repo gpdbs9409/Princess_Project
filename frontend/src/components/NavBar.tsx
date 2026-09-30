@@ -1,9 +1,23 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { ENDING_VISITED_EVENT, useEndingStatus, visitedEndingToday } from "../lib/ending";
 
 export function NavBar() {
   const { user, signOut } = useAuth();
+  const { status } = useEndingStatus(!!user);
+  const [, setVisitTick] = useState(0);
+
+  useEffect(() => {
+    const onVisited = () => setVisitTick((n) => n + 1);
+    window.addEventListener(ENDING_VISITED_EVENT, onVisited);
+    return () => window.removeEventListener(ENDING_VISITED_EVENT, onVisited);
+  }, []);
+
   if (!user) return null;
+
+  // 공개 기간(10/1~)에는 그날 엔딩 페이지에 처음 들어가기 전까지 N 뱃지 노출
+  const showNewBadge = status?.phase === "REVEALED" && !visitedEndingToday(user.id);
 
   return (
     <nav className="topnav">
@@ -31,6 +45,16 @@ export function NavBar() {
           </NavLink>
           <NavLink to="/dashboard" className={({ isActive }) => (isActive ? "link active" : "link")}>
             대시보드
+          </NavLink>
+          {/* 공주 엔딩 (2026-09 화면설계서 v0.2) - 대시보드 다음, 로그인 가능 기간 상시 노출.
+              10/1 전에는 공개 전 페이지, 10/1~10/20엔 엔딩 페이지를 같은 경로에서 분기한다. */}
+          <NavLink to="/ending" className={({ isActive }) => (isActive ? "link active" : "link")}>
+            엔딩 확인하기
+            {showNewBadge && (
+              <span className="nav-new-badge" aria-label="새 소식">
+                N
+              </span>
+            )}
           </NavLink>
           <NavLink to="/my-page" className={({ isActive }) => (isActive ? "link active" : "link")}>
             마이페이지
