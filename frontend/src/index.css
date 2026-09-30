@@ -2163,58 +2163,6 @@ a.button-link.primary {
   width: 100%;
 }
 
-/* UI-0X-02-P01 공유 대체 팝업: 모바일은 바텀시트, PC는 가운데 팝업 */
-.ending-sheet-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 110;
-  background: rgba(29, 26, 23, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-.ending-sheet {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  width: 100%;
-  max-width: 340px;
-  padding: 22px 20px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  text-align: center;
-}
-.ending-sheet-preview {
-  width: 120px;
-  margin: 0 auto 4px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
-.ending-sheet-title {
-  font-weight: 700;
-  line-height: 1.5;
-  margin: 0 0 6px;
-}
-@media (max-width: 640px) {
-  .ending-sheet-overlay {
-    align-items: flex-end;
-    padding: 0;
-  }
-  .ending-sheet {
-    max-width: none;
-    border-radius: 18px 18px 0 0;
-    border-bottom: none;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    animation: ending-sheet-up 0.22s ease;
-  }
-}
-@keyframes ending-sheet-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
 .ending-longpress img {
   width: 100%;
   max-height: 60vh;

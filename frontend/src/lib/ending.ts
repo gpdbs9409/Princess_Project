@@ -153,10 +153,6 @@ export function useEndingStatus(enabled: boolean) {
 
 // ---- 환경 ----
 
-export function isMobileDevice(): boolean {
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
 /** 카카오톡/인스타그램/네이버 등 인앱 브라우저 - 파일 다운로드가 막혀 있는 경우가 많다. */
 export function isInAppBrowser(): boolean {
   return /KAKAOTALK|Instagram|FBAN|FBAV|NAVER|Line\/|DaumApps|everytimeApp|; wv\)/i.test(navigator.userAgent);

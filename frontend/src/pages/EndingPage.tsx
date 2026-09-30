@@ -13,11 +13,10 @@ import {
   endingCardImage,
   isEndingPreview,
   isInAppBrowser,
-  isMobileDevice,
   markEndingVisited,
   useEndingStatus,
 } from "../lib/ending";
-import { downloadBlob, renderCardPng, renderStoryPng } from "../lib/endingImage";
+import { downloadBlob, renderCardPng } from "../lib/endingImage";
 
 const SLOW_LOADING_MS = 2000;
 const MAX_FAILURES_BEFORE_CONTACT = 2;
@@ -73,8 +72,6 @@ function BeforeReveal({ status }: { status: EndingStatusResponse }) {
 // UI-0X-02 엔딩 페이지
 // ---------------------------------------------------------------------------
 
-type SheetState = { blob: Blob; url: string } | null;
-
 function Revealed({ nickname }: { nickname: string }) {
   const { showToast } = useToast();
   const [ending, setEnding] = useState<EndingResponse | null>(null);
@@ -84,10 +81,8 @@ function Revealed({ nickname }: { nickname: string }) {
   const [failures, setFailures] = useState(0);
   const [showContact, setShowContact] = useState(false);
   const [flipped, setFlipped] = useState(false);
-  const [busy, setBusy] = useState<"save" | "share" | null>(null);
+  const [busy, setBusy] = useState<"save" | null>(null);
   const [longPressImage, setLongPressImage] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<SheetState>(null);
-  const [instagramAlert, setInstagramAlert] = useState(false);
   const failuresRef = useRef(0);
 
   const load = useCallback(() => {
@@ -144,70 +139,6 @@ function Revealed({ nickname }: { nickname: string }) {
     }
   };
 
-  const share = async () => {
-    if (!ending || busy) return;
-    setBusy("share");
-    let blob: Blob;
-    try {
-      blob = await renderStoryPng(cardSrc);
-    } catch {
-      showToast("이미지를 만들지 못했어요. 다시 시도해주세요");
-      setBusy(null);
-      return;
-    }
-    try {
-      const file = new File([blob], "princess-ending-story.png", { type: "image/png" });
-      const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
-      if (isMobileDevice() && nav.canShare?.({ files: [file] })) {
-        try {
-          await nav.share({ files: [file] });
-        } catch (err) {
-          // 사용자가 공유 시트를 닫은 경우(AbortError)는 조용히 넘어간다
-          if ((err as DOMException)?.name !== "AbortError") {
-            setSheet({ blob, url: URL.createObjectURL(blob) });
-          }
-        }
-      } else {
-        // OS 공유 시트 미지원 → UI-0X-02-P01 대체 팝업/바텀시트
-        setSheet({ blob, url: URL.createObjectURL(blob) });
-      }
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const saveStory = () => {
-    if (!sheet) return;
-    if (isInAppBrowser()) {
-      setLongPressImage(sheet.url);
-      return;
-    }
-    downloadBlob(sheet.blob, "princess-ending-story.png");
-    showToast("이미지가 저장되었어요");
-  };
-
-  const openInstagram = () => {
-    if (!isMobileDevice()) {
-      window.open("https://www.instagram.com/", "_blank", "noopener");
-      return;
-    }
-    let left = false;
-    const onHide = () => {
-      if (document.visibilityState === "hidden") left = true;
-    };
-    document.addEventListener("visibilitychange", onHide);
-    window.location.href = "instagram://story-camera";
-    setTimeout(() => {
-      document.removeEventListener("visibilitychange", onHide);
-      if (!left && document.visibilityState === "visible") setInstagramAlert(true);
-    }, 1600);
-  };
-
-  const closeSheet = () => {
-    if (sheet) URL.revokeObjectURL(sheet.url);
-    setSheet(null);
-  };
-
   return (
     <>
       <h1 className="ending-title">{nickname}님의 엔딩</h1>
@@ -253,11 +184,8 @@ function Revealed({ nickname }: { nickname: string }) {
       )}
 
       <div className="ending-actions">
-        <button type="button" className="ghost ending-action" disabled={!ending || busy !== null} onClick={saveCard}>
+        <button type="button" className="primary ending-action" disabled={!ending || busy !== null} onClick={saveCard}>
           {busy === "save" ? "저장 중..." : "이미지 저장"}
-        </button>
-        <button type="button" className="primary ending-action" disabled={!ending || busy !== null} onClick={share}>
-          {busy === "share" ? "만드는 중..." : "공유하기"}
         </button>
       </div>
 
@@ -277,29 +205,6 @@ function Revealed({ nickname }: { nickname: string }) {
         </div>
       </div>
 
-      {/* UI-0X-02-P01 공유 대체 팝업 (모바일: 바텀시트 / PC: 가운데 팝업) */}
-      {sheet && (
-        <div className="ending-sheet-overlay" role="dialog" aria-modal="true" aria-labelledby="ending-sheet-title" onClick={closeSheet}>
-          <div className="ending-sheet" onClick={(e) => e.stopPropagation()}>
-            <img className="ending-sheet-preview" src={sheet.url} alt="인스타그램 스토리용 이미지" />
-            <p id="ending-sheet-title" className="ending-sheet-title">
-              스토리용 이미지를
-              <br />
-              인스타그램에 올려주세요
-            </p>
-            <button type="button" className="ghost" onClick={saveStory}>
-              스토리 이미지 저장
-            </button>
-            <button type="button" className="primary" onClick={openInstagram}>
-              인스타그램 열기
-            </button>
-            <button type="button" className="link-button" onClick={closeSheet}>
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
-
       {longPressImage && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card ending-longpress">
@@ -309,21 +214,10 @@ function Revealed({ nickname }: { nickname: string }) {
               type="button"
               className="primary"
               onClick={() => {
-                if (!sheet || sheet.url !== longPressImage) URL.revokeObjectURL(longPressImage);
+                URL.revokeObjectURL(longPressImage);
                 setLongPressImage(null);
               }}
             >
-              확인
-            </button>
-          </div>
-        </div>
-      )}
-
-      {instagramAlert && (
-        <div className="modal-overlay" role="alertdialog" aria-modal="true">
-          <div className="modal-card">
-            <p style={{ margin: 0 }}>앱이 설치되지 않았습니다.</p>
-            <button type="button" className="primary" onClick={() => setInstagramAlert(false)}>
               확인
             </button>
           </div>
